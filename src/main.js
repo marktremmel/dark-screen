@@ -4,7 +4,7 @@ import { initRenderer, R } from './core/render.js';
 import { initAudio, updateListener, resumeAudio, stopAllLoops, music, AU } from './core/audio.js';
 import { ingestPack } from './core/assets.js';
 import { initHUD, loading, hud, clearHUDText, caption } from './core/hud.js';
-import { S, persist } from './core/state.js';
+import { S, persist, keyOK } from './core/state.js';
 import { IN, clearPressed, lockPointer, unlockPointer } from './core/player.js';
 import { titleScreen, calibrationScreen, applySettings, anyScreenOpen, pauseScreen } from './ui/screens.js';
 import { Hub } from './scenes/hub.js';
@@ -73,8 +73,13 @@ export async function goEpisode(n) {
 }
 G.goHub = goHub; G.goField = goField; G.goEpisode = goEpisode;
 // "Play the next episode" buttons follow the play order, not the internal numbers
-G.nextLabel = id => { const e = nextEp(id); return e ? `Play episode ${epPos(e.id)} now` : null; };
-G.goNext = async id => { const e = nextEp(id); G.returnFrom = e.id; await goEpisode(e.id); };
+// The debrief's "next episode" button respects the lesson codes: a locked episode sends you to its computer in the lab and asks for the code there.
+G.nextLabel = id => { const e = nextEp(id); if (!e) return null; return keyOK(e.id) ? `Play episode ${epPos(e.id)} now` : `Episode ${epPos(e.id)}: enter today's code`; };
+G.goNext = async id => {
+  const e = nextEp(id); G.returnFrom = e.id;
+  if (keyOK(e.id)) { await goEpisode(e.id); return; }
+  await goHub(); if (G.scene && G.scene.codeDialog) G.scene.codeDialog(e.id);
+};
 
 export function unlock() { G.expectUnlock = true; unlockPointer(); setTimeout(() => { G.expectUnlock = false; }, 300); }
 G.unlock = unlock;
