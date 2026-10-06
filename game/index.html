@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sötét Képernyő (Dark Screen)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hud" class="hidden">
+  <div id="checklist"></div>
+  <div id="objective"></div>
+  <div id="status">
+    <div id="eyebox" title="Noise: how much 'something' has heard you"><img id="eyeimg" alt=""><div id="eyefill"><div></div></div></div>
+    <div id="battbox" title="Flashlight battery"><span>Battery</span><div id="batt"><div id="battfill"></div></div></div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="prompt"><img id="ekey" alt="E"><span id="prompttext"></span></div>
+  <div id="toasts"></div>
+  <div id="captions"></div>
+  <div id="carry"></div>
+</div>
+<div id="overlay"></div>
+<div id="fade"><div id="fadetext"></div></div>
+<div id="flash"></div>
+<div id="saveicon"><img id="saveimg" alt="saved"></div>
+<div id="tooltip" role="tooltip"></div>
+<div id="loading"><div class="ltitle">SÖTÉT KÉPERNYŐ</div><div id="lbar"><div id="lfill"></div></div><div id="lmsg">Loading…</div></div>
+<script src="game.js"></script>
+</body>
+</html>

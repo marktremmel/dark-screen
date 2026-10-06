@@ -1,0 +1,4 @@
+node_modules/
+assets_src/
+build/
+.DS_Store

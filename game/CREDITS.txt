@@ -1,0 +1,46 @@
+SÖTÉT KÉPERNYŐ - credits
+
+Music
+  Music by Clement Panchout: "Space Horror InGame Music (Exploration)",
+  "Space Horror InGame Music (Tense)", "Dark", "Time Flies",
+  "Omno: Contemplative" (the meadow).
+  Ambience by CAPTNPHANTOM (PSX Ambient Pack).
+
+Sound effects
+  FilmCow Recorded SFX and FilmCow Designed SFX (filmcow.itch.io)
+  Helton Yan's Pixel Combat SFX (sparks, footsteps, interface sounds)
+
+3D models (used under their game licences; raw assets may not be redistributed)
+  House Props PSX pack
+  PSX House Interior Pack (incl. the teddy bear)
+  PSX Tech by Pizza Doggy
+  PSX First-Person Arms (itch.io)
+  PSX School Kit by heyheythere (heyheythere.itch.io)
+  Soviet Apartment Asset Pack by Ice Ching (PerdakGames)
+  PSX Characters (itch.io), animated with the Universal Animation Library
+  by Quaternius (CC0)
+  Stylized Nature MegaKit by Quaternius (CC0): trees, plants, rocks in the meadow
+
+Pictures
+  The painted pictures in the phone and laptop episodes were made for
+  this game with an image generator.
+
+Sky
+  Free Sky with Clouds Background Pixel Art Set by CraftPix.net
+
+Textures
+  Screaming Brain Studios - Tiny Texture Pack 2 (CC0)
+  Classic64 Asset Library by Craig Snedeker (CC0)
+
+Interface
+  UI Variations (HD horror UI pack)
+  m5x7 pixel font by Daniel Linssen
+
+Engine
+  three.js (MIT licence)
+
+Easter egg
+  The meadow after the finale links to "Still Alive" by Jonathan Coulton
+  (Portal, Valve 2007) on YouTube. The song is not included in the game.
+
+All apps, companies, people and messages in the game are invented.

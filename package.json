@@ -1,0 +1,13 @@
+{
+  "name": "dark-screen",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Sötét Képernyő (Dark Screen): a browser horror anthology about digital culture for grades 7-9.",
+  "scripts": {
+    "build": "bash build.sh"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.169.0"
+  }
+}
