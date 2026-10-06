@@ -216,6 +216,7 @@ export class Ep1 {
       }
       const glint = new THREE.Mesh(new THREE.OctahedronGeometry(0.022, 0), new THREE.MeshBasicMaterial({ color: 0xfff4c8 }));
       glint.position.set(sp.pos[0], sp.pos[1] + (k === 'cables' ? 0.42 : sp.box[1] + 0.12), sp.pos[2]); g.add(glint);
+      if (k === 'gpu') { glint.position.set(-1.3, 1.15, 0.78); glint.scale.setScalar(1.6); }
       this.pick[k] = { obj, glint, home: obj.position.clone() };
       if (sp.hidden) obj.visible = false;
     }
@@ -334,7 +335,7 @@ export class Ep1 {
       p.item = it.add(p.obj, lab, () => this.pickUp(k), () => this.st.phase === 'parts' && !this.st.fitted.includes(k) && this.st.carrying !== k && p.obj.visible);
     }
     it.add(this.wardrobe, () => this.st.carrying ? 'Wardrobe' : 'Open the wardrobe', () => {
-      if (this.st.phase !== 'parts' || this.st.fitted.includes('gpu') || this.st.carrying === 'gpu' || this.scare1.done) { play('closet', { vol: 0.5 }); caption('Just clothes. And the smell of mothballs.', 'say', 3); return; }
+      if (this.st.phase !== 'parts' || this.st.fitted.includes('gpu') || this.st.carrying === 'gpu') { play('closet', { vol: 0.5 }); caption('Just clothes. And the smell of mothballs.', 'say', 3); return; }
       play('closet', { vol: 0.8, pos: [-1.3, 1, 0.4] });
       if (this.st.carrying) { caption(`The graphics card box is in here, but your hands are full. Take the ${PARTS[this.st.carrying].name} to your desk first.`, 'say', 4); return; }
       this.pickUp('gpu');
@@ -495,6 +496,7 @@ export class Ep1 {
     const k = this.st.carrying; if (!k) return;
     const p = this.pick[k]; this.st.carrying = null; carry('');
     if (k !== 'gpu') { p.obj.visible = true; p.glint.visible = true; }
+    else caption('You put the graphics card box back in the wardrobe.', 'say', 3);
     this.updateChecklist();
   }
   stationLabel() {
@@ -774,11 +776,17 @@ export class Ep1 {
       caption('[the desk chair creaks… it\'s turned towards the door now]', 'sfx', 4);
       setTimeout(() => caption('I didn\'t move that.', 'say', 3), 2500);
     }
+    // the graphics card is the one part that isn't lying out in the open: if it stays missing, nudge, then mark the wardrobe
+    if (st.phase === 'parts' && !st.fitted.includes('gpu') && st.carrying !== 'gpu' && !this.inFit && st.fitted.length >= 3) {
+      st.gpuWait = (st.gpuWait || 0) + dt;
+      if (st.gpuWait > 30 && !st.gpuHint) { st.gpuHint = 1; play('closet', { vol: 0.35, pos: [-1.3, 1, 0.5] }); caption('The graphics card box is too big to roll under anything. Somewhere you could put a box away… the wardrobe?', 'say', 6); }
+      if (st.gpuWait > 75 && st.gpuHint === 1) { st.gpuHint = 2; play('closet', { vol: 0.5, pos: [-1.3, 1, 0.5] }); caption('The wardrobe door creaks open a little. Something is glinting inside.', 'say', 5); }
+    }
     // glints: only close up and in the flashlight beam (or a lit room)
     const gl = 0.6 + Math.sin(t * 4) * 0.4;
     const cam = this.G.camera, fwd = cam.getWorldDirection(this._fw || (this._fw = new THREE.Vector3()));
     const seen = (p) => { const d = this._tv || (this._tv = new THREE.Vector3()); d.copy(p).sub(cam.position); const dist = d.length(); if (dist > 3.6) return false; d.normalize(); return st.flashOn && this.flash.intensity > 0.5 ? d.dot(fwd) > 0.86 : false; };
-    for (const k of PART_ORDER) { const p = this.pick[k]; p.glint.rotation.y = t * 2; p.glint.scale.setScalar(gl); p.glint.visible = st.phase === 'parts' && !st.fitted.includes(k) && st.carrying !== k && k !== 'gpu' && seen(p.glint.position); }
+    for (const k of PART_ORDER) { const p = this.pick[k]; p.glint.rotation.y = t * 2; p.glint.scale.setScalar(gl * (k === 'gpu' ? 1.8 : 1)); p.glint.visible = st.phase === 'parts' && !st.fitted.includes(k) && st.carrying !== k && (k !== 'gpu' ? seen(p.glint.position) : st.gpuHint === 2 && p.glint.position.distanceTo(cam.position) < 7); }
     for (const b of this.batts) { b.glint.rotation.y = t * 2; b.glint.visible = st.hasFlash && !st.battsUsed.includes(b.i) && seen(b.glint.position); }
     // monitor glow in final phase
     if (st.phase === 'boot') { const c = this.screenTex.userData.g; c.fillStyle = '#05070b'; c.fillRect(0, 0, 128, 80); c.fillStyle = Math.sin(t * 4) > 0 ? '#8fe3c9' : '#05070b'; c.fillRect(8, 64, 6, 6); c.fillStyle = '#9fb'; c.font = '16px m5x7'; c.fillText('PRESS POWER', 20, 72); this.screenTex.needsUpdate = true; this.screenLight.intensity = 0.6; }
