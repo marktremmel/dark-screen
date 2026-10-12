@@ -482,10 +482,16 @@ export class Ep1 {
     this.updateChecklist(); this.save();
     music('mus_tense', 0.28);
   }
+  roomOf(v) { // the flat's walls: hallway x 0..2, pantry z < 0, bedroom/kitchen on the left, your room/living room on the right
+    if (v.z < 0) return 'the pantry (kamra)';
+    if (v.x < 0) return v.z < 4 ? "Mum's bedroom" : 'the kitchen';
+    if (v.x > 2) return v.z < 4 ? 'your room' : 'the living room';
+    return 'the hallway';
+  }
   pickUp(k) {
     if (this.st.carrying) { caption(`Your hands are full. Take the ${PARTS[this.st.carrying].name} to your desk first.`, 'say', 3.5); play('denied', { vol: 0.3 }); return; }
     const p = this.pick[k];
-    this.st.carrying = k; p.obj.visible = false; p.glint.visible = false;
+    this.st.carrying = k; p.obj.visible = false; p.glint.visible = false; this.st.stuckT = 0;
     play(k === 'cables' ? 'box' : 'plastic', { vol: 0.7 }); this.armPush();
     carry(`Carrying: ${PARTS[k].name} (${PARTS[k].hu}). Take it to your desk. Q: put it back`);
     if (k === 'gpu') { this.scare1.armed = true; this.scare1.t = 0; caption('The graphics card box, on the shelf behind the clothes. Who puts it in here?', 'say', 4); }
@@ -776,6 +782,16 @@ export class Ep1 {
       caption('[the desk chair creaks… it\'s turned towards the door now]', 'sfx', 4);
       setTimeout(() => caption('I didn\'t move that.', 'say', 3), 2500);
     }
+    // stuck on a part: after a while name the room the next needed part is in, later let it glint from across the room
+    if (st.phase === 'parts' && !st.carrying && !this.inFit && !this.threat.active) {
+      const need = PART_ORDER.find(k => !st.fitted.includes(k));
+      if (need && need !== 'gpu') {
+        st.stuckT = (st.stuckT || 0) + dt; st.hintFor = st.hintFor || {};
+        const lvl = st.hintFor[need] || 0, room = this.roomOf(this.pick[need].glint.position);
+        if (st.stuckT > 75 && lvl < 1) { st.hintFor[need] = 1; caption(`The ${PARTS[need].name.replace(/^[A-Z][a-z]/, m => m.toLowerCase())} (${PARTS[need].hu})… I'm sure I saw something in ${room}.`, 'say', 6); }
+        if (st.stuckT > 140 && lvl < 2) { st.hintFor[need] = 2; caption(`Something small is glinting in ${room}. Look low and high, not just on the furniture.`, 'say', 6); }
+      }
+    }
     // the graphics card is the one part that isn't lying out in the open: if it stays missing, nudge, then mark the wardrobe
     if (st.phase === 'parts' && !st.fitted.includes('gpu') && st.carrying !== 'gpu' && !this.inFit && st.fitted.length >= 3) {
       st.gpuWait = (st.gpuWait || 0) + dt;
@@ -786,7 +802,7 @@ export class Ep1 {
     const gl = 0.6 + Math.sin(t * 4) * 0.4;
     const cam = this.G.camera, fwd = cam.getWorldDirection(this._fw || (this._fw = new THREE.Vector3()));
     const seen = (p) => { const d = this._tv || (this._tv = new THREE.Vector3()); d.copy(p).sub(cam.position); const dist = d.length(); if (dist > 3.6) return false; d.normalize(); return st.flashOn && this.flash.intensity > 0.5 ? d.dot(fwd) > 0.86 : false; };
-    for (const k of PART_ORDER) { const p = this.pick[k]; p.glint.rotation.y = t * 2; p.glint.scale.setScalar(gl * (k === 'gpu' ? 1.8 : 1)); p.glint.visible = st.phase === 'parts' && !st.fitted.includes(k) && st.carrying !== k && (k !== 'gpu' ? seen(p.glint.position) : st.gpuHint === 2 && p.glint.position.distanceTo(cam.position) < 7); }
+    for (const k of PART_ORDER) { const p = this.pick[k]; p.glint.rotation.y = t * 2; p.glint.scale.setScalar(gl * (k === 'gpu' ? 1.8 : 1)); p.glint.visible = st.phase === 'parts' && !st.fitted.includes(k) && st.carrying !== k && (k !== 'gpu' ? (seen(p.glint.position) || ((st.hintFor || {})[k] === 2 && p.glint.position.distanceTo(cam.position) < 8)) : st.gpuHint === 2 && p.glint.position.distanceTo(cam.position) < 7); }
     for (const b of this.batts) { b.glint.rotation.y = t * 2; b.glint.visible = st.hasFlash && !st.battsUsed.includes(b.i) && seen(b.glint.position); }
     // monitor glow in final phase
     if (st.phase === 'boot') { const c = this.screenTex.userData.g; c.fillStyle = '#05070b'; c.fillRect(0, 0, 128, 80); c.fillStyle = Math.sin(t * 4) > 0 ? '#8fe3c9' : '#05070b'; c.fillRect(8, 64, 6, 6); c.fillStyle = '#9fb'; c.font = '16px m5x7'; c.fillText('PRESS POWER', 20, 72); this.screenTex.needsUpdate = true; this.screenLight.intensity = 0.6; }
