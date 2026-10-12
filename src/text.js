@@ -106,7 +106,8 @@ export const EPISODES = [
 ];
 export const BUILT = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true };
 // Release locks: each episode after the first opens with a code the teacher gives out in that lesson.
-export const LOCKS_ON = true;
+// Lesson codes are on unless the page sets window.SK_LOCKS = false before game.js (the public itch.io build does; the school build doesn't).
+export const LOCKS_ON = typeof window === 'undefined' || window.SK_LOCKS !== false;
 // Only hashes are stored, so the codes can't be read out of the public source. The codes themselves are in the Teacher Pack.
 export const UNLOCK_HASH = { 2: 'ebaae6e5', 3: 'ac84f1e5', 7: '1675a29d', 4: 'dcc8ceff', 8: '7fa41c1f', 5: 'e196b5b6', 9: '88c3440c', 6: '6b13e8e9' };
 export const TEACHER_HASH = '53bb351b';

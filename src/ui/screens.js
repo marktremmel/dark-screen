@@ -1,5 +1,5 @@
 import { S, DEFAULT_SETTINGS, persist, listPlayers, lastPlayer, loadPlayer, exportCode, importCode, epData } from '../core/state.js';
-import { rich, CREDITS, CONTENT_NOTE } from '../text.js';
+import { rich, CREDITS, CONTENT_NOTE, LOCKS_ON } from '../text.js';
 import { play, setVolumes, resumeAudio } from '../core/audio.js';
 import { setBrightness } from '../core/render.js';
 import { pxCanvas } from '../core/world.js';
@@ -39,7 +39,7 @@ export function titleScreen() {
         <div class="title-wrap">
           <div>
             <div class="logo"><div id="logoc"></div><small>Dark Screen · a digital culture horror anthology · v1.2</small></div>
-            <p class="sub" style="margin-top:22px">Six stories, one per lesson. Each one starts at an old computer in an empty school lab, at night.</p>
+            <p class="sub" style="margin-top:22px">Nine short stories. Each one starts at an old computer in an empty school lab, at night.</p>
             <div class="note">${esc(CONTENT_NOTE)}</div>
           </div>
           <div>
@@ -175,7 +175,7 @@ export function debriefScreen(d, stats, nextLabel) {
       <div class="help"><h3 style="margin-top:0">${rich(d.helpTitle)}</h3><p>${rich(d.help)}</p></div>
       ${stats ? `<div style="margin-top:12px">${stats.map(s => `<span class="stat">${esc(s)}</span>`).join('')}</div>` : ''}
       <p class="sub" style="margin-top:14px">${rich(d.teaser)}</p>
-      ${code ? `<div class="savebox"><h3 style="margin:0 0 4px">Your save code (mentési kód)</h3><p class="sub" style="margin:0 0 6px">Copy it into your reflection sheet. Your teacher uses it to see that you finished.</p><textarea readonly>${esc(code)}</textarea><div class="btns" style="margin-top:6px"><button class="btn" id="cp">Copy the code</button><span class="sub copied"></span></div></div>` : ''}
+      ${code ? `<div class="savebox"><h3 style="margin:0 0 4px">Your save code (mentési kód)</h3><p class="sub" style="margin:0 0 6px">${LOCKS_ON ? 'Copy it into your reflection sheet. Your teacher uses it to see that you finished.' : 'Keep it to carry your progress to another computer or browser (title screen, Load a save code).'}</p><textarea readonly>${esc(code)}</textarea><div class="btns" style="margin-top:6px"><button class="btn" id="cp">Copy the code</button><span class="sub copied"></span></div></div>` : ''}
       <p class="sub" style="font-size:.78em">Tip: hover over the <span class="term" tabindex="0" data-tip="Like this one! Underlined words have a short explanation.">dotted words</span> to see what they mean.</p>
       <div class="btns">${nextLabel ? `<button class="btn primary" id="nx">${esc(nextLabel)}</button>` : ''}<button class="btn ${nextLabel ? '' : 'primary'}" id="x" autofocus>Back to the lab</button></div></div>`, 'solid');
     el.querySelector('#x').onclick = () => { closeScreen(el); res('lab'); };

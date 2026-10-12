@@ -6,7 +6,7 @@ import { Player, Interactor, IN, wasPressed, lockPointer } from '../core/player.
 import { hud, hudParts, objective, prompt, caption, fade } from '../core/hud.js';
 import { music, loop, play } from '../core/audio.js';
 import { S, isDone, isUnlocked, orderOK, keyOK, tryCode, persist } from '../core/state.js';
-import { EPISODES, BUILT, epPos, epInfo } from '../text.js';
+import { EPISODES, BUILT, epPos, epInfo, LOCKS_ON } from '../text.js';
 import { openScreen, closeScreen, settingsScreen, exportScreen, importScreen, creditsScreen } from '../ui/screens.js';
 
 
@@ -179,12 +179,12 @@ export class Hub {
       <p class="sub">Player: <b>${(S.nick || '').replace(/</g, '')}</b></p>
       <div class="btns" style="flex-direction:column;align-items:stretch">
       <button class="btn" id="s">Settings</button><button class="btn" id="c">Show my save code</button><button class="btn" id="l">Load a save code</button>
-      <button class="btn" id="tk">Teacher key (open all episodes)</button><button class="btn" id="cr">Credits</button><button class="btn primary" id="x" autofocus>Close</button></div></div>`);
+      ${LOCKS_ON ? '<button class="btn" id="tk">Teacher key (open all episodes)</button>' : ''}<button class="btn" id="cr">Credits</button><button class="btn primary" id="x" autofocus>Close</button></div></div>`);
     el.querySelector('#s').onclick = () => settingsScreen();
     el.querySelector('#c').onclick = () => exportScreen();
     el.querySelector('#l').onclick = () => importScreen(() => { closeScreen(el); this.refreshScreens(); });
     el.querySelector('#cr').onclick = () => creditsScreen();
-    el.querySelector('#tk').onclick = () => { closeScreen(el); this.codeDialog(EPISODES[EPISODES.length - 1].id, true); };
+    if (LOCKS_ON) el.querySelector('#tk').onclick = () => { closeScreen(el); this.codeDialog(EPISODES[EPISODES.length - 1].id, true); };
     el.querySelector('#x').onclick = () => { closeScreen(el); };
   }
   quit() { persist(); this.G.unlock(); location.reload(); }
