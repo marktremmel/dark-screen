@@ -212,7 +212,7 @@ export class Ep2 extends Ep1 {
       this.st.found[id] = true; play('beep', { vol: 0.5 }); this.armPush();
       if (id === 'bubu' && !this.st.bubuScare) { this.st.bubuScare = true; this.bearScare(); this.updateList(); this.save(); return; }
       caption(id === 'tv' ? 'Paired: Lumo smart TV. "Recommended for you": Mum\'s cooking channel. 12,400 views. Anyone can watch those.' : `Paired with VELA Home: ${this.dev[id].name}.`, 'say', id === 'tv' ? 5 : 3);
-      this.updateList(); this.save();
+      this.updateList(); this.save(); this.wonObjective();
     }
     this.openApp(id);
   }
@@ -275,7 +275,7 @@ export class Ep2 extends Ep1 {
         d.password = v; this.st.password = v; play('latch', { vol: 0.6 }); this.afterChange(); render();
       };
       const lk = $('#leak'); if (lk) lk.onclick = () => this.accuse(cur, render);
-      const dn = $('#done'); if (dn) dn.style.display = this.st.phase === 'won' ? '' : 'none';
+      const dn = $('#done'); if (dn) dn.style.display = this.st.phase === 'won' && this.canFinish() ? '' : 'none';
     };
     $('#x').onclick = () => this.closeApp();
     $('#done').onclick = () => this.ending(true);
@@ -306,7 +306,8 @@ export class Ep2 extends Ep1 {
     if (id === 'vela' && k === 'mic' && !this.dev.vela.settings.find(s => s.k === 'mic').on) { this.velaSay('Microphone off. …I\'ll miss you.'); }
     if (id === 'tv' && this.isSecured('tv')) this.tvMode = 'off';
     if (id === 'vacuum' && this.isSecured('vacuum') && this.vacOn) caption('Dusty keeps cleaning, but stops sending the map of your home.', 'say', 3);
-    this.save(); this.updateList(); this.checkWin();
+    this.save(); this.updateList(); this.checkWin(); this.wonObjective();
+    if (this.st.phase === 'won' && this.securedCount() === ORDER.length && this.doneAt === Infinity) this.doneAt = this.st.clock + 6;
   }
   accuse(id, render) {
     if (id === LEAK_ID) {
@@ -321,6 +322,16 @@ export class Ep2 extends Ep1 {
       render();
     }
   }
+  // after the leak is stopped the night isn't over: every device has to be found before you can call it a night
+  canFinish() { return ORDER.every(id => this.st.found[id]) || this.st.clock >= 12 * SEC_PER_MIN; }
+  wonObjective() {
+    if (this.st.phase !== 'won') return;
+    const unfound = ORDER.filter(id => !this.st.found[id]).length;
+    const left = ORDER.filter(id => this.st.found[id] && !this.isSecured(id)).map(id => this.dev[id].name);
+    if (unfound) objective(`The leak is stopped. But Bubu wasn't the only one listening: there ${unfound > 1 ? 'are' : 'is'} ${unfound} device${unfound > 1 ? 's' : ''} in the flat you haven't found yet${left.length ? `, and ${left.join(', ')} still ${left.length > 1 ? 'listen' : 'listens'}` : ''}. At 00:00 they all upload what they heard.`);
+    else if (left.length) objective(`The leak is stopped, but ${left.length} device${left.length > 1 ? 's are' : ' is'} still listening: ${left.join(', ')}. At 00:00 they upload what they heard. Secure them, or press "I'm done" in the app (Tab).`);
+    else objective('Every device is secured. The flat is quiet.');
+  }
   checkWin() {
     if (this.st.phase !== 'play') return;
     if (this.st.identified && this.isSecured('bubu')) this.win();
@@ -330,8 +341,8 @@ export class Ep2 extends Ep1 {
     play('beep', { vol: 0.5, rate: 0.8 });
     setTimeout(() => toast('Bence', 'the link just says "content removed" 🙏 what did u do', 8), 1500);
     setTimeout(() => this.velaSay('Device "Bubu" disconnected.'), 3000);
-    const left = ORDER.filter(id => !this.isSecured(id)).map(id => this.dev[id].name);
-    objective(left.length ? `The leak is stopped, but ${left.length} device${left.length > 1 ? 's are' : ' is'} still listening: ${left.join(', ')}. At 00:00 they upload what they heard. Secure them, or press "I'm done" in the app (Tab).` : 'Every device is secured. The flat is quiet.');
+    this.wonObjective();
+    const left = ORDER.filter(id => !this.isSecured(id));
     this.doneAt = left.length ? Infinity : this.st.clock + 6;
     this.save();
   }
