@@ -18,6 +18,7 @@
 - The meadow after the finale has proper trees, flowers, grass and rocks, a painted sunset sky with drifting clouds, birdsong and new music. The ground and plants no longer shimmer as you walk.
 - "Still Alive" plays right on the page when the game runs on a website.
 - The title screen says nine stories, not six.
+- You can no longer walk backwards out of the lab through the closed door.
 - Classroom version: lesson codes for Episodes 2 and 3 changed so they don't hint at the answers (the old ones still work), the end screen's "next episode" button asks for the code like the lab computers do, and the codes are no longer readable in the game's source.
 
 ## v1.1 (6 October 2026)

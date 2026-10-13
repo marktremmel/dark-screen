@@ -32,6 +32,7 @@ export class Hub {
     // door (exit)
     const door = place(g, 'door', 5.3, 0, Z1 - 0.02, 180); door.scale.set(0.95, 1.02, 1);
     this.doorObj = door;
+    col.push({ x0: 4.6, x1: 6.0, z0: Z1 - 0.1, z1: Z1 + 0.6 }); // the door is closed: you leave through it with E, not by walking (backwards) through the gap
     // windows + moonlight
     for (const z of [-2.6, 0, 2.6]) windowPane(g, X0 + 0.07, 1.75, z, 1.7, 1.3, Math.PI / 2, day ? { day: true, view: 'view_morning_school', top: '#f6d9a8', bottom: '#b8c8d8' } : { lights: true, view: 'view_night_school' });
     const moon = new THREE.DirectionalLight(day ? 0xffd9a0 : 0x8ea6ff, day ? 1.6 : 0.2); moon.position.set(-10, day ? 4 : 6, 2); sc.add(moon);
