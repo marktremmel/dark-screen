@@ -152,7 +152,8 @@ export function openFit(part, cb) {
   };
   const success = () => {
     play('latch', { vol: 0.7 }); play('screw', { vol: 0.4 });
-    cb.fitted.push(part); render();
+    finished = true; ghost.style.display = 'none'; tag.style.display = 'none'; // the part is in: stop it following the mouse
+    cb.fitted.push(part); render(); ghost.remove();
     say('✓ ' + SUCCESS_LINES[part], 'good');
     $('#steps').innerHTML = '';
     const bt = el.querySelector('.btns'); bt.innerHTML = `<button class="btn primary" id="ok" autofocus>Continue</button>`;
@@ -239,7 +240,7 @@ export function openFit(part, cb) {
   addEventListener('keydown', keyH);
   const close = () => { removeEventListener('keydown', keyH); closeScreen(el); };
   const wrapEl = $('#svgwrap');
-  wrapEl.addEventListener('mousemove', e => { const r = wrapEl.getBoundingClientRect(); ghost.style.display = 'block'; ghost.style.left = (e.clientX - r.left + 14) + 'px'; ghost.style.top = (e.clientY - r.top + 14) + 'px'; tag.style.left = (e.clientX - r.left + 14) + 'px'; tag.style.top = (e.clientY - r.top - 30) + 'px'; });
+  wrapEl.addEventListener('mousemove', e => { if (finished) return; const r = wrapEl.getBoundingClientRect(); ghost.style.display = 'block'; ghost.style.left = (e.clientX - r.left + 14) + 'px'; ghost.style.top = (e.clientY - r.top + 14) + 'px'; tag.style.left = (e.clientX - r.left + 14) + 'px'; tag.style.top = (e.clientY - r.top - 30) + 'px'; });
   wrapEl.addEventListener('mouseleave', () => { ghost.style.display = 'none'; tag.style.display = 'none'; });
   steps(); render();
   say(part === 'cables' ? 'Last step.' : 'Every mistake makes noise. If you\'re not sure, read the manual.');
