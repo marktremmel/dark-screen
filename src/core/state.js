@@ -49,7 +49,7 @@ export function isUnlocked(id) { return orderOK(id) && keyOK(id); }
 export function tryCode(id, code) {
   const c = normCode(code);
   if (c && codeHash(c) === TEACHER_HASH) { S.save.teacher = true; persist(); return 'teacher'; }
-  if (c && UNLOCK_HASH[id] && codeHash(c) === UNLOCK_HASH[id]) { S.save.keys = S.save.keys || {}; S.save.keys[id] = true; persist(); return 'ok'; }
+  if (c && UNLOCK_HASH[id] && [].concat(UNLOCK_HASH[id]).includes(codeHash(c))) { S.save.keys = S.save.keys || {}; S.save.keys[id] = true; persist(); return 'ok'; }
   return null;
 }
 
