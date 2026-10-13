@@ -4,7 +4,7 @@ import { psxMat } from '../core/render.js';
 import { canvasTex } from '../core/world.js';
 import { Interactor, wasPressed, lockPointer } from '../core/player.js';
 import { hud, hudParts, objective, prompt, caption, toast, fade, flash, checklist, battery, carry, wait } from '../core/hud.js';
-import { music, loop, stopLoop, play } from '../core/audio.js';
+import { music, loop, stopLoop, play, babble } from '../core/audio.js';
 import { S, epData, persist } from '../core/state.js';
 import { DEBRIEF_EP2, rich } from '../text.js';
 import { openScreen, closeScreen, debriefScreen, cutIn } from '../ui/screens.js';
@@ -129,6 +129,7 @@ export class Ep2 extends Ep1 {
     this.bearLight = new THREE.PointLight(0xff2020, 0, 1.2, 1.6); this.bearLight.position.set(3.75, 0.75, 0.65); g.add(this.bearLight);
     // TV screen overlay
     if (A.img.ep9_mum_cooking) { this.mumImg = new Image(); this.mumImg.src = A.img.ep9_mum_cooking; }
+    if (A.img.ep2_bear_view) { this.roomImg = new Image(); this.roomImg.src = A.img.ep2_bear_view; }
     this.tvTex = canvasTex(96, 72, (c, w, h) => { c.fillStyle = '#000'; c.fillRect(0, 0, w, h); });
     const scr = this.tvScr = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.25), new THREE.MeshBasicMaterial({ map: this.tvTex, fog: false }));
     scr.position.set(4.0, 0.81, 4.56); g.add(scr);
@@ -152,7 +153,7 @@ export class Ep2 extends Ep1 {
     this.dev = makeDevices(S.nick);
     const sv = epData(2).state;
     this.st = { phase: 'intro', hasFlash: true, flashOn: true, batt: 1, carrying: null, fitted: [], battsUsed: [], noise: 0, events: {}, start: Date.now(),
-      clock: 0, found: {}, identified: false, wrong: 0, settings: {}, password: '0000', bubuScare: false, vacScare: false };
+      clock: 0, found: {}, identified: false, wrong: 0, settings: {}, password: '0000', bubuScare: false, vacScare: false, haunts: {}, nextHaunt: null };
     if (sv) Object.assign(this.st, sv, { phase: 'play', start: Date.now() - (sv.elapsed || 0) });
     for (const id of ORDER) for (const s of this.dev[id].settings) if (this.st.settings[id + '.' + s.k] != null) s.on = this.st.settings[id + '.' + s.k];
     if (this.st.password) this.dev.bubu.password = this.st.password;
@@ -171,7 +172,7 @@ export class Ep2 extends Ep1 {
     this.playing = false; music(null); hud(false);
     this.setLights('all', 0.035); for (const L of Object.values(this.lamps)) L.flicker = 0.35;
     this.scene.fog.near = 2.5; this.scene.fog.far = 10; this.watch.t = 40;
-    this.moon.intensity = 0.5; this.camLedM.color.set(0xff2020);
+    this.moon.intensity = 0.5; this.camLedM.color.set(0x220505);
     this.armsRoot.visible = true;
     loop('fridge', 'fridgehum', { vol: 0.2, pos: [-3.5, 1, 4.6] });
     this.player.set(4.4, 2.3, -150);
@@ -330,19 +331,15 @@ export class Ep2 extends Ep1 {
     setTimeout(() => toast('Bence', 'the link just says "content removed" 🙏 what did u do', 8), 1500);
     setTimeout(() => this.velaSay('Device "Bubu" disconnected.'), 3000);
     const left = ORDER.filter(id => !this.isSecured(id)).map(id => this.dev[id].name);
-    objective(left.length ? `The leak is stopped. You can still secure: ${left.join(', ')}. Then press "I'm done" in the app (Tab).` : 'Every device is secured.');
+    objective(left.length ? `The leak is stopped, but ${left.length} device${left.length > 1 ? 's are' : ' is'} still listening: ${left.join(', ')}. At 00:00 they upload what they heard. Secure them, or press "I'm done" in the app (Tab).` : 'Every device is secured. The flat is quiet.');
     this.doneAt = left.length ? Infinity : this.st.clock + 6;
     this.save();
   }
   async ending(success) {
     if (this._ending) return; this._ending = true;
     this.playing = false; this.closeApp(); this.G.unlock(); hud(false); stopLoop('vac');
-    if (!success) {
-      this.velaSay('It\'s midnight. Cloud backup complete. 1 new voice message uploaded.');
-      await wait(3);
-      toast('Bence', 'it\'s everywhere now… 😞', 6);
-      await wait(2);
-    }
+    await this.midnightBackup();
+    if (!success) { toast('Bence', 'it\'s everywhere now… 😞', 6); await wait(2.5); }
     const res = await this.choices(success);
     await fade(true, success ? 'End of episode 2.\n\nThe bear\'s eyes stay dark.' : 'End of episode 2.\n\nThe clip was copied. But it is not too late to act.', 1.5);
     await wait(2.2);
@@ -350,7 +347,7 @@ export class Ep2 extends Ep1 {
     const d = epData(2); d.done = true; d.state = null; d.best = d.best ? Math.min(d.best, secs) : secs; persist();
     music('mus_debrief', 0.45);
     await fade(false, '', 0.5);
-    const stats = [`Leak found: ${this.st.identified ? 'yes' : 'no'}`, `Devices secured: ${this.securedCount()}/6`, `Wrong guesses: ${this.st.wrong}`, `Next steps chosen: ${res}`];
+    const stats = [`Leak found: ${this.st.identified ? 'yes' : 'no'}`, `Devices secured: ${this.securedCount()}/6`, `Still listening at midnight: ${6 - this.securedCount()}`, `Wrong guesses: ${this.st.wrong}`, `Next steps chosen: ${res}`];
     const next = await debriefScreen(DEBRIEF_EP2, stats, this.G.nextLabel(2));
     await fade(true, '', 0.6);
     if (next === 'next') { await this.G.goNext(2); await fade(false, '', 0.8); return; }
@@ -382,7 +379,7 @@ export class Ep2 extends Ep1 {
   }
   save() {
     const st = this.st; if (st.phase === 'intro') return;
-    epData(2).state = { clock: st.clock, found: st.found, identified: st.identified, wrong: st.wrong, settings: st.settings, password: st.password, bubuScare: st.bubuScare, vacScare: st.vacScare, events: st.events, batt: st.batt, elapsed: Date.now() - st.start };
+    epData(2).state = { clock: st.clock, found: st.found, identified: st.identified, wrong: st.wrong, settings: st.settings, password: st.password, bubuScare: st.bubuScare, vacScare: st.vacScare, haunts: st.haunts, events: st.events, batt: st.batt, elapsed: Date.now() - st.start };
     persist();
   }
   quit() { this.save(); this.playing = false; this.closeApp(); this.G.goHub(); }
@@ -392,6 +389,10 @@ export class Ep2 extends Ep1 {
     const m = this.st.clock / SEC_PER_MIN, E = this.st.events;
     const once = (k, at, f) => { if (m >= at && !E[k]) { E[k] = true; f(); } };
     once('hello', 0.4, () => this.velaSay('Good evening. Night mode is on.'));
+    if ((this.st.phase === 'play' || this.st.phase === 'won') && m >= 3.2) {
+      if (this.st.nextHaunt == null) this.st.nextHaunt = this.st.clock;
+      if (this.st.clock >= this.st.nextHaunt && !this.appOpen && !this.forceDark) { this.haunt(); this.st.nextHaunt = this.st.clock + 36 + Math.random() * 20; }
+    }
     once('tv', 2.5, () => { this.tvMode = 'on'; play('tvon', { vol: 0.6, pos: [4, 0.8, 4.3] }); caption('[the TV in the living room switches itself on]', 'sfx', 4); });
     once('mem', 4.5, () => { if (this.dev.vela.settings.find(s => s.k === 'mem').on) this.velaSay('Memory from yesterday, 23:04: "…scared of the dark…". Would you like to hear it again?'); });
     once('vac', 6, () => { this.vacOn = true; loop('vac', 'fan', { vol: 0.3, rate: 0.7, pos: [this.vac.position.x, 0.2, this.vac.position.z] }); this.velaSay('Dusty: scheduled cleaning started.'); });
@@ -410,6 +411,78 @@ export class Ep2 extends Ep1 {
     if (m >= END_MIN - START_MIN && this.st.phase === 'play') this.ending(false);
     if (this.st.phase === 'won' && (this.st.clock >= this.doneAt || m >= END_MIN - START_MIN)) this.ending(true);
   }
+  // ---------------- devices that are still listening ----------------
+  // Every device you haven't secured does something unsettling now and then. Securing it stops it for good.
+  // These are eerie, not jump scares: no stingers (the episode keeps its two), so quiet mode needs no changes here.
+  haunt() {
+    const st = this.st, H = st.haunts;
+    const can = ['tv', 'vacuum', 'peep', 'vela', 'webcam'].filter(id => !this.isSecured(id) && (H[id] || 0) < 2 && (id !== 'vacuum' || this.vacOn) && (id !== 'tv' || this.tvMode === 'on'));
+    if (!can.length) return;
+    // unpaired devices first (they lead you to them), then the ones that have haunted least
+    can.sort((a, b) => (!!st.found[a] - !!st.found[b]) || ((H[a] || 0) - (H[b] || 0)) || (Math.random() - 0.5));
+    const id = can[0], n = H[id] = (H[id] || 0) + 1, nick = (S.nick || 'you').replace(/</g, '');
+    if (id === 'tv') {
+      this.tvHaunt = this.G.t + 9; play('tvon', { vol: 0.5, pos: [4, 0.8, 4.3] }); play('presence', { vol: 0.25, pos: [4, 0.8, 4.3] });
+      caption(n === 1 ? '[the TV in the living room flickers: "Recommended for you"]' : '[the TV shows your room again. Live.]', 'sfx', 5);
+      setTimeout(() => caption(n === 1 ? 'That\'s… my room. Right now. Who is sending that to the TV?' : 'It keeps showing my room. The TV is still sharing everything.', 'say', 5), 2200);
+    } else if (id === 'vacuum') {
+      this.vacRed = this.G.t + 8; play('strange', { vol: 0.3, pos: [this.vac.position.x, 0.2, this.vac.position.z] });
+      toast('Dusty', n === 1 ? 'Home map updated. New obstacle in the hallway: shape "person". Not on your furniture list.' : 'Home map uploaded. 2 people detected in the flat.', 8);
+      this.watch.t = Math.min(this.watch.t, 1.5);
+      if (!st.found.vacuum) setTimeout(() => caption('[a red light glides along the floor somewhere]', 'sfx', 4), 1500);
+    } else if (id === 'peep') {
+      this.chimeRed = this.G.t + 7;
+      play('beep', { vol: 0.5, rate: 0.62, pos: [1.93, 1.45, 7.15] }); setTimeout(() => play('beep', { vol: 0.5, rate: 0.5, pos: [1.93, 1.45, 7.15] }), 450);
+      caption('[the doorbell chime in the hallway: ding… dong. Nobody is at the door]', 'sfx', 4);
+      const line = n === 1 ? '…So who was listening?' : '…don\'t tell anyone…';
+      setTimeout(() => { caption(`PeepBell (playback, your voice): "${line}"`, 'vela', 4.5); babble(line, 'you', { phone: true, vol: 0.16 }); }, 1800);
+    } else if (id === 'vela') {
+      this.velaSay(n === 1 ? 'You asked, at 23:44: "So who was listening?" …I was.' : 'Memory saved: footsteps, breathing. Shall I keep listening?');
+    } else if (id === 'webcam') {
+      this.camBlink = this.G.t + 7; play('beep', { vol: 0.25, rate: 1.6, pos: [4.6, 1.0, 0.9] });
+      toast('NimbusAssist', n === 1 ? `Face recognised: ${nick}. Welcome back! 😊` : `Face recognised: ${nick} + 1 unknown person behind you.`, 7);
+      if (n === 2) this.watch.t = Math.min(this.watch.t, 0.6);
+      if (!st.found.webcam) setTimeout(() => caption('[a tiny red light blinks in your room]', 'sfx', 4), 1200);
+    }
+    this.save();
+  }
+  // At 00:00 VELA's nightly backup uploads whatever the unsecured devices recorded: your own voice, overlapping.
+  async midnightBackup() {
+    const open = ORDER.filter(id => !this.isSecured(id));
+    const early = this.st.clock < (END_MIN - START_MIN) * SEC_PER_MIN - 2;
+    const LINES = {
+      bubu: ['"…I\'m scared of the dark, OK? Don\'t tell anyone, Cirmi."', 'video · 0:12'],
+      vela: ['"…So who was listening?"', 'voice · 0:04 · Memories'],
+      webcam: ['face scan · 14 frames', 'camera · your room'],
+      tv: ['"Welcome back. Continue watching?"', 'viewing data · 14 partners'],
+      vacuum: ['map · 6 rooms · 1 person in the hallway', 'camera · 41 objects'],
+      peep: ['"…don\'t tell anyone…"', 'audio · front door · NeighbourWatch'],
+    };
+    music(null);
+    const el = openScreen(`<div class="panel backup" style="width:min(640px,94vw);max-height:92vh;overflow:auto;font-family:monospace;font-size:.86em"><div class="sub" style="min-height:1.2em">${early ? 'You put the tablet down. The flat is quiet. Then the clock on VELA turns to 00:00.' : ''}</div>
+      <h3 style="margin:.4em 0">VELA Home · 00:00 · nightly cloud backup</h3><div id="bl"></div><p id="bs" style="margin-top:1em"></p></div>`, 'solid');
+    const bl = el.querySelector('#bl'), bs = el.querySelector('#bs');
+    await wait(early ? 2.5 : 1.2);
+    if (!open.length) {
+      play('beep', { vol: 0.3, rate: 0.9 }); bl.innerHTML = '<div class="sub">0 devices · nothing to upload</div>';
+      await wait(2.5); bs.textContent = 'Nothing in the flat recorded you tonight. Just the fridge humming.'; await wait(4);
+    } else {
+      for (let i = 0; i < open.length; i++) {
+        const id = open[i], [line, what] = LINES[id], name = this.st.found[id] ? this.dev[id].name : 'Unknown device (never paired)';
+        const r = document.createElement('div'); r.style.margin = '6px 0';
+        r.innerHTML = `<b>↑ ${name}</b> <span class="sub" style="font-size:.85em">${what}</span><br><span>${line}</span>`; bl.appendChild(r); r.scrollIntoView({ block: 'nearest' });
+        play('beep', { vol: 0.2, rate: 1.4 });
+        if (line.startsWith('"')) babble(line, 'you', { phone: true, keep: true, vol: 0.1 + i * 0.015 });
+        play('vela' + (1 + (i % 5)), { vol: 0.12, rate: 0.55 + i * 0.12 });
+        await wait(1.1);
+      }
+      play('distort', { vol: 0.3 });
+      await wait(1.5);
+      bs.scrollIntoView({ block: 'nearest' }); bs.innerHTML = `<b>${open.length} device${open.length > 1 ? 's' : ''} sent recordings of you tonight.</b>${open.some(id => !this.st.found[id]) ? ' Some of them you never even found.' : ''}`;
+      await wait(5);
+    }
+    closeScreen(el);
+  }
   updateVacuum(dt) {
     if (!this.vacOn) return;
     const v = this.vac.position, tgt = PATH[this.vacI];
@@ -419,7 +492,8 @@ export class Ep2 extends Ep1 {
     this.vac.rotation.y = Math.atan2(dx, dz);
     Object.assign(this.vacCol, { x0: v.x - 0.17, x1: v.x + 0.17, z0: v.z - 0.17, z1: v.z + 0.17 });
     const L = AU_loops('vac'); if (L) L.setPos(v.x, 0.2, v.z);
-    this.vacLedM.color.set(Math.sin(this.G.t * 6) > 0 ? 0x40c8ff : 0x103040); this.vacLight.intensity = 0.4;
+    const red = this.vacRed > this.G.t && !this.isSecured('vacuum');
+    this.vacLedM.color.set(red ? 0xff2020 : Math.sin(this.G.t * 6) > 0 ? 0x40c8ff : 0x103040); this.vacLight.color.set(red ? 0xff3030 : 0x40b0ff); this.vacLight.intensity = red ? 0.8 : 0.4;
     // jump scare: it bumps into you from behind in the dark
     const p = this.player.pos, dist = Math.hypot(p.x - v.x, p.z - v.z);
     if (!this.st.vacScare && dist < 0.55) {
@@ -434,6 +508,13 @@ export class Ep2 extends Ep1 {
   }
   drawTV(t) {
     const c = this.tvTex.userData.g;
+    if (this.tvHaunt > this.G.t && !this.isSecured('tv')) {
+      c.fillStyle = '#05070b'; c.fillRect(0, 0, 96, 72); c.font = '16px m5x7'; c.textBaseline = 'top';
+      if (this.roomImg && this.roomImg.complete) { c.globalAlpha = 0.85; c.drawImage(this.roomImg, 0, 10, 96, 54); c.globalAlpha = 1; }
+      c.fillStyle = 'rgba(0,0,0,.75)'; c.fillRect(0, 0, 96, 12); c.fillStyle = '#e9f2ff'; c.fillText('Recommended for you', 2, -2);
+      c.fillStyle = 'rgba(0,0,0,.75)'; c.fillRect(0, 60, 96, 12); c.fillStyle = Math.sin(t * 5) > 0 ? '#ff4040' : '#802020'; c.fillRect(3, 64, 5, 5); c.fillStyle = '#ffd27a'; c.fillText('your room · LIVE', 11, 58);
+      this.tvLight.intensity = 1.0; this.tvTex.needsUpdate = true; return;
+    }
     if (this.tvMode === 'on') {
       c.fillStyle = '#132a4a'; c.fillRect(0, 0, 96, 72); c.font = '16px m5x7'; c.textBaseline = 'top';
       if (this.mumImg && this.mumImg.complete && (t % 10) > 5) {
@@ -453,6 +534,8 @@ export class Ep2 extends Ep1 {
     if (st.phase === 'play' || st.phase === 'won') { st.clock += dt; this.timeline(); }
     this._lt = (this._lt || 0) + dt; if (this._lt > 0.5) { this._lt = 0; this.updateList(); if (this.app && this._appRender) { const tc = this.app.querySelector('#tclock'); const h = document.querySelector('#checklist .h'); if (tc && h) tc.textContent = h.textContent; } }
     this.drawTV(t);
+    this.camLedM.color.set(this.camBlink > this.G.t && Math.sin(t * 9) > -0.2 ? 0xff2020 : 0x220505);
+    if (this.chimeRed > this.G.t) this.chimeLedM.color.set(Math.sin(t * 8) > 0 ? 0xff3030 : 0x401010); else this.chimeLedM.color.set(0x40ff90);
     this.updateVacuum(dt);
     this.velaT = Math.max(0, this.velaT - dt);
     const v = this.velaT > 0 ? 0.6 + Math.sin(t * 14) * 0.4 : 0.12 + Math.sin(t * 1.5) * 0.06;

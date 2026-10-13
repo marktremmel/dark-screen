@@ -80,6 +80,7 @@ const VOICES = {
   boy: { f: 190, v: 55, type: 'sawtooth', form: 1150, rate: 0.065, wob: 2 },
   man: { f: 115, v: 35, type: 'sawtooth', form: 850, rate: 0.085, wob: 2 },
   oldman: { f: 120, v: 40, type: 'sawtooth', form: 800, rate: 0.095, wob: 6 },
+  you: { f: 205, v: 50, type: 'triangle', form: 1350, rate: 0.07, wob: 2 },   // the player's own voice, played back by devices
 };
 export function voiceFor(who) {
   const w = (who || '').toLowerCase();
@@ -97,7 +98,7 @@ let _bab = [];
 export function babble(text, voice, o = {}) {
   if (!AU.ctx || !voice || !VOICES[voice]) return 0;
   const V = VOICES[voice], c = AU.ctx, t0 = c.currentTime + 0.03;
-  for (const n of _bab) { try { n.stop(); } catch (e) { } } _bab = [];
+  if (!o.keep) { for (const n of _bab) { try { n.stop(); } catch (e) { } } _bab = []; } // keep: overlap with what is already talking
   const words = String(text).replace(/\[[^\]]*\]|<[^>]+>/g, '').split(/\s+/).filter(Boolean);
   const syl = Math.min(34, Math.max(3, Math.round(words.join('').length / 3.1)));
   const out = c.createGain(); out.gain.value = o.vol ?? 0.16;
