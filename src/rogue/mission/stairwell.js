@@ -17,7 +17,7 @@ import { newDescent, prepare, resolve, advance, groundReward } from '../logic/de
 import { earn, nerve, noteAnomaly, die } from '../save/rogueSave.js';
 import { ANOMALY } from '../content/anomalies.js';
 import { dressLanding, L } from './landing.js';
-import { readPanel, rulesPanel, deathPanel, groundPanel } from '../ui/panels.js';
+import { readPanel, rulesPanel, deathPanel } from '../ui/panels.js';
 
 const H = CFG.floorH, HALF = H / 2, RUN = 3.0, STEPS = 8;
 const KS = [-2, -1, 0, 1, 2];
@@ -284,10 +284,11 @@ export class Stairwell extends Walker {
   async ground() {
     if (this.busy) return; this.busy = true; this.playing = false; this.G.unlock(); prompt(null);
     const rw = groundReward(this.d.floor);
-    earn(this.R, rw.xp, rw.coins); this.R.record.descents++; persist();
+    earn(this.R, rw.xp, rw.coins); this.R.record.descents++; this.run.xp += rw.xp; this.run.coins += rw.coins; persist();
     play('door_open', { vol: 0.5 });
-    await groundPanel(rw, this.run);
-    this.goHome(true);
+    await fade(true, `Ground floor. +${rw.xp} XP, +${rw.coins} coins.\n\nTonight's mission: the school across the courtyard.`, 0.8);
+    await wait(2.4);
+    this.G.goSchool(this.run);
   }
   async goHome() {
     this.playing = false; this.busy = true; this.G.unlock(); prompt(null);

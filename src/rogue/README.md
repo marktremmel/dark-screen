@@ -12,6 +12,10 @@ The full design is in the planning documents (Lepcsohaz 01 Research, 02 Assets, 
 - `content/`: data only. `themes.js` (T1 to T12 and OBS), `anomalies.js` (landing anomalies and the notices).
 - `home/HomeScene.js`: your flat.
 - `mission/stairwell.js`: the stairwell scene; `mission/landing.js` dresses one landing (normal or with one anomaly).
+- `mission/school.js`: the first mission (corridor ring with the Feed, classroom with the Watcher and the Badger lens, gym with the found phone, the exit intercom).
+- `entities/watcher.js`: moves only while unseen, sized and sped up by active trackers, will not enter a safe light.
+- `content/school.js`: attention hooks, trackers, inbox messages, the exit-gate rubric. `logic/reading.js`: minimum reading time and the noise meter.
+- `ui/missionPanels.js`: the phone, the intercom, the mission debrief.
 - `ui/panels.js`: notices, house rules, computer, floor picker, death, ground floor.
 - `index.js`: `G.goRogue()` (to your flat) and `G.goStairs()` (out of the front door). Installed from `main.js`.
 
@@ -38,7 +42,13 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   the hub door with the teacher code.
 - Phase 1, session 1 done: the flat (new life), floor picker, the stairwell descent with 12 anomalies, light timer and torch,
   nerve, the yellow room, death and a new life, the ground floor.
-- Next: Phase 1, session 2 (the school: corridor, classroom, gym; Feed and Watcher; loop, Badger lens and found-phone encounters).
+- Phase 1, session 2 done: the street door leads to the school. Zone 1 the Feed (six attention hooks that pull your view, laps cost nerve),
+  zone 2 the Watcher and the Badger lens (Q; six trackers), zone 3 the gym with the found phone (four of eight messages, timed:
+  rushed answers make noise; safe to read only in the light), the exit intercom (typed answer, EN/HU rubric), the mission debrief.
+  Being caught sends you back to the zone's door. Running and rushed answers make noise; the Watcher hears noise.
+- Not yet: resuming a mission after a reload (you are sent home and keep what you earned), the mission generator (one fixed school
+  for now), the other locations and monsters.
+- Next: Phase 1, session 3 (checkpoint save inside a mission, about 15 more items, tuning after a class play-test), then Phase 2 (the shop).
 
 ## Codes
 

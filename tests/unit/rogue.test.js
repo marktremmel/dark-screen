@@ -92,3 +92,25 @@ test('save: death wipes the life but keeps the record, notebook and one item', (
   // older saves without the rogue part load cleanly
   const old = { nick: 'x', eps: {} }; ensureRogue(old); assert.equal(old.rogue.v, 1);
 });
+
+import { minReadMs, rushed, Noise } from '../../src/rogue/logic/reading.js';
+import { FEED_LIGHTS, TRACKERS, INBOX, GATE } from '../../src/rogue/content/school.js';
+
+test('reading time and rush detection', () => {
+  assert.equal(minReadMs(''), CFG.readBaseMs);
+  assert.equal(minReadMs('one two three four five'), CFG.readBaseMs + 5 * CFG.readPerWordMs);
+  assert.equal(minReadMs('w '.repeat(1000)), CFG.readCapMs);
+  assert.ok(rushed('a fairly long message with many words in it', 900));
+  assert.ok(!rushed('short', 3000));
+  const n = new Noise(); n.add(50); n.tick(1, false); assert.equal(n.v, 50 - CFG.noiseDecay); n.tick(100, true); assert.equal(n.v, 100);
+});
+
+test('school content is complete', () => {
+  for (const f of FEED_LIGHTS) assert.ok(f.id && THEMES[f.theme] && f.off && f.lesson && !/—/.test(f.lesson), f.id);
+  for (const t of TRACKERS) assert.ok(t.id && t.at.length === 3 && t.label && t.lesson, t.id);
+  assert.ok(INBOX.filter(m => m.scam).length >= 3 && INBOX.filter(m => !m.scam).length >= 3);
+  for (const m of INBOX) assert.ok(m.from && m.subject && m.body && m.why && THEMES[m.theme], m.id);
+  const ok = ['I will turn off autoplay and notifications at night', 'blokkolom a követőket és a sütiket', 'check the sender address before I click a link'];
+  for (const a of ok) assert.ok(scoreAnswer(a, GATE).score >= 1, a);
+  assert.ok(scoreAnswer('idk', GATE).score < 1);
+});
