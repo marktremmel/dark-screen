@@ -36,6 +36,12 @@ Interface
   UI Variations (HD horror UI pack)
   m5x7 pixel font by Daniel Linssen
 
+Lépcsőház (the stairwell mode)
+  Stairwell wall textures from the PSX Soviet Block Kit by heyheythere
+  Liminal PSX Textures sampler by Cordatix (cordatix.itch.io)
+  PSX Liminal Textures by LESED (lesed.itch.io)
+  Liminal Sound Pack Essential (drones and signals)
+
 Engine
   three.js (MIT licence)
 

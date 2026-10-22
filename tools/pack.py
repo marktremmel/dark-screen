@@ -1,7 +1,7 @@
 """Pack converted assets into data/*.js so the game runs from file:// (no fetch needed)."""
 import base64, json, os, io
 from PIL import Image
-os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+os.chdir('/home/claude/sotet')
 OUT='game/data'; os.makedirs(OUT,exist_ok=True)
 SRC='assets_src'
 def b64(path): return base64.b64encode(open(path,'rb').read()).decode()
@@ -38,10 +38,17 @@ PACKS={
  'ep6':{'jpg':['gen/ep6_fake_frame','gen/ep6_school_front','gen/ep6_lili','gen/ep6_mate','gen/ep6_morning','gen/ep6_lab_morning','gen/ep3_selfie','gen/ep2_bear_view','gen/ep5_mall_screens','refl_a'],'audio':['typing']},
  'ep9':{'glb':['sv_closet','sv_carpet','sv_cube010','sv_sofa','sv_cube012','sv_napkin','sv_vase','sv_tv','sv_piano','sv_lamp','sv_painting001','sv_painting003','sv_plant','sv_door','sv_door_1','sv_phone'],'tex':{'sv_wallpaper':('sv_wallpaper.png',128),'sv_floor':('sv_floor.png',128),'sv_ceiling':('sv_ceiling.png',64)},'jpg':['gen/ep9_courtyard','gen/ep9_answering_machine','gen/ep9_family_photo','gen/ep9_mum_cooking','gen/ep9_stairwell'],'audio':['amb_still','lightsw']},
  'field':{'glb':['nat_commontree_1','nat_commontree_2','nat_commontree_3','nat_pine_2','nat_bush_common','nat_bush_common_flowers','nat_flower_3_group','nat_flower_4_group','nat_grass_wispy_tall','nat_grass_common_tall','nat_rock_medium_1','nat_rock_medium_2','nat_rockpath_round_wide','nat_rockpath_round_small_1','nat_clover_1','nat_plant_7_big'],'tex':{'sky_1':('sky_1.png',576),'sky_2':('sky_2.png',576),'sky_3':('sky_3.png',576),'sky_4':('sky_4.png',576)},'audio':['amb_woods','bird','gstep1','gstep2','gstep3','gstep4','mus_field']},
+ 'rogue':{'tex':{'rg_wall':('kits/block/textures/stair_line.png',128),'rg_white':('kits/block/textures/whitewash.png',128),'rg_concrete':('kits/block/textures/concrete_floor.png',128),'rg_wallpaper':('kits/block/textures/wallpaper.png',128),
+   'rg_terrazzo':('rogue/terrazzo_c.png',128),'rg_mint':('rogue/mint.png',128),'rg_flatdoor':('rogue/flatdoor.png',128),
+   'rg_y_wall':('rogue/wallpaper_backrooms_yellow.png',128),'rg_y_carpet':('rogue/carpet_backrooms_damp.png',128),'rg_y_ceil':('rogue/ceiling_tiles_acoustic.png',128),'rg_y_light':('rogue/ceiling_light_panel.png',128)},
+   'audio':['rg_drone_stair','rg_drone_yellow','rg_signal1','rg_signal2','lightsw','knock','phonering','door_close','presence','stinger']},
  'ep7':{'jpg':['gen/ep7_cctv_suspect','gen/ep7_cctv_you'],'audio':['amb_hollow','sec_latch','shutter','vent','plastic2','strain','phonebtn','typing','crton','hatch','knob','lightsw']},
 }
+import sys
+ONLY=sys.argv[1:]
 total=0
 for name,P in PACKS.items():
+    if ONLY and name not in ONLY: continue
     d={'glb':{},'tex':{},'img':{},'audio':{}}
     for g in P.get('glb',[]): d['glb'][g]=b64(f'build/glb/{g}.glb')
     for k,(f,s) in P.get('tex',{}).items(): d['tex'][k]=png_b64(f'{SRC}/tex/{f}' if not f.startswith('kits/') else f'{SRC}/{f}',s)

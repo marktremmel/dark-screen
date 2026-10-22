@@ -26,13 +26,18 @@ export class Hub {
     plane(g, 'ceiling', X0, Z0, X1, Z1, HH, { tile: 0.6, ceiling: true, color: 0xb8b8b8 });
     const wo = { col, block, h: HH, tile: 1.4, skirt: 'skirt', skirtH: 0.9 };
     wall(g, 'lab_wall', X0, Z0, X1, Z0, wo);
-    wall(g, 'lab_wall', X0, Z1, X1, Z1, { ...wo, gaps: [[4.6, 6.0, 2.15]] });
+    wall(g, 'lab_wall', X0, Z1, X1, Z1, { ...wo, gaps: [[-5.7, -4.3, 2.15], [4.6, 6.0, 2.15]] });
     wall(g, 'lab_wall', X0, Z0, X0, Z1, wo);
     wall(g, 'lab_wall', X1, Z0, X1, Z1, wo);
     // door (exit)
     const door = place(g, 'door', 5.3, 0, Z1 - 0.02, 180); door.scale.set(0.95, 1.02, 1);
     this.doorObj = door;
     col.push({ x0: 4.6, x1: 6.0, z0: Z1 - 0.1, z1: Z1 + 0.6 }); // the door is closed: you leave through it with E, not by walking (backwards) through the gap
+    // Lépcsőház (13+): the stairwell mode, behind its own door with a sign
+    const rdoor = place(g, 'door', -5.0, 0, Z1 - 0.02, 180); rdoor.scale.set(0.95, 1.02, 1); this.rogueDoor = rdoor;
+    col.push({ x0: -5.7, x1: -4.3, z0: Z1 - 0.1, z1: Z1 + 0.6 });
+    const rsign = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.34), new THREE.MeshBasicMaterial({ map: canvasTex(104, 28, (c, w, h) => { c.fillStyle = '#1d3a2c'; c.fillRect(0, 0, w, h); c.fillStyle = '#d6efe2'; pxText(c, 'LÉPCSŐHÁZ 13+', 6, 6, 16); }) }));
+    rsign.position.set(-5.0, 2.45, Z1 - 0.08); rsign.rotation.y = Math.PI; g.add(rsign);
     // windows + moonlight
     for (const z of [-2.6, 0, 2.6]) windowPane(g, X0 + 0.07, 1.75, z, 1.7, 1.3, Math.PI / 2, day ? { day: true, view: 'view_morning_school', top: '#f6d9a8', bottom: '#b8c8d8' } : { lights: true, view: 'view_night_school' });
     const moon = new THREE.DirectionalLight(day ? 0xffd9a0 : 0x8ea6ff, day ? 1.6 : 0.2); moon.position.set(-10, day ? 4 : 6, 2); sc.add(moon);
@@ -99,6 +104,7 @@ export class Hub {
     this.it = new Interactor(this.G.camera); this.it.blockers = block;
     for (const p of this.pcs) this.it.add(p.pc, () => this.pcLabel(p.n), () => this.usePC(p.n));
     this.it.add(tpc, "Teacher's computer: settings, save code, credits", () => this.teacherMenu());
+    this.it.add(rdoor, () => keyOK('rogue') ? 'Lépcsőház (13+): go to your flat' : 'Lépcsőház (13+): locked. Type the code from your teacher.', () => this.useRogue());
     this.it.add(door, () => this.day ? 'Step outside' : 'Leave the lab (title screen)', () => this.day ? this.outside() : this.quit());
   }
   pcLabel(n) {
@@ -152,6 +158,28 @@ export class Hub {
     if (!BUILT[n]) { play('denied', { vol: 0.4 }); caption(`Episode ${p} is not installed yet. It arrives in a later lesson.`, 'say', 4); return; }
     this.playing = false; play('tvon', { vol: 0.6 }); this.G.unlock();
     fade(true, '', 0.8).then(() => { this.G.returnFrom = n; this.G.goEpisode(n).then(() => fade(false, '', 0.8)); });
+  }
+  useRogue() {
+    if (!keyOK('rogue')) { this.rogueDialog(); return; }
+    this.playing = false; play('door_open', { vol: 0.5 }); this.G.unlock();
+    fade(true, '', 0.8).then(() => this.G.goRogue().then(() => fade(false, '', 0.6)));
+  }
+  rogueDialog() {
+    this.playing = false; this.G.unlock(); play('denied', { vol: 0.3 });
+    const el = openScreen(`<div class="panel" style="width:min(480px,92vw);text-align:center"><h2 style="margin-top:0">Lépcsőház (13+)</h2>
+      <p>A separate, harder game: your own flat in a panel block, and the stairwell at night. Your teacher opens it with a code (kód).</p>
+      <input type="text" id="k" autocomplete="off" spellcheck="false" style="text-align:center;letter-spacing:.12em;text-transform:uppercase">
+      <p class="sub" id="m" style="min-height:1.3em"></p>
+      <div class="btns" style="justify-content:center"><button class="btn primary" id="ok">Unlock</button><button class="btn" id="x">Not now</button></div></div>`);
+    const inp = el.querySelector('#k'); setTimeout(() => inp.focus(), 50);
+    const close = () => { closeScreen(el); this.playing = true; };
+    const go = () => {
+      const r = tryCode('rogue', inp.value);
+      if (!r) { play('denied', { vol: 0.4 }); el.querySelector('#m').textContent = "That's not the code."; inp.select(); return; }
+      play('click', { vol: 0.5 }); closeScreen(el); this.useRogue();
+    };
+    el.querySelector('#ok').onclick = go; el.querySelector('#x').onclick = close;
+    inp.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') go(); if (ev.key === 'Escape') close(); });
   }
   codeDialog(n, teacher) {
     const e = epInfo(n), p = epPos(n);

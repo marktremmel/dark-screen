@@ -19,6 +19,7 @@ import { Ep5 } from './scenes/ep5.js';
 import { Ep9 } from './scenes/ep9.js';
 import { Ep8 } from './scenes/ep8.js';
 import { nextEp, epPos } from './text.js';
+import { installRogue } from './rogue/index.js';
 
 export const G = { scene: null, camera: null, t: 0, quiet: () => !!S.settings.quiet, expectUnlock: false, pauseEl: null };
 window.SK_GAME = G; G.R = R; // for testing / teacher debugging
@@ -71,7 +72,8 @@ export async function goEpisode(n) {
   loading(false);
   await switchScene(n === 6 ? new Ep6(G) : n === 5 ? new Ep5(G) : n === 9 ? new Ep9(G) : n === 8 ? new Ep8(G) : n === 7 ? new Ep7(G) : n === 4 ? new Ep4(G) : n === 3 ? new Ep3(G) : n === 2 ? new Ep2(G) : new Ep1(G));
 }
-G.goHub = goHub; G.goField = goField; G.goEpisode = goEpisode;
+G.goHub = goHub; G.goField = goField; G.goEpisode = goEpisode; G.switchScene = switchScene;
+installRogue(G);   // Lépcsőház: G.goRogue, G.goStairs
 // "Play the next episode" buttons follow the play order, not the internal numbers
 // The debrief's "next episode" button respects the lesson codes: a locked episode sends you to its computer in the lab and asks for the code there.
 G.nextLabel = id => { const e = nextEp(id); if (!e) return null; return keyOK(e.id) ? `Play episode ${epPos(e.id)} now` : `Episode ${epPos(e.id)}: enter today's code`; };

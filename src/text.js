@@ -110,7 +110,7 @@ export const BUILT = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: 
 export const LOCKS_ON = typeof window === 'undefined' || window.SK_LOCKS !== false;
 // Only hashes are stored, so the codes can't be read out of the public source. The codes themselves are in the Teacher Pack.
 // An episode can have more than one valid code (the old codes for 2 and 3 still work).
-export const UNLOCK_HASH = { 2: ['53fe6ab6', 'ebaae6e5'], 3: ['0e53f459', 'ac84f1e5'], 7: '1675a29d', 4: 'dcc8ceff', 8: '7fa41c1f', 5: 'e196b5b6', 9: '88c3440c', 6: '6b13e8e9' };
+export const UNLOCK_HASH = { 2: ['53fe6ab6', 'ebaae6e5'], 3: ['0e53f459', 'ac84f1e5'], 7: '1675a29d', 4: 'dcc8ceff', 8: '7fa41c1f', 5: 'e196b5b6', 9: '88c3440c', 6: '6b13e8e9', rogue: '465aad5d' };  // rogue: the Lépcsőház door in Room 214
 export const TEACHER_HASH = '53bb351b';
 export function codeHash(c) { let x = 2166136261; const s = 'sk-salt:' + c; for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return (x >>> 0).toString(16).padStart(8, '0'); }
 export const normCode = c => String(c || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]/g, '');
@@ -253,6 +253,7 @@ export const CREDITS = [
   ['Textures', 'Screaming Brain Studios Tiny Texture Pack 2 (CC0). Classic64 Asset Library by Craig Snedeker (CC0).'],
   ['Sky', 'Free Sky with Clouds Background Pixel Art Set by CraftPix.net.'],
   ['Interface', 'UI Variations (HD horror UI pack). Pixel font m5x7 by Daniel Linssen.'],
+  ['Lépcsőház', 'Stairwell textures from the PSX Soviet Block Kit by heyheythere; Liminal PSX Textures sampler by Cordatix (cordatix.itch.io); PSX Liminal Textures by LESED (lesed.itch.io); drones and signals from the Liminal Sound Pack Essential. Used under their game licences; the raw assets may not be redistributed.'],
   ['Engine', 'three.js (MIT licence).'],
   ['Fiction', 'All apps, companies, people and messages in this game are invented. Any resemblance is a coincidence.'],
   ['Easter egg', 'The field after the finale links to "Still Alive" by Jonathan Coulton, from the game Portal (Valve, 2007), on YouTube. The song itself is not part of this game.'],

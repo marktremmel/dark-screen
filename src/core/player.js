@@ -72,6 +72,7 @@ export class Player {
     const r = this.radius, p = this.pos;
     for (const b of this.boxes) {
       if (b.off) continue;
+      if (b.y0 != null && ((this.yOff || 0) < b.y0 || (this.yOff || 0) > b.y1)) continue; // height-limited colliders (stairwells)
       const cx = Math.max(b.x0, Math.min(p.x, b.x1)), cz = Math.max(b.z0, Math.min(p.z, b.z1));
       const dx = p.x - cx, dz = p.z - cz, d2 = dx * dx + dz * dz;
       if (d2 < r * r) {
@@ -87,7 +88,7 @@ export class Player {
   sync() {
     const bobOn = S.settings.bob !== false;
     const by = bobOn && this.moving ? Math.sin(this.bob) * 0.035 : 0;
-    this.cam.position.set(this.pos.x, this.eye + by, this.pos.z);
+    this.cam.position.set(this.pos.x, this.eye + by + (this.yOff || 0), this.pos.z); // yOff: floor height (stairs)
     this.cam.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
   }
   forward(v = new THREE.Vector3()) { return this.cam.getWorldDirection(v); }
