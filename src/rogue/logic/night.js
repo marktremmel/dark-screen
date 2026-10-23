@@ -3,12 +3,12 @@
 import { TOPIC_IDS } from '../content/walks.js';
 
 export const DIFFS = {
-  calm: { id: 'calm', label: 'Calm', hu: 'nyugis', desc: 'Fewer anomalies, more time to type, smaller losses. Smaller rewards.',
-    anomaly: 0.35, nerveLoss: 0.6, speed: 0.8, typeTime: 1.4, light: 45, reward: 0.8 },
-  normal: { id: 'normal', label: 'Normal', hu: 'normál', desc: 'The way it is meant to be played.',
-    anomaly: 0.45, nerveLoss: 1, speed: 1, typeTime: 1, light: 30, reward: 1 },
-  hard: { id: 'hard', label: 'Hard', hu: 'nehéz', desc: 'More anomalies, less light, faster figures, less time to type. Rewards x1.5.',
-    anomaly: 0.55, nerveLoss: 1.4, speed: 1.25, typeTime: 0.8, light: 20, reward: 1.5 },
+  calm: { id: 'calm', label: 'Calm', hu: 'nyugis', desc: 'Fewer anomalies, a wrong call costs one floor, more time to type. Smaller rewards.',
+    anomaly: 0.35, back: 1, nerveLoss: 0.6, speed: 0.8, typeTime: 1.4, light: 45, reward: 0.8 },
+  normal: { id: 'normal', label: 'Normal', hu: 'normál', desc: 'A wrong call on the stairs costs two floors.',
+    anomaly: 0.45, back: 2, nerveLoss: 1, speed: 1, typeTime: 1, light: 30, reward: 1 },
+  hard: { id: 'hard', label: 'Hard', hu: 'nehéz', desc: 'A wrong call sends you back to your own floor. Less light, faster figures. Rewards x1.5.',
+    anomaly: 0.55, back: Infinity, nerveLoss: 1.4, speed: 1.25, typeTime: 0.8, light: 20, reward: 1.5 },
 };
 
 export const WALKS = ['park', 'backrooms', 'hotel', 'pool'];

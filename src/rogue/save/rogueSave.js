@@ -9,7 +9,7 @@ export const SCHEMA = 1;
 
 /** A fresh, empty life. The floor is chosen in the game (null until then). @param {number} id @param {string|null} kept */
 export function newLife(id, kept = null) {
-  return { id, floor: null, coins: 0, kept, home: [], stickers: [], gadgets: { torch: 0, lens: 0, phone: 0 }, hard: false, nerve: CFG.nerveStart };
+  return { id, floor: null, coins: 0, kept, home: [], inv: kept ? { [kept]: 1 } : {}, flat: 1, stickers: [], gadgets: { torch: 0, lens: 0, phone: 0 }, hard: false, nerve: CFG.nerveStart, nerveMax: CFG.nerveStart };
 }
 export function newRecord() { return { xp: 0, missions: 0, descents: 0, runs: 1, deaths: 0, spotted: {}, missed: {}, notebook: [], nights: [], topics: {}, best: { xp: 0, wpm: 0, stages: 0 } }; }
 
@@ -39,7 +39,7 @@ export function earn(R, xp, coins) { R.record.xp += xp; R.life.coins += coins; }
 
 /** Change nerve, clamped 0..start. Returns true if this kills you. */
 export function nerve(R, delta) {
-  R.life.nerve = Math.max(0, Math.min(CFG.nerveStart, R.life.nerve + delta));
+  R.life.nerve = Math.max(0, Math.min(R.life.nerveMax || CFG.nerveStart, R.life.nerve + delta));
   return R.life.nerve <= 0;
 }
 

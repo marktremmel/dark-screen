@@ -45,6 +45,7 @@ test('content: every anomaly is complete and its notice exists', () => {
     assert.ok(a.card && a.card.title && a.card.text, 'card ' + a.id);
     if (a.notice) assert.ok(NOTICES[a.notice], 'notice ' + a.id);
     assert.ok(!/—/.test(a.lesson + a.card.text), 'no em dashes ' + a.id);
+    assert.ok(a.rule && /^[a-z ]+$/.test(a.rule), 'typable rule ' + a.id);
   }
   assert.ok(ANOMALIES.filter(a => a.theme !== 'OBS').length >= 6, 'mostly digital literacy');
 });
@@ -167,4 +168,39 @@ test('night: topics rotate, records keep the bests', () => {
   assert.equal(rec.nights.length, 12); assert.equal(rec.best.xp, 29); assert.equal(rec.best.wpm, 20);
   const counts = Object.values(rec.topics); assert.ok(Math.max(...counts) - Math.min(...counts) <= 3, 'topics spread evenly');
   assert.ok(DIFFS.hard.reward > DIFFS.calm.reward);
+});
+
+import { ITEMS, ITEM, FLATS } from '../../src/rogue/content/furniture.js';
+import { POSTS } from '../../src/rogue/content/posts.js';
+import { ensureHome, cosiness, startNerve, buy, takeOut, placeItem, lift, putBack, moveUp, owned, insideFlat } from '../../src/rogue/logic/home.js';
+test('home: buy, place, cosiness, move up, keep one', () => {
+  for (const i of ITEMS) assert.ok(i.id && (i.model || i.img) && i.price > 0 && i.cosy > 0 && ['floor', 'wall'].includes(i.kind), i.id);
+  const R = ensureRogue({}); const L = R.life;
+  assert.equal(buy(L, 'sofa'), false);                       // no money
+  L.coins = 200; assert.ok(buy(L, 'sofa')); assert.equal(L.coins, 130); assert.equal(L.inv.sofa, 1);
+  assert.equal(cosiness(L), 0);
+  assert.ok(takeOut(L, 'sofa')); placeItem(L, { id: 'sofa', x: 2, y: 0, z: -2, r: 0 });
+  assert.equal(cosiness(L), ITEM.sofa.cosy); assert.equal(startNerve(L), CFG.nerveStart + ITEM.sofa.cosy);
+  const h = lift(L, 0); putBack(L, h.id); assert.equal(L.home.length, 0); assert.equal(L.inv.sofa, 1);
+  takeOut(L, 'sofa'); placeItem(L, { id: 'sofa', x: 2, y: 0, z: -2, r: 0 });
+  L.coins = 300; assert.ok(moveUp(L)); assert.equal(L.flat, 2); assert.equal(L.floor, null); assert.equal(L.inv.sofa, 1); assert.equal(L.home.length, 0);
+  assert.ok(insideFlat(L, 6, -2)); assert.ok(!insideFlat(L, 10, -2));
+  assert.deepEqual(owned(L), ['sofa']);
+  die(R, 'sofa'); assert.equal(R.life.inv.sofa, 1); assert.equal(R.life.flat, 1); assert.equal(R.life.coins, 0);
+  assert.equal(FLATS.length, 3);
+});
+test('posts: both kinds, explained', () => {
+  assert.ok(POSTS.filter(p => p.reveals).length >= 5 && POSTS.filter(p => !p.reveals).length >= 5);
+  for (const p of POSTS) assert.ok(p.img.startsWith('sm_') && p.caption && p.why && !/—/.test(p.why), p.id);
+});
+
+test('descent: a wrong call costs a few floors when back is set', () => {
+  const r = rng(11), d = newDescent(8, { back: 2 }); prepare(r, d);
+  for (let i = 0; i < 4; i++) { d.cur = { kind: 'normal', number: d.floor - d.progress, anomaly: null }; advance(r, d, resolve(d, 'down')); }
+  assert.equal(d.progress, 4);
+  d.cur = { kind: 'normal', number: 4, anomaly: 'bulb_red' };
+  const out = resolve(d, 'down'); assert.equal(out.result, 'miss'); assert.equal(out.progress, 2);
+  advance(r, d, out); assert.equal(d.cur.kind, 'normal'); assert.equal(d.cur.anomaly, null); assert.equal(d.cur.number, 6);
+  const d2 = newDescent(3, { back: 2 }); prepare(r, d2); d2.cur = { kind: 'normal', number: 2, anomaly: null }; d2.progress = 1;
+  advance(r, d2, resolve(d2, 'up')); assert.equal(d2.cur.kind, 'start');
 });

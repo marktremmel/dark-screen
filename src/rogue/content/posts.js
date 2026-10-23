@@ -1,0 +1,33 @@
+// The last train (stage four): your own old posts glow all over the metro platform, and the Collector is picking them up.
+// Take down the ones that give away where you live, where you go and when you're alone. Leave the harmless ones:
+// hiding everything is not the point, knowing what matters is. DATA ONLY. theme T9 (digital footprint).
+export const POSTS = [
+  { id: 'school', img: 'sm_ep6_school_front', caption: 'first day at Platán! 9.B here we come', reveals: true,
+    why: 'The school\'s name and your class: anyone can now wait at the gate.' },
+  { id: 'window', img: 'sm_ep3_window', caption: 'view from my window tonight, 6th floor', reveals: true,
+    why: 'A window view plus a floor number can be matched to a map.' },
+  { id: 'rink', img: 'sm_ep3_rink1', caption: 'rink every tuesday at 5, come watch', reveals: true,
+    why: 'A place and a fixed time: your routine is now public.' },
+  { id: 'courtyard', img: 'sm_ep9_courtyard', caption: 'our courtyard, Fenyő utca 12, best block', reveals: true,
+    why: 'That is your home address, in a public post.' },
+  { id: 'hoodie', img: 'sm_ep3_selfie', caption: 'new school hoodie, Platán crew forever', reveals: true,
+    why: 'Logos on clothes tell strangers which school you go to.' },
+  { id: 'alone', img: 'sm_ep5_bedroom', caption: 'home alone all weekend, parents in Vienna', reveals: true,
+    why: 'Telling everyone your home is empty is a gift to the wrong people.' },
+  { id: 'door', img: 'sm_ep9_stairwell', caption: '4th floor, door on the left, party at 8!', reveals: true,
+    why: 'Directions to your door, open to anyone who scrolls past.' },
+  { id: 'cat', img: 'sm_ep3_cat', caption: 'Bajusz judging me again', reveals: false,
+    why: 'A cat on a blanket gives nothing away. Keeping it is fine.' },
+  { id: 'cake', img: 'sm_ep3_cake', caption: 'baked this, it collapsed, still delicious', reveals: false,
+    why: 'A cake is just a cake.' },
+  { id: 'noodles', img: 'sm_ep5_noodles', caption: 'midnight noodles', reveals: false,
+    why: 'Nothing here says who or where you are.' },
+  { id: 'skate', img: 'sm_ep5_skate', caption: 'finally landed it!!', reveals: false,
+    why: 'A trick at a skatepark with no name or time: harmless.' },
+  { id: 'bench', img: 'sm_ep3_bench', caption: 'autumn already', reveals: false,
+    why: 'Leaves on a bench. Nothing to collect.' },
+  { id: 'fail', img: 'sm_ep5_cat_fail', caption: 'cat vs. shelf. shelf won', reveals: false,
+    why: 'Funny and harmless.' },
+  { id: 'meme', img: 'sm_ep4_meme', caption: 'me every monday', reveals: false,
+    why: 'A meme says nothing about where you are.' },
+];

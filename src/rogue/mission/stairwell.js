@@ -4,7 +4,7 @@
 // so you are always standing on module 0, and the landings are re-dressed for what comes next.
 import * as THREE from 'three';
 import { Walker } from '../../scenes/walker.js';
-import { texBox, plane, windowPane } from '../../core/world.js';
+import { texBox, plane, windowPane, canvasTex } from '../../core/world.js';
 import { psxMat } from '../../core/render.js';
 import { tex } from '../../core/assets.js';
 import { lockPointer, wasPressed } from '../../core/player.js';
@@ -20,6 +20,10 @@ import { earn, nerve, noteAnomaly, die } from '../save/rogueSave.js';
 import { ANOMALY } from '../content/anomalies.js';
 import { dressLanding, L } from './landing.js';
 import { readPanel, rulesPanel } from '../ui/panels.js';
+import { Watcher } from '../entities/watcher.js';
+import { typeOne } from '../ui/typing.js';
+import { timeFor } from '../logic/typing.js';
+import { startNerve } from '../logic/home.js';
 
 const H = CFG.floorH, HALF = H / 2, RUN = 3.0, STEPS = 8;
 const KS = [-2, -1, 0, 1, 2];
@@ -33,8 +37,8 @@ export class Stairwell extends Walker {
   async build() {
     const g = this.newScene(0x040506, 2.2, 12.5);
     this.r = rng(freshSeed());
-    this.d = newDescent(this.R.life.floor, { chance: this.D.anomaly, topic: this.run.topic }); prepare(this.r, this.d);
-    this.R.life.nerve = CFG.nerveStart;
+    this.d = newDescent(this.R.life.floor, { chance: this.D.anomaly, topic: this.run.topic, back: this.D.back }); prepare(this.r, this.d);
+    this.R.life.nerveMax = startNerve(this.R.life); this.R.life.nerve = this.R.life.nerveMax;
     this.mods = {};
     this.buildShaft(g);
     for (const k of KS) this.buildModule(g, k);
@@ -108,25 +112,99 @@ export class Stairwell extends Walker {
     this.mods[k] = m;
   }
   buildYellow(g) {
-    // a room that should not be in a panel block: yellow wallpaper, damp carpet, humming lights
+    // the yellow rooms: a small maze that is generated again every time you fall into it
     const Y = this.yellow = new THREE.Group(); g.add(Y);
-    const W = { col: this.col, block: this.block, tile: 1.4 }, h = 2.6;
-    plane(Y, 'rg_y_carpet', YX - 5, -5, YX + 5, 5, 0, { tile: 1.2 });
-    plane(Y, 'rg_y_ceil', YX - 5, -5, YX + 5, 5, h, { tile: 1.2, ceiling: true });
-    texBox(Y, 'rg_y_wall', YX - 5.2, 0, -5.2, YX + 5.2, h, -5, W); texBox(Y, 'rg_y_wall', YX - 5.2, 0, 5, YX + 5.2, h, 5.2, W);
-    texBox(Y, 'rg_y_wall', YX - 5.2, 0, -5, YX - 5, h, 5, W); texBox(Y, 'rg_y_wall', YX + 5, 0, -5, YX + 5.2, h, 5, W);
-    for (const [x, z] of [[-2, -2], [2, -2], [-2, 2], [2, 2], [0, 0.2]]) texBox(Y, 'rg_y_wall', YX + x - 0.3, 0, z - 0.3, YX + x + 0.3, h, z + 0.3, W);
-    texBox(Y, 'rg_y_wall', YX - 1, 0, -3.6, YX + 3.4, h, -3.4, W);
-    for (const [x, z] of [[-3, -3], [3, -3], [-3, 3], [3, 3], [0, -1.6], [0, 1.8]]) {
-      const p = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.6), new THREE.MeshBasicMaterial({ color: 0xfff6d0, fog: false })); p.rotation.x = Math.PI / 2; p.position.set(YX + x, h - 0.01, z); Y.add(p);
-    }
-    const yl = new THREE.PointLight(0xfff0b0, 0, 16, 0.9); yl.position.set(YX, h - 0.3, 0); Y.add(yl); this.yLight = yl;
-    const ya = new THREE.AmbientLight(0xe8d890, 0); Y.add(ya); this.yAmb = ya;
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 2.05), psxMat({ map: tex('rg_flatdoor'), color: 0xd8c890 }));
-    door.position.set(YX + 2.2, 1.025, -4.98); Y.add(door);
-    this.yDoor = door;
+    const yl = new THREE.PointLight(0xfff0b0, 0, 14, 1.0); yl.position.set(YX, 2.3, 0); g.add(yl); this.yLight = yl;
+    const ya = new THREE.AmbientLight(0xe8d890, 0); g.add(ya); this.yAmb = ya;
+    this.watcher = new Watcher(g); this.watcher.speedMul = 0.75 * this.D.speed;
+    this.watcher.root.visible = true; this.watcher.root.position.set(YX - 30, -20, 0);   // always in the scene (never change the light count), parked out of sight
   }
-
+  /** Build a new maze: N x N cells of C metres, a spanning tree of openings, an exit on the far side. */
+  genMaze() {
+    const Y = this.yellow, N = 4, C = 4, h = 2.6, r = this.r;
+    while (Y.children.length) Y.remove(Y.children[0]);
+    for (let i = this.col.length - 1; i >= 0; i--) if (this.col[i].maze) this.col.splice(i, 1);
+    for (let i = this.block.length - 1; i >= 0; i--) if (this.block[i].userData.maze) this.block.splice(i, 1);
+    const open = new Set(), key = (a, b) => a < b ? a + ':' + b : b + ':' + a, id = (x, z) => z * N + x;
+    const seen = new Set([0]), stack = [[0, 0]];
+    while (stack.length) {
+      const [cx, cz] = stack[stack.length - 1];
+      const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => [cx + dx, cz + dz]).filter(([x, z]) => x >= 0 && z >= 0 && x < N && z < N && !seen.has(id(x, z)));
+      if (!nb.length) { stack.pop(); continue; }
+      const [nx, nz] = nb[Math.floor(r() * nb.length)]; open.add(key(id(cx, cz), id(nx, nz))); seen.add(id(nx, nz)); stack.push([nx, nz]);
+    }
+    for (let i = 0; i < 3; i++) { const x = Math.floor(r() * (N - 1)), z = Math.floor(r() * N); open.add(key(id(x, z), id(x + 1, z))); }   // a few loops
+    const ox = YX, oz = 0, X = cx => ox + cx * C, Z = cz => oz - cz * C;   // cell (cx,cz) spans x X..X+C, z Z-C..Z
+    plane(Y, 'rg_y_carpet', ox, oz - N * C, ox + N * C, oz, 0, { tile: 1.2 });
+    plane(Y, 'rg_y_ceil', ox, oz - N * C, ox + N * C, oz, h, { tile: 1.2, ceiling: true });
+    this.mz = { N, C, open, key, id, X, Z }; this.mPanels = []; this.mNotes = [];
+    const W = { col: this.col, block: this.block, tile: 1.4 };
+    const wallBox = (x0, z0, x1, z1) => { const m = texBox(Y, 'rg_y_wall', x0, 0, z0, x1, h, z1, W); m.userData.maze = true; this.col[this.col.length - 1].maze = true; };
+    for (let cz = 0; cz < N; cz++) for (let cx = 0; cx < N; cx++) {
+      // east wall of each cell, and the north wall (towards -z)
+      if (cx < N - 1) { const x = X(cx + 1); if (open.has(key(id(cx, cz), id(cx + 1, cz)))) { wallBox(x - 0.1, Z(cz) - C, x + 0.1, Z(cz) - C + 1.2); wallBox(x - 0.1, Z(cz) - 1.2, x + 0.1, Z(cz)); } else wallBox(x - 0.1, Z(cz) - C, x + 0.1, Z(cz)); }
+      if (cz < N - 1) { const z = Z(cz) - C; if (open.has(key(id(cx, cz), id(cx, cz + 1)))) { wallBox(X(cx), z - 0.1, X(cx) + 1.2, z + 0.1); wallBox(X(cx) + C - 1.2, z - 0.1, X(cx) + C, z + 0.1); } else wallBox(X(cx), z - 0.1, X(cx) + C, z + 0.1); }
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.6), new THREE.MeshBasicMaterial({ color: r() < 0.2 ? 0x8a8060 : 0xfff6d0, fog: true })); p.rotation.x = Math.PI / 2; p.position.set(X(cx) + C / 2, h - 0.01, Z(cz) - C / 2); Y.add(p); this.mPanels.push(p);
+    }
+    wallBox(ox - 0.2, oz - N * C, ox, oz); wallBox(ox + N * C, oz - N * C, ox + N * C + 0.2, oz); wallBox(ox, oz, ox + N * C, oz + 0.2); wallBox(ox, oz - N * C - 0.2, ox + N * C, oz - N * C);
+    // the exit: the cell furthest from the start (along the corridors), on the far wall
+    const dist = { 0: 0 }, q = [0];
+    while (q.length) { const c = q.shift(), cx = c % N, cz = Math.floor(c / N); for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = cx + dx, z = cz + dz; if (x < 0 || z < 0 || x >= N || z >= N) continue; const n = id(x, z); if (dist[n] == null && open.has(key(c, n))) { dist[n] = dist[c] + 1; q.push(n); } } }
+    const far = Object.keys(dist).map(Number).filter(c => Math.floor(c / N) === N - 1).sort((a, b) => dist[b] - dist[a])[0];
+    const ex = X(far % N) + C / 2, ez = oz - N * C + 0.02;
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 2.05), psxMat({ map: tex('rg_flatdoor'), color: 0xd8c890 })); door.position.set(ex, 1.025, ez); Y.add(door);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.18), new THREE.MeshBasicMaterial({ map: canvasTex(48, 16, c => { c.fillStyle = '#0e5a2a'; c.fillRect(0, 0, 48, 16); c.fillStyle = '#d6ffe2'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('EXIT', 10, 1); }) }));
+    sign.position.set(ex, 2.35, ez + 0.01); Y.add(sign);
+    this.yDoor = door; this.yExit = new THREE.Vector3(ex, 0, ez);
+    // the watcher waits in a cell half way
+    const mid = Object.keys(dist).map(Number).filter(c => dist[c] >= 2 && c !== far).sort(() => r() - 0.5)[0] ?? N + 1;
+    this.mazeWatch = [X(mid % N) + C / 2, Z(Math.floor(mid / N)) - C / 2];
+    this.mazeBounds = { x0: ox + 0.4, x1: ox + N * C - 0.4, z0: oz - N * C + 0.4, z1: oz - 0.4 };
+    this.mazeStart = [X(0) + C / 2, Z(0) - C / 2];
+    // two old screens on stands with a line from tonight's topic: typing one makes the figure lose you for a while
+    const lines = (TOPICS[this.run.topic] || TOPICS.T1).lines.slice().sort(() => r() - 0.5);
+    const cells = Object.keys(dist).map(Number).filter(c => c !== 0 && c !== far && c !== mid).sort(() => r() - 0.5).slice(0, 2);
+    cells.forEach((c, i) => {
+      const L0 = lines[i], x = X(c % N) + C / 2 + (r() < 0.5 ? -1 : 1) * 0.9, z = Z(Math.floor(c / N)) - C / 2 + (r() < 0.5 ? -1 : 1) * 0.9;
+      const stand = texBox(Y, 'rg_concrete', x - 0.05, 0, z - 0.05, x + 0.05, 1.1, z + 0.05, {}); stand.userData.maze = true;
+      const dk = new THREE.MeshBasicMaterial({ color: 0x15161a });
+      const scr = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.06), [dk, dk, dk, dk, new THREE.MeshBasicMaterial({ map: canvasTex(124, 84, cx2 => {
+        cx2.fillStyle = '#05140c'; cx2.fillRect(0, 0, 124, 84); cx2.fillStyle = '#7dffb0'; cx2.font = '16px m5x7'; cx2.textBaseline = 'top';
+        cx2.fillText('> TYPE TO HIDE', 6, 4); const w = L0.type.split(' '); let ln = '', y = 26;
+        for (const ww of w) { if ((ln + ' ' + ww).length > 17) { cx2.fillText(ln, 6, y); y += 14; ln = ww; } else ln = ln ? ln + ' ' + ww : ww; } cx2.fillText(ln, 6, y);
+      }) }), dk]);
+      scr.position.set(x, 1.32, z); scr.lookAt(X(c % N) + C / 2, 1.32, Z(Math.floor(c / N)) - C / 2); Y.add(scr);
+      this.mNotes.push({ mesh: scr, line: L0, done: false });
+    });
+  }
+  /** The maze cell a point is in. */
+  mCell(x, z) { const { N, C, id } = this.mz; return id(Math.max(0, Math.min(N - 1, Math.floor((x - YX) / C))), Math.max(0, Math.min(N - 1, Math.floor(-z / C)))); }
+  /** Where the figure walks next: along the corridors towards you, never through walls. */
+  mazeTarget(p) {
+    const { N, C, open, key, X, Z } = this.mz, w = this.watcher.pos, wc = this.mCell(w.x, w.z), pc = this.mCell(p.x, p.z);
+    if (wc === pc) return p;
+    const dist = { [pc]: 0 }, q = [pc];
+    while (q.length) { const c = q.shift(); for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = c % N + dx, z = Math.floor(c / N) + dz; if (x < 0 || z < 0 || x >= N || z >= N) continue; const n = z * N + x; if (dist[n] == null && open.has(key(c, n))) { dist[n] = dist[c] + 1; q.push(n); } } }
+    const ctr = c => new THREE.Vector3(X(c % N) + C / 2, 0, Z(Math.floor(c / N)) - C / 2);
+    const here = ctr(wc);
+    const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => [wc % N + dx, Math.floor(wc / N) + dz]).filter(([x, z]) => x >= 0 && z >= 0 && x < N && z < N).map(([x, z]) => z * N + x).filter(n => open.has(key(wc, n)) && dist[n] != null).sort((a, b) => dist[a] - dist[b])[0];
+    if (nb == null) return p;
+    const next = ctr(nb), horiz = Math.abs(next.x - here.x) > 0.1;
+    const off = horiz ? Math.abs(w.z - here.z) : Math.abs(w.x - here.x);   // get onto the line through the gap first
+    return off > 0.25 ? (horiz ? new THREE.Vector3(w.x, 0, here.z) : new THREE.Vector3(here.x, 0, w.z)) : next;
+  }
+  async mazeNote(n) {
+    if (this.typing || n.done) return;
+    this.typing = true; this.player.frozen = true; prompt(null);
+    this.typeHandle = {};
+    const r = await typeOne({ text: n.line.type, title: 'Type it and the figure loses you for a while', time: timeFor(n.line.type, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
+    this.typing = false; this.player.frozen = false;
+    if (!r.ok) { if (!r.cancelled) caption('The screen flickers. Try again.', 'say', 2); return; }
+    n.done = true; this.run.typedChars += n.line.type.length; this.run.xp += 2; earn(this.R, 2, 0); nerve(this.R, 2);
+    this.it.remove(n.it); n.mesh.material[4].color.set(0x334433);
+    this.wFreeze = 9; play('rg_signal1', { vol: 0.4 });
+    caption(`"${n.line.type}". The figure has lost you: about nine seconds. Nerve +2.`, 'say', 4); this.updateHud();
+  }
   // ---------- dressing ----------
   dressAll() {
     const d = this.d, nick = S.nick || 'you';
@@ -260,31 +338,64 @@ export class Stairwell extends Walker {
     play('rg_signal2', { vol: 0.6 }); flash(0.7, 400);
     await fade(true, '', 0.5);
     stopLoop('rgst'); loop('rgy', 'rg_drone_yellow', { vol: 0.4 }); this.loops.push('rgy');
-    this.inYellow = true; this.y = 0; this.player.yOff = 0; this.yLight.intensity = 5; this.yAmb.intensity = 0.55;
-    this.player.set(YX - 3.4, 3.6, -45);
+    this.genMaze();
+    this.inYellow = true; this.y = 0; this.player.yOff = 0; this.yLight.intensity = 4; this.yAmb.intensity = 0.4;
+    this.player.set(this.mazeStart[0], this.mazeStart[1], 180);
     this.flashOn = false;
-    this.yDoorIt = this.it.add(this.yDoor, 'A door. It should not be here, but it is the only way out.', () => this.leaveYellow());
+    this.watcher.place(this.mazeWatch[0], this.mazeWatch[1], this.mazeBounds); this.watcher.setSize(1);
+    this.mazeRule = out.result === 'miss' ? ANOMALY[out.anomaly].rule : 'normal is normal';
+    this.yDoorIt = this.it.add(this.yDoor, 'The way out: type the rule to open it', () => this.mazeGate());
+    for (const n of this.mNotes) n.it = this.it.add(n.mesh, 'An old screen: type it to hide from the figure', () => this.mazeNote(n));
+    this.wFreeze = 0; this.scareT = 6 + this.r() * 6;
     await fade(false, '', 0.8);
     const n = from.kind === 'lobby' ? 'the ground floor' : `floor ${from.number}`;
     if (out.result === 'miss') caption(`Something was wrong on ${n} and you kept going. ${ANOMALY[out.anomaly].lesson}`, 'say', 12);
     else caption(`Nothing was wrong on ${n}. Turning back on a normal landing costs nerve too.`, 'say', 7);
-    setTimeout(() => caption(`Nerve −${-out.nerve}. Find the door.`, 'say', 4), 2500);
+    setTimeout(() => caption(`Nerve −${-out.nerve}. Find the EXIT. Something tall is in here with you: it only moves when you are not looking.`, 'say', 6), 3000);
     this.updateHud();
     this.playing = true; this.busy = false; lockPointer();
     if (dead) { await wait(3.5); this.death(); }
+  }
+  async mazeGate() {
+    if (this.typing) return;
+    this.typing = true; this.player.frozen = true; prompt(null);
+    this.typeHandle = {};
+    const r = await typeOne({ text: this.mazeRule, title: 'The door will open for the rule you needed', time: timeFor(this.mazeRule, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
+    this.typing = false; this.player.frozen = false;
+    if (r.ok) { this.run.typedChars += this.mazeRule.length; this.leaveYellow(); return; }
+    if (!r.cancelled) { caption('The door stays shut. Try again.', 'say', 2.5); if (nerve(this.R, -2)) this.death(); }
   }
   async leaveYellow() {
     if (this.busy) return; this.busy = true; this.playing = false;
     play('door_close', { vol: 0.5 });
     await fade(true, '', 0.6);
-    this.it.remove(this.yDoorIt); this.inYellow = false; this.yLight.intensity = 0; this.yAmb.intensity = 0;
+    this.it.remove(this.yDoorIt); for (const n of this.mNotes) if (n.it && !n.done) this.it.remove(n.it);
+    this.inYellow = false; this.yLight.intensity = 0; this.yAmb.intensity = 0; this.watcher.active = false; this.watcher.root.position.set(YX - 30, -20, 0);
     stopLoop('rgy'); loop('rgst', 'rg_drone_stair', { vol: 0.32 });
     this.y = 0; this.player.yOff = 0; this.dressAll(); this.setObjective();
-    this.player.set(-0.95, 1.35, 0);
+    const start = this.d.cur.kind === 'start';
+    if (start) this.player.set(-0.95, 1.35, 0); else this.player.set(-1.6, 1.6, 0);
     this.lightT = this.D.light; this.lightsOn = true; this.applyLights();
     await fade(false, '', 0.8);
-    caption(`Back outside your own door, floor ${this.d.floor}. Start again.`, 'say', 4);
+    caption(start ? `Back outside your own door, floor ${this.d.floor}. Start again.` : `Floor ${this.d.cur.number}: ${this.D.back} floor${this.D.back > 1 ? 's' : ''} back up. This landing is normal. Learn it, then go on down.`, 'say', 5);
     this.playing = true; this.busy = false; lockPointer();
+  }
+  async mazeCaught() {
+    this.playing = false; prompt(null);
+    if (!S.settings.quiet) { flash(0.8, 400); play('stinger', { vol: 0.35 }); } else play('thump', { vol: 0.4 });
+    const dead = nerve(this.R, -Math.round(8 * this.D.nerveLoss));
+    await fade(true, '', 0.4);
+    if (dead) { this.death(); return; }
+    this.player.set(this.mazeStart[0], this.mazeStart[1], 180); this.watcher.place(this.mazeWatch[0], this.mazeWatch[1], this.mazeBounds);
+    await fade(false, '', 0.6);
+    caption('It reached you. You are back where you fell in.', 'say', 3);
+    this.playing = true;
+  }
+  mazeSeen() {
+    const w = this.watcher, cam = this.G.camera.position, hd = w.head(), dx = hd.x - cam.x, dz = hd.z - cam.z, d = Math.hypot(dx, dz);
+    const f = this.player.forward(new THREE.Vector3());
+    const ang = Math.acos(Math.max(-1, Math.min(1, (f.x * dx + f.z * dz) / (d * Math.hypot(f.x, f.z) || 1))));
+    return ang < 0.66 && this.lineOfSight(cam, hd);
   }
   death() {
     this.playing = false; this.busy = true; prompt(null);
@@ -311,6 +422,21 @@ export class Stairwell extends Walker {
     for (const k of KS) { const b = this.mods[k].res && this.mods[k].res.blink; if (b) b.visible = Math.sin(t * 6) > 0; }
     if (!this.playing) return;
     this.player.update(dt);
+    if (this.inYellow && !this.typing) {
+      const p = this.player.pos; this.yLight.position.set(p.x, 2.3, p.z);
+      if (this.wFreeze > 0) this.wFreeze -= dt;
+      else if (this.watcher.active) {
+        this.watcher.update(dt, { player: this.mazeTarget(p), seen: this.mazeSeen(), trackers: 0, noise: 0 });
+        const w = this.watcher.pos; if (Math.hypot(w.x - p.x, w.z - p.z) < 0.85) { this.mazeCaught(); return; }
+      }
+      // the rooms are not quite right: panels flicker, something knocks far away
+      this.scareT -= dt;
+      if (this.scareT <= 0) {
+        this.scareT = 7 + this.r() * 9; const pn = this.mPanels[Math.floor(this.r() * this.mPanels.length)];
+        if (pn) { pn.material.color.set(0x2a2618); setTimeout(() => pn.material.color.set(0xfff6d0), 400 + this.r() * 900); }
+        if (this.r() < 0.5) play(this.r() < 0.5 ? 'knock' : 'presence', { vol: 0.25 });
+      }
+    }
     if (!this.inYellow) {
       const p = this.player.pos;
       this.y = this.groundY(p.x, p.z, this.y); this.player.yOff = this.y; this.player.sync();
@@ -330,6 +456,6 @@ export class Stairwell extends Walker {
     this.updateFlash(dt); this.updateArms(dt, t);
     this.fill.intensity = this.flashOn ? 0.3 : 0.05;
     this._h = (this._h || 0) + dt; if (this._h > 0.25) { this._h = 0; this.updateHud(); }
-    this.interact();
+    if (!this.typing) this.interact();
   }
 }

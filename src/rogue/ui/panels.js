@@ -124,7 +124,7 @@ export function nightMenu(R, o) {
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="dd">${Object.values(DIFFS).map(d => `<button class="btn" data-d="${d.id}" style="text-align:left"><b>${d.label}</b> <span class="sub">(${d.hu})</span><br><span class="sub" style="font-size:.8em">${esc(d.desc)}</span></button>`).join('')}</div>
       <h3>Your scores</h3>
       <div><span class="stat">Best night: ${best.xp} XP</span><span class="stat">Best typing: ${best.wpm} wpm</span><span class="stat">Most stages in a night: ${best.stages}</span><span class="stat">Nights out: ${nights.length >= 12 ? '12+' : nights.length}</span><span class="stat">Cards: ${rec.notebook.length}/${CARD_COUNT}</span><span class="stat">Lives lost: ${rec.deaths}</span></div>
-      ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.outcome === 'death' ? 'lost the life' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
+      ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.outcome === 'death' ? 'lost the life' : n.outcome === 'metro' ? 'the whole night' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
       <div class="btns"><button class="btn primary" id="go" autofocus>Go out</button><button class="btn" id="sh">Another topic</button><button class="btn" id="x">Stay in</button></div></div>`);
     const draw = () => {
       el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')';
@@ -147,6 +147,19 @@ export function walkExitChoice(run) {
       <div style="display:grid;gap:10px;margin-top:10px">
       <button class="btn primary" data-m="school" style="text-align:left"><b>Go on to the school</b><br><span class="sub">Screens that pull at you, something that moves when you look away, a phone in the gym.</span></button>
       <button class="btn" data-m="home" style="text-align:left"><b>Go home</b><br><span class="sub">Keep everything you earned tonight.</span></button></div></div>`, 'solid');
+    el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
+  });
+}
+
+/** After the school: the last train, or home. */
+export function schoolExitChoice(run) {
+  return new Promise(res => {
+    const el = openScreen(`<div class="panel" style="width:min(600px,94vw)"><h2>Behind the school</h2>
+      <p>So far tonight: <b>${run.xp} XP</b> and <b>${run.coins} coins</b>. The metro entrance glows at the end of the street. The last train leaves soon.</p>
+      <p class="sub">The metro is the last stage of the night. If your nerve runs out down there, you lose this life.</p>
+      <div style="display:grid;gap:10px;margin-top:10px">
+      <button class="btn primary" data-m="metro" style="text-align:left"><b>Catch the last train</b><br><span class="sub">Your old posts are glowing all over the platform, and something is collecting them.</span></button>
+      <button class="btn" data-m="home" style="text-align:left"><b>Walk home</b><br><span class="sub">Keep everything you earned tonight.</span></button></div></div>`, 'solid');
     el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
   });
 }

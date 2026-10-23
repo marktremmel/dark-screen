@@ -17,7 +17,7 @@ const CSS = `
 @keyframes tyshake{0%{transform:translateX(calc(-50% - 4px))}50%{transform:translateX(calc(-50% + 4px))}100%{transform:translateX(-50%)}}
 .tyb .bar{height:5px;border-radius:3px;background:#2a2636;margin-top:10px;overflow:hidden}.tyb .bar i{display:block;height:100%;background:#e8b04a}
 .tyl{position:fixed;z-index:5;pointer-events:none;transform:translate(-50%,-100%);text-align:center;white-space:nowrap}
-.tyl .say:empty{display:none}.tyl .say{font-size:.72em;color:#ffd1c9;background:rgba(40,8,8,.75);padding:3px 8px;border-radius:6px;margin-bottom:4px;max-width:340px;white-space:normal}
+.tyl .say:empty{display:none}.tyl .say{font-size:.86em;line-height:1.25;color:#ffe3dc;background:rgba(40,8,8,.85);padding:5px 10px;border-radius:6px;margin:0 auto 5px;width:max-content;max-width:360px;white-space:normal;text-align:left}
 .tyl .p{font-family:m5x7,monospace;font-size:26px;background:rgba(8,8,12,.85);padding:2px 10px;border-radius:6px;border:1px solid #3a3550}
 .tyl.lock .p{border-color:#8fe3c9;box-shadow:0 0 12px rgba(143,227,201,.4)}`;
 function ensureCss() { if (document.getElementById('tycss')) return; const s = document.createElement('style'); s.id = 'tycss'; s.textContent = CSS; document.head.appendChild(s); }
@@ -79,6 +79,8 @@ export class LabelLayer {
     if (el._say !== say) { el._say = say; el.firstChild.textContent = say; }
     const html = phraseHTML(phrase); if (el._p !== html) { el._p = html; el.lastChild.innerHTML = html; }
   }
+  /** The label's real height on screen last frame (0 if not shown yet). */
+  height(id) { const el = this.els.get(id); return el && el.style.display !== 'none' ? el.offsetHeight : 0; }
   remove(id) { const el = this.els.get(id); if (el) { el.remove(); this.els.delete(id); } }
   clear() { for (const el of this.els.values()) el.remove(); this.els.clear(); }
 }

@@ -34,7 +34,9 @@ Five copies of one storey are stacked (two above, two below). Your height comes 
 surfaces overlap in plan, so it picks the surface closest to where you were. When you step onto the next landing, the world
 shifts by one storey so you are always on copy 0, `descent.advance()` decides if the call was right, and the landings are
 re-dressed. The copies above and below always show the next landing (`d.next`), so peeking down the stairwell gives nothing away.
-A wrong call goes through the yellow room and back to your own floor.
+A wrong call drops you into the yellow rooms: a 4 x 4 maze generated each time, with the Watcher walking the corridors
+(it only moves while you look away), two old screens that make it lose you if you type their line, and an EXIT door that opens
+for the rule of the anomaly you missed. You come back out a few floors up (one on Calm, two on Normal, your own floor on Hard).
 
 Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor height) and colliders with an optional
 `y0`/`y1` height range.
@@ -67,7 +69,14 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
 - Session 4 (23 Oct, second play-test): a night is now one run with stages and one topic; difficulty and scores in the
   night menu; walks in four places; the park starts in front of your own panel block; the stairwell says which floor
   each verdict is about; tracker blocking in the classroom is one key again (typing there made you look away).
-- Next: the shop and the flat (Phase 2), a fourth stage, more school-style encounters per topic.
+- Session 5 (23 Oct): the home computer has a shop, the notebook and the flat tab; furniture and posters are placed in the
+  flat (E place, R rotate, X back in the box) and add cosiness, which raises your starting nerve. Three flats to move up to.
+  Fourth stage: the metro platform, where the Collector takes down posts that give away too much before you can. 21
+  stairwell anomalies. A lost life lets you keep one thing.
+- Session 6 (23 Oct, third play-test): the yellow room became the maze; the soft reset per difficulty; the Free Wi-Fi note is
+  bigger; in the walk the nearest figure shows what it says above the reply you type, so you read the question first;
+  the phone screens sit in front of the figures' faces.
+- Next: stickers for the flat, more school-style encounters per topic.
 
 ## Codes
 

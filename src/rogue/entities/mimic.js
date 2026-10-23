@@ -26,7 +26,7 @@ export class Mimic {
     this.npc.obj.traverse(o => { if (o.isMesh) o.material = dark; });
     this.root = new THREE.Group(); this.root.add(this.npc.obj); this.root.position.set(x, 0, z); parent.add(this.root);
     this.screen = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.3), new THREE.MeshBasicMaterial({ map: face(), fog: false, transparent: true }));
-    this.screen.position.set(0, 1.58, 0.16); this.npc.obj.add(this.screen);
+    this.screen.position.set(0, 1.58, 0.3); this.npc.obj.add(this.screen);   // held in front of the face, so it never cuts through the head
     // no point light here: adding lights mid-game makes every material recompile (a long freeze on school computers)
     this.npc.play('Walk_Loop', 0);
   }

@@ -65,7 +65,7 @@ export function dressLanding(g, spec, ctx) {
   const lobby = spec.kind === 'lobby', start = spec.kind === 'start';
 
   // floor number, stencilled on the right wall
-  const label = lobby ? 'FÖLDSZINT' : spec.number + '. EMELET';
+  const label = lobby ? 'FÖLDSZINT' : (w === 'floorNumberWrong' ? spec.number + 2 : spec.number) + '. EMELET';
   const num = planeAt(g, 1.05, 0.34, plateMat(128, 40, c => {
     c.fillStyle = '#d9d4c4'; c.fillRect(0, 0, 128, 40); c.fillStyle = '#1b1b1b'; c.font = '32px m5x7'; c.textBaseline = 'top';
     const wdt = c.measureText(label).width; pxText(c, label, Math.max(2, (128 - wdt) / 2), 4, 32);
@@ -80,11 +80,25 @@ export function dressLanding(g, spec, ctx) {
     let name = NAMES[i];
     if (start && i === 1) name = nick;                 // your own door
     if (w === 'door2' && i === 1) name = nick;         // ...but not on anyone else's floor
+    if (w === 'plateSwap' && i !== 1) name = NAMES[2 - i];
     const d = flatDoor(g, x, [String(no), name]);
     items.push({ obj: d, kind: start && i === 1 ? 'yourdoor' : 'door', data: { no, name } });
   });
   // doormat in front of the middle door
-  const mat = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), psxMat({ color: 0x5a4632 })); mat.rotation.x = -Math.PI / 2; mat.position.set(DOOR_X[1], 0.006, L.ZB - 0.4); if (!lobby) g.add(mat);
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), w === 'doormat'
+    ? psxMat({ map: canvasTex(70, 45, c => { c.fillStyle = '#5a4632'; c.fillRect(0, 0, 70, 45); c.fillStyle = '#d8c070'; c.font = '16px m5x7'; c.textBaseline = 'top'; const t = 'SZIA ' + nick; pxText(c, t, Math.max(2, (70 - c.measureText(t).width) / 2), 15, 16); }) })
+    : psxMat({ color: 0x5a4632 }));
+  mat.rotation.x = -Math.PI / 2; mat.rotation.z = Math.PI; mat.position.set(DOOR_X[1], 0.006, L.ZB - 0.4); if (!lobby) g.add(mat);
+  // a note on the first door, and a smart doorbell by the third (anomalies)
+  if (w === 'doorNote') {
+    const dn = planeAt(g, 0.26, 0.2, new THREE.MeshLambertMaterial({ map: canvasTex(32, 24, c => { c.fillStyle = '#f2ede0'; c.fillRect(0, 0, 32, 24); c.fillStyle = '#333'; for (let l = 0; l < 4; l++) c.fillRect(3, 4 + l * 5, 20 + (l * 3) % 7, 1); }) }), DOOR_X[0], 1.25, L.ZB - L.WT - 0.02, Math.PI);
+    items.push({ obj: dn, kind: 'notice', data: { title: 'A note on the door', notices: [NOTICES.doorNote] } });
+  }
+  if (w === 'doorbellCam') {
+    const db = texBox(g, null, DOOR_X[2] + 0.56, 1.2, L.ZB - L.WT - 0.05, DOOR_X[2] + 0.66, 1.42, L.ZB - L.WT, { color: 0x15161a });
+    void db; const lens = new THREE.Mesh(new THREE.CircleGeometry(0.025, 8), new THREE.MeshBasicMaterial({ color: 0x3a8aff, fog: false }));
+    lens.position.set(DOOR_X[2] + 0.61, 1.36, L.ZB - L.WT - 0.055); lens.rotation.y = Math.PI; g.add(lens);
+  }
 
   // the lift: door, indicator, a plaque or a note on the door
   const liftX = -1.7, lz = L.ZL + 0.012;
@@ -103,10 +117,11 @@ export function dressLanding(g, spec, ctx) {
     const tw = c.measureText(disp).width; pxText(c, disp, Math.max(2, (72 - tw) / 2), 4, 16);
   }), fog: false }), liftX, 2.3, lz, 0);
   const wifi = w === 'liftDoor';
-  const note = planeAt(g, wifi ? 0.2 : 0.24, wifi ? 0.2 : 0.14, new THREE.MeshLambertMaterial({ map: canvasTex(32, 24, c => {
-    c.fillStyle = wifi ? '#f4e04a' : '#d8dde2'; c.fillRect(0, 0, 32, 24); c.fillStyle = '#333';
-    for (let l = 0; l < 4; l++) c.fillRect(3, 4 + l * 5, 18 + (l * 5) % 9, 1);
-    if (wifi) { c.fillStyle = '#d0306a'; c.fillRect(24, 3, 5, 5); }
+  // the normal plaque is small and grey; the Wi-Fi note is a big yellow sign you can read from the stairs
+  const note = planeAt(g, wifi ? 0.42 : 0.24, wifi ? 0.32 : 0.14, new THREE.MeshLambertMaterial({ map: canvasTex(wifi ? 64 : 32, wifi ? 48 : 24, c => {
+    if (!wifi) { c.fillStyle = '#d8dde2'; c.fillRect(0, 0, 32, 24); c.fillStyle = '#333'; for (let l = 0; l < 4; l++) c.fillRect(3, 4 + l * 5, 18 + (l * 5) % 9, 1); return; }
+    c.fillStyle = '#f4e04a'; c.fillRect(0, 0, 64, 48); c.fillStyle = '#c0306a'; c.font = '16px m5x7'; c.textBaseline = 'top';
+    pxText(c, 'FREE', 4, 2, 16); pxText(c, 'WI-FI!', 4, 14, 16); c.fillStyle = '#333'; for (let l = 0; l < 3; l++) c.fillRect(4, 32 + l * 5, 40 + (l * 7) % 12, 1);
   }) }), liftX + 0.22, 1.45, lz + 0.004, 0);
   items.push({ obj: note, kind: 'notice', data: { title: 'A note on the lift door', notices: [NOTICES[wifi ? 'liftDoor_wifi' : 'liftDoor']] } });
 
@@ -117,9 +132,24 @@ export function dressLanding(g, spec, ctx) {
   items.push({ obj: btn, kind: 'switch' });
   const swHit = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.05), new THREE.MeshBasicMaterial({ visible: false })); swHit.position.copy(btn.position); g.add(swHit);
   items.push({ obj: swHit, kind: 'switch' });
+  if (w === 'switchQR') {
+    const qr = planeAt(g, 0.12, 0.16, new THREE.MeshLambertMaterial({ map: canvasTex(24, 32, c => {
+      c.fillStyle = '#fff'; c.fillRect(0, 0, 24, 32); c.fillStyle = '#000';
+      for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if ((x * 7 + y * 3 + x * y) % 3 === 0) c.fillRect(2 + x * 4, 2 + y * 4, 4, 4);
+      c.fillRect(2, 2, 6, 6); c.fillRect(16, 2, 6, 6); c.fillRect(2, 16, 6, 6); c.fillStyle = '#d0306a'; c.fillRect(2, 25, 20, 4);
+    }) }), -0.44, 1.48, lz + 0.006, 0);
+    items.push({ obj: qr, kind: 'notice', data: { title: 'A sticker above the light switch', notices: [['SCAN TO TURN ON THE LIGHTS', 'New smart lighting in your building!', 'Scan the code and sign in to switch the lights on.']] } });
+  }
+  if (w === 'liftAd') {
+    const ad = planeAt(g, 0.5, 0.32, new THREE.MeshBasicMaterial({ map: canvasTex(64, 40, c => {
+      c.fillStyle = '#1a0610'; c.fillRect(0, 0, 64, 40); c.fillStyle = '#ff4060'; c.beginPath(); c.arc(56, 7, 5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#ffe0e8'; c.font = '16px m5x7'; c.textBaseline = 'top'; pxText(c, '37 people', 3, 8, 16); pxText(c, 'viewed you', 3, 21, 16);
+    }), fog: false }), -2.75, 1.6, lz + 0.006, 0);
+    items.push({ obj: ad, kind: 'notice', data: { title: 'A screen by the lift', notices: [['37 PEOPLE VIEWED YOUR PROFILE', 'See who they are!', 'Unlock with Premium for only 1 990 Ft.']] } });
+  }
 
   // the noticeboard
-  const ns = [NOTICES.lift, NOTICES.cat];
+  const ns = w === 'boardEmpty' ? [] : [NOTICES.lift, NOTICES.cat];
   if (a && a.where === 'noticeboard') { if (a.notice.startsWith('cat')) ns[1] = NOTICES[a.notice]; else ns[0] = NOTICES[a.notice]; }
   const board = corkBoard(g, ns, ctx.calm && a && a.where === 'noticeboard' ? (a.notice.startsWith('cat') ? 1 : 0) : -1);
   items.push({ obj: board, kind: 'notice', data: { title: 'The noticeboard (hirdetőtábla)', notices: ns } });
@@ -143,6 +173,10 @@ export function dressLanding(g, spec, ctx) {
   if (!start) sign(true, L.XR - L.WT - 0.012, 1.75, -0.5, -Math.PI / 2);
 
   // anomaly-only extras
+  if (w === 'boxes') {
+    const bm = 0x9a7a52;
+    texBox(g, null, 1.6, 0, 1.4, 2.1, 0.45, 1.85, { color: bm }); texBox(g, null, 1.7, 0.45, 1.45, 2.05, 0.8, 1.8, { color: 0x8a6a44 }); texBox(g, null, 1.1, 0, 1.5, 1.55, 0.4, 1.95, { color: bm });
+  }
   let blink = null;
   if (w === 'ceiling') {
     const cam = texBox(g, null, -1.12, 2.38, 2.0, -0.92, 2.5, 2.1, { color: 0x2a2a2e });

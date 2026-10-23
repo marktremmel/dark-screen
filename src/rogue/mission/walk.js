@@ -333,13 +333,13 @@ export class Walk extends Walker {
     lab.sort((a, b) => a.t.dist - b.t.dist);
     const placed = [];
     for (const L of lab) {
-      const h = 40;
+      const isNear = near && L.t === near, h = Math.max(isNear ? 92 : 40, isNear === L.m._wasNear ? this.labels.height(L.m.uid) : 0); L.m._wasNear = isNear;   // the nearest one shows what it says ABOVE the reply, so you read the question first
       let y = L.y;
-      for (const P2 of placed) if (Math.abs(P2.x - L.x) < 300 && Math.abs(P2.y - y) < (P2.h + h) / 2) y = P2.y - (P2.h + h) / 2 - 6;
+      for (let moved = true, n = 0; moved && n < 6; n++) { moved = false; for (const P2 of placed) if (Math.abs(P2.x - L.x) < 300 && y > P2.y - P2.h - 6 && y - h < P2.y) { y = P2.y - P2.h - 6; moved = true; } }   // labels hang above their point (bottom edge at y)
       placed.push({ x: L.x, y, h });
-      this.labels.set(L.m.uid, L.x, y, '', L.t.p, w.targets.lock === L.t, L.on);
+      this.labels.set(L.m.uid, L.x, y, isNear ? `${L.m.data.who}: ${L.m.data.say}` : '', L.t.p, w.targets.lock === L.t, L.on);
     }
-    this.speech.set(lab.map(L => ({ who: L.m.data.who, say: L.m.data.say, near: near && L.t === near })));
+    this.speech.set(lab.filter(L => !(near && L.t === near)).map(L => ({ who: L.m.data.who, say: L.m.data.say, near: false })));   // the others wait down here
     if (!w.list.length && !w.targets.list.length && w.active.every(m => m.state === 'gone')) {
       if (w.first) this.run.typeMs += performance.now() - w.first;
       this.endWave(); this.gain(0, CFG.coinsZone);
