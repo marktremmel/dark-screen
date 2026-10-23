@@ -19,7 +19,12 @@ The full design is in the planning documents (Lepcsohaz 01 Research, 02 Assets, 
 - `logic/typing.js` + `ui/typing.js`: typing practice. One phrase against the clock (`typeOne`), or several targets at once
   where the first letter picks the nearest (`Targets` + `LabelLayer`). Case and accents don't matter. While typing,
   letters never reach the movement keys.
-- `mission/park.js`, `entities/mimic.js`, `content/park.js`: the park walk (three waves of Mimics, the far gate).
+- A night (`logic/night.js`, `index.js`): the night menu at your front door (tonight's topic, difficulty Calm/Normal/Hard,
+  your scores) -> the stairwell -> the walk -> the school or home -> the night's debrief. `G.run` carries the night.
+- `mission/walk.js`, `entities/mimic.js`, `content/walks.js`: the walk. One topic per night (6 lines each for T1, T2, T5,
+  T6, T9, T10, T11), one of four places: the park (from your block's front door), the yellow rooms, the hotel corridor,
+  the empty pool (indoor corridors are generated each night). Three waves; the speech goes in a box, the labels show only
+  what to type. Every answered line is a notebook card (`content/cards.js`).
 - `ui/panels.js`: notices, house rules, computer, floor picker, death, ground floor.
 - `index.js`: `G.goRogue()` (to your flat) and `G.goStairs()` (out of the front door). Installed from `main.js`.
 
@@ -59,7 +64,10 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   and every landing says what happened.
 - Performance rule: never add or remove lights during play (every material recompiles; seconds of freeze on slow GPUs).
   Plants in the park are drawn in 16 m chunks near the player only.
-- Next: Phase 1, session 3 (checkpoint save inside a mission, about 15 more items, tuning after a class play-test), then Phase 2 (the shop).
+- Session 4 (23 Oct, second play-test): a night is now one run with stages and one topic; difficulty and scores in the
+  night menu; walks in four places; the park starts in front of your own panel block; the stairwell says which floor
+  each verdict is about; tracker blocking in the classroom is one key again (typing there made you look away).
+- Next: the shop and the flat (Phase 2), a fourth stage, more school-style encounters per topic.
 
 ## Codes
 

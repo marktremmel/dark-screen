@@ -12,8 +12,9 @@ import { pick } from './rng.js';
  */
 
 /** A new descent from your own front door. @param {number} floor @returns {Descent} */
-export function newDescent(floor) {
-  return { floor, progress: 0, cur: { kind: 'start', number: floor, anomaly: null }, next: null, last: null, afterReset: false };
+export function newDescent(floor, o = {}) {
+  return { floor, progress: 0, cur: { kind: 'start', number: floor, anomaly: null }, next: null, last: null, afterReset: false,
+    chance: o.chance ?? CFG.anomalyChance, topic: o.topic || null };
 }
 
 /** Roll the landing a right call leads to, so the scene can build it before you arrive. Call after every arrival. @param {() => number} r @param {Descent} d */
@@ -28,8 +29,9 @@ export function rollLanding(r, d, progress, afterReset) {
   if (progress >= d.floor) return { kind: 'lobby', number: 0, anomaly: null };
   if (progress === 0) return { kind: 'start', number, anomaly: null };
   if (afterReset && r() < CFG.firstAfterResetNormal) return { kind: 'normal', number, anomaly: null };
-  if (r() >= CFG.anomalyChance) return { kind: 'normal', number, anomaly: null };
-  const pool = ANOMALIES.filter(a => a.id !== d.last);
+  if (r() >= (d.chance ?? CFG.anomalyChance)) return { kind: 'normal', number, anomaly: null };
+  // tonight's topic comes up three times as often
+  const pool = ANOMALIES.filter(a => a.id !== d.last).flatMap(a => a.theme === d.topic ? [a, a, a] : [a]);
   return { kind: 'normal', number, anomaly: pick(r, pool).id };
 }
 

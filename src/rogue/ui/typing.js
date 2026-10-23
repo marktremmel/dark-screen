@@ -10,10 +10,14 @@ const CSS = `
 .tyb .p{font-family:m5x7,monospace;font-size:34px;letter-spacing:1px;line-height:1}
 .ty-done{color:#8fe3c9}.ty-cur{color:#fff;text-decoration:underline;text-underline-offset:5px}.ty-rest{color:#c8c2d8}
 .tyb.err{border-color:#ff6a5a;animation:tyshake .15s}
+#tysay{position:fixed;left:50%;bottom:23%;transform:translateX(-50%);z-index:5;pointer-events:none;width:min(640px,90vw);display:flex;flex-direction:column;gap:6px}
+#tysay div{background:rgba(30,6,8,.82);border:1px solid #5a2a2a;border-radius:10px;padding:7px 12px;color:#ffd9d2;font-size:.92em}
+#tysay div.near{border-color:#ff9a8a;background:rgba(50,10,12,.9)}
+#tysay b{color:#fff}
 @keyframes tyshake{0%{transform:translateX(calc(-50% - 4px))}50%{transform:translateX(calc(-50% + 4px))}100%{transform:translateX(-50%)}}
 .tyb .bar{height:5px;border-radius:3px;background:#2a2636;margin-top:10px;overflow:hidden}.tyb .bar i{display:block;height:100%;background:#e8b04a}
 .tyl{position:fixed;z-index:5;pointer-events:none;transform:translate(-50%,-100%);text-align:center;white-space:nowrap}
-.tyl .say{font-size:.72em;color:#ffd1c9;background:rgba(40,8,8,.75);padding:3px 8px;border-radius:6px;margin-bottom:4px;max-width:340px;white-space:normal}
+.tyl .say:empty{display:none}.tyl .say{font-size:.72em;color:#ffd1c9;background:rgba(40,8,8,.75);padding:3px 8px;border-radius:6px;margin-bottom:4px;max-width:340px;white-space:normal}
 .tyl .p{font-family:m5x7,monospace;font-size:26px;background:rgba(8,8,12,.85);padding:2px 10px;border-radius:6px;border:1px solid #3a3550}
 .tyl.lock .p{border-color:#8fe3c9;box-shadow:0 0 12px rgba(143,227,201,.4)}`;
 function ensureCss() { if (document.getElementById('tycss')) return; const s = document.createElement('style'); s.id = 'tycss'; s.textContent = CSS; document.head.appendChild(s); }
@@ -77,4 +81,15 @@ export class LabelLayer {
   }
   remove(id) { const el = this.els.get(id); if (el) { el.remove(); this.els.delete(id); } }
   clear() { for (const el of this.els.values()) el.remove(); this.els.clear(); }
+}
+
+/** What the figures are saying, as a list at the top of the view (the labels on them show only what to type). */
+export class SpeechBox {
+  constructor() { ensureCss(); this.el = document.createElement('div'); this.el.id = 'tysay'; document.body.appendChild(this.el); this.html = ''; }
+  set(rows) {
+    const html = rows.map(r => `<div class="${r.near ? 'near' : ''}"><b>${esc(r.who)}:</b> ${esc(r.say)}</div>`).join('');
+    if (html !== this.html) { this.html = html; this.el.innerHTML = html; }
+  }
+  clear() { this.set([]); }
+  remove() { this.el.remove(); }
 }

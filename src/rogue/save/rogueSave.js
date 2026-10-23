@@ -11,7 +11,7 @@ export const SCHEMA = 1;
 export function newLife(id, kept = null) {
   return { id, floor: null, coins: 0, kept, home: [], stickers: [], gadgets: { torch: 0, lens: 0, phone: 0 }, hard: false, nerve: CFG.nerveStart };
 }
-export function newRecord() { return { xp: 0, missions: 0, descents: 0, runs: 1, deaths: 0, spotted: {}, missed: {}, notebook: [] }; }
+export function newRecord() { return { xp: 0, missions: 0, descents: 0, runs: 1, deaths: 0, spotted: {}, missed: {}, notebook: [], nights: [], topics: {}, best: { xp: 0, wpm: 0, stages: 0 } }; }
 
 /** Make sure save.rogue exists and is on the current schema. Returns it. @param {any} save */
 export function ensureRogue(save) {
@@ -48,4 +48,10 @@ export function noteAnomaly(R, id, caught) {
   const m = caught ? R.record.spotted : R.record.missed; m[id] = (m[id] || 0) + 1;
   if (caught && !R.record.notebook.includes(id)) { R.record.notebook.push(id); return true; }
   return false;
+}
+
+/** Unlock any notebook card (see content/cards.js). Returns true if it is new. */
+export function noteCard(R, id) {
+  if (R.record.notebook.includes(id)) return false;
+  R.record.notebook.push(id); return true;
 }

@@ -16,10 +16,10 @@ import { Noise } from '../logic/reading.js';
 import { earn, nerve, die } from '../save/rogueSave.js';
 import { FEED_LIGHTS, TRACKERS, INBOX, GATE } from '../content/school.js';
 import { Watcher } from '../entities/watcher.js';
-import { phonePanel, missionDebrief } from '../ui/missionPanels.js';
+import { phonePanel } from '../ui/missionPanels.js';
+import { DIFFS, newRun } from '../logic/night.js';
 import { typeOne } from '../ui/typing.js';
 import { timeFor } from '../logic/typing.js';
-import { deathPanel } from '../ui/panels.js';
 
 const D2R = Math.PI / 180;
 const RING = { x0: -8, x1: 8, z0: -16, z1: 0, ix0: -5, ix1: 5, iz0: -13, iz1: -3, cz: -8 };
@@ -29,7 +29,7 @@ const LAMP = { x: 0, z: -39, r: 2.4 };
 const HOOK_AT = [[-3, -2.92, 0], [-7.92, -8, 90], [-3, -13.08, 180], [4, -15.92, 0], [5.08, -8, 90], [7.92, -2.2, -90]];
 
 export class School extends Walker {
-  constructor(G, R, run) { super(G); this.R = R; this.run = run || { xp: 0, coins: 0 }; this.quitLabel = 'Run home (keep what you earned)'; this.updateWhileOverlay = true; }
+  constructor(G, R, run) { super(G); this.R = R; this.run = run || newRun('T1', 'normal', 'park'); this.D = DIFFS[this.run.diff] || DIFFS.normal; this.quitLabel = 'Run home (keep what you earned)'; this.updateWhileOverlay = true; }
 
   async build() {
     const g = this.newScene(0x040509, 2.5, 15);
@@ -40,10 +40,10 @@ export class School extends Walker {
     this.buildRing(g); this.buildRoom(g); this.buildGym(g);
     this.scene.add(new THREE.AmbientLight(0x404a66, 0.2));
     this.scene.add(new THREE.HemisphereLight(0x6070a0, 0x100c0a, 0.15));
-    this.watcher = new Watcher(g);
+    this.watcher = new Watcher(g); this.watcher.speedMul = this.D.speed;
     this.setupRig({ arms: true, flash: true, stepVol: 0.3, reach: 2.3 });
     this.flashOn = true;
-    this.mult = floorMult(this.R.life.floor);
+    this.mult = floorMult(this.R.life.floor) * this.D.reward;
     this.msgs = [...INBOX].sort(() => this.r() - 0.5).slice(0, 4);
     if (!this.msgs.some(m => !m.scam)) this.msgs[3] = INBOX.find(m => !m.scam);
     if (!this.msgs.some(m => m.scam)) this.msgs[3] = INBOX.find(m => m.scam);
@@ -199,9 +199,10 @@ export class School extends Walker {
     if (this.typing) return { ok: false, cancelled: true };
     this.typing = true; this.player.frozen = true; prompt(null);
     this.typeHandle = {};
-    const r = await typeOne({ text, title, time, handle: this.typeHandle });
+    const t0 = performance.now();
+    const r = await typeOne({ text, title, time: time * this.D.typeTime, handle: this.typeHandle });
     this.typing = false; this.player.frozen = false; this.typeHandle = null;
-    if (r.ok) { this.st.typed = (this.st.typed || 0) + 1; this.st.wpmSum = (this.st.wpmSum || 0) + r.wpm; this.st.accSum = (this.st.accSum || 0) + r.accuracy; }
+    if (r.ok) { this.st.typed = (this.st.typed || 0) + 1; this.run.typedChars += text.length; this.run.typeMs += performance.now() - t0; const k = Math.round(text.length / Math.max(0.05, r.accuracy)); this.run.keys += k; this.run.errors += k - text.length; }
     return r;
   }
   async silence(h) {
@@ -210,7 +211,7 @@ export class School extends Walker {
     if (!r.ok) {
       if (r.cancelled) return;
       play('beep', { vol: 0.4, rate: 0.7 }); caption('Too slow. The screen glows brighter, and your eyes slide back to it.', 'say', 4);
-      if (nerve(this.R, -CFG.feedFailNerve)) this.death();
+      if (nerve(this.R, -Math.round(CFG.feedFailNerve * this.D.nerveLoss))) this.death();
       return;
     }
     h.off = true; h.light.intensity = 0; this.drawHook(h, 0); this.st.hooks++;
@@ -224,11 +225,9 @@ export class School extends Walker {
     }
     this.setObjective();
   }
-  async block1(tr) {
+  block1(tr) {
+    // blocking is one key press: in the classroom your eyes belong on the figure, not on a typing bar
     if (tr.off || !this.lensOn || this.typing) return;
-    const r = await this.typeTask(tr.t.type, 'Block it: type fast, it moves while you look away', timeFor(tr.t.type, 2.5, 0.3));
-    if (!r.ok) { if (!r.cancelled) { this.noise.add(CFG.noiseWrong); caption('You fumbled it. It heard you.', 'say', 3); } return; }
-    if (tr.off || !this.lensOn) return;
     tr.off = true; tr.mesh.visible = false; this.st.trackers++;
     play('rg_signal1', { vol: 0.35 }); this.gain(CFG.xpTracker, 0);
     this.st.lessons.push({ zone: 2, theme: 'T3', title: 'Blocked: ' + tr.t.label.toLowerCase(), text: tr.t.lesson, rule: tr.t.rule });
@@ -264,7 +263,7 @@ export class School extends Walker {
       this.st.sorted++;
       if (r.rushed) { this.st.rushed++; this.noise.add(CFG.noiseRushed); caption('It heard you.', 'say', 2.5); }
       if (r.right) { this.st.right++; if (!r.rushed) this.gain(CFG.xpMsg, 0); this.st.lessons.push({ zone: 3, theme: m.theme, title: (m.scam ? 'Spotted: ' : 'Trusted: ') + m.subject, text: m.why, rule: m.rule }); }
-      else { this.noise.add(CFG.noiseWrong); if (nerve(this.R, -CFG.nerveWrongMsg)) this.dieSoon = true; }
+      else { this.noise.add(CFG.noiseWrong); if (nerve(this.R, -Math.round(CFG.nerveWrongMsg * this.D.nerveLoss))) this.dieSoon = true; }
       if (this.st.sorted === this.msgs.length) { this.gain(0, CFG.coinsZone); this.intercomLed.material.color.set(0xffd040); }
     });
     if (!this.reading) return;   // the phone was knocked out of your hands
@@ -287,7 +286,7 @@ export class School extends Walker {
         if (r.ok) { play('beep', { vol: 0.3, rate: 1.3 }); break; }
         if (r.cancelled) { this.gating = false; caption('You step back from the intercom.', 'say', 2); return; }
         caption('"Too slow. Again." The static gets louder.', 'say', 3); this.noise.add(CFG.noiseWrong);
-        if (nerve(this.R, -CFG.nerveGateFail)) { this.gating = false; this.death(); return; }
+        if (nerve(this.R, -Math.round(CFG.nerveGateFail * this.D.nerveLoss))) { this.gating = false; this.death(); return; }
       }
     }
     this.gating = false;
@@ -304,7 +303,7 @@ export class School extends Walker {
     if (this.typeHandle && this.typeHandle.cancel) this.typeHandle.cancel();
     this.st.caught++; this.playing = false; prompt(null);
     if (!S.settings.quiet) { flash(0.9, 500); play('stinger', { vol: 0.45 }); } else play('thump', { vol: 0.4 });
-    const dead = nerve(this.R, -CFG.caughtNerve); persist();
+    const dead = nerve(this.R, -Math.round(CFG.caughtNerve * this.D.nerveLoss)); persist();
     await fade(true, '', 0.5);
     if (dead) { this.death(); return; }
     this.respawn();
@@ -317,24 +316,20 @@ export class School extends Walker {
     if (z === 2) { this.player.set(0, -16.8, 0); this.watcher.place(-5, -25, { x0: -5.6, x1: 5.6, z0: -25.6, z1: -16.4 }); }
     else { this.player.set(4.5, -32.8, 0); this.watcher.place(7, -45, { x0: -7.5, x1: 7.5, z0: -45.5, z1: -32.6 }, LAMP); }
   }
-  async death() {
-    this.playing = false; this.G.unlock(); prompt(null); if (this.lensEl) this.lensEl.style.display = 'none';
-    await fade(true, '', 1.2); await fade(false, '', 0.01);
-    await deathPanel(this.R, null);
-    die(this.R, null); persist(); this.G.goRogue();
+  death() {
+    this.playing = false; prompt(null); if (this.lensEl) this.lensEl.style.display = 'none';
+    if (this.typeHandle && this.typeHandle.cancel) this.typeHandle.cancel();
+    this.G.loseLife(this.run);
   }
   async finish() {
     this.playing = false; this.G.unlock(); prompt(null); if (this.lensEl) this.lensEl.style.display = 'none';
-    this.R.record.missions++; persist();
-    const seen = new Set(), per = {}, lessons = this.st.lessons.filter(l => { const k = l.title, z = l.zone || 0; if (seen.has(k) || (per[z] = (per[z] || 0) + 1) > 3) return false; seen.add(k); return true; });
-    await missionDebrief({
-      stats: [`Stairwell: caught ${this.run.spot || 0}, missed ${this.run.miss || 0}`, `+${this.run.xp} XP tonight`, `+${this.run.coins} coins tonight`, `Screens switched off: ${this.st.hooks}/${this.hooks.length}`, `Times round the corridor: ${this.st.laps}`,
-        `Trackers blocked: ${this.st.trackers}/${this.trackers.length}`, `Messages sorted right: ${this.st.right}/${this.msgs.length}`, `Rushed answers: ${this.st.rushed}`, `Typing: ${this.st.typed ? Math.round(this.st.wpmSum / this.st.typed) : 0} wpm, ${this.st.typed ? Math.round(this.st.accSum / this.st.typed * 100) : 100}% accurate`, `Caught: ${this.st.caught}`, `Nerve left: ${this.R.life.nerve}`],
-      lessons: lessons.slice(0, 10),
-    });
-    await fade(true, '', 0.6); this.G.goRogue();
+    this.R.record.missions++; this.run.stages.push('school');
+    const seen = new Set(), per = {};
+    for (const l of this.st.lessons) { const z = l.zone || 0; if (seen.has(l.title) || (per[z] = (per[z] || 0) + 1) > 2) continue; seen.add(l.title); this.run.lessons.push({ ...l, zone: 'school' }); }
+    persist();
+    await fade(true, '', 0.6); this.G.endNight(this.run, 'school');
   }
-  quit() { this.playing = false; if (this.lensEl) this.lensEl.style.display = 'none'; fade(true, '', 0.6).then(() => this.G.goRogue()); }
+  quit() { this.playing = false; if (this.lensEl) this.lensEl.style.display = 'none'; fade(true, '', 0.6).then(() => this.G.endNight(this.run, 'home')); }
   exit() { super.exit(); if (this.lensEl) { this.lensEl.remove(); this.lensEl = null; } }
 
   // ---------- flow ----------
@@ -353,7 +348,7 @@ export class School extends Walker {
   setObjective() {
     const s = this.st;
     if (s.zone === 1) objective(`The screens drag your eyes towards them. Walk up to each one, press E and type the setting that switches it off. ${s.hooks}/${this.hooks.length}`);
-    else if (s.zone === 2) objective(`It only moves when you look away. Q: Badger lens. Look at a tracker, press E and type fast to block it. ${s.trackers}/${this.trackers.length}`);
+    else if (s.zone === 2) objective(`It only moves when you look away. Q: Badger lens. Look at a tracker and press E to block it, then look back at the figure. ${s.trackers}/${this.trackers.length}`);
     else if (!s.phone) objective('The gym. Find what is glowing on the floor. Keep to the light when you can.');
     else if (s.sorted < this.msgs.length) objective(`Read the phone in the light (P). Trust it, or report it as a scam. ${s.sorted}/${this.msgs.length}`);
     else objective('Use the intercom by the fire exit: type tonight\'s rules back to it.');
@@ -413,7 +408,7 @@ export class School extends Walker {
       this.lapAcc = (this.lapAcc || 0) + da;
       if (Math.abs(this.lapAcc) >= Math.PI * 2) {
         this.lapAcc = 0; this.st.laps++;
-        if (this.st.hooks < this.hooks.length) { const dead = nerve(this.R, -CFG.feedLapNerve); caption(`Round the same corridor again (${this.st.laps}). The screens are still on. Nerve −${CFG.feedLapNerve}.`, 'say', 4); if (dead) this.death(); }
+        if (this.st.hooks < this.hooks.length) { const dead = nerve(this.R, -Math.round(CFG.feedLapNerve * this.D.nerveLoss)); caption(`Round the same corridor again (${this.st.laps}). The screens are still on. Nerve −${CFG.feedLapNerve}.`, 'say', 4); if (dead) this.death(); }
       }
     }
     this.lastA = a;

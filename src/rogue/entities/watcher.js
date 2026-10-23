@@ -37,7 +37,7 @@ export class Watcher {
     const p = this.pos, dx = c.player.x - p.x, dz = c.player.z - p.z, d = Math.hypot(dx, dz);
     this.root.rotation.y = Math.atan2(dx, dz);
     if (c.seen) return null;                                   // frozen while you look at it
-    const v = CFG.watcherSpeed + CFG.watcherPerTracker * c.trackers + CFG.watcherNoise * c.noise;
+    const v = (CFG.watcherSpeed + CFG.watcherPerTracker * c.trackers + CFG.watcherNoise * c.noise) * (this.speedMul || 1);
     let nx = p.x + dx / d * v * dt, nz = p.z + dz / d * v * dt;
     if (this.safe && Math.hypot(nx - this.safe.x, nz - this.safe.z) < this.safe.r + 0.3) { nx = p.x; nz = p.z; }   // it will not enter the light
     if (this.bounds) { const b = this.bounds; nx = Math.max(b.x0, Math.min(b.x1, nx)); nz = Math.max(b.z0, Math.min(b.z1, nz)); }

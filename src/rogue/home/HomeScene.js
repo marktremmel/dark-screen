@@ -54,7 +54,7 @@ export class HomeScene extends Walker {
     this.setupRig({ arms: false, flash: false, stepVol: 0.25, reach: 2.2 });
     const it = this.it;
     it.add(pc, 'Your computer: notebook and record', () => this.computer());
-    it.add(door, 'Front door: go out into the stairwell (lépcsőház)', () => this.goOut());
+    it.add(door, 'Front door: plan tonight and go out', () => this.goOut());
     it.add(mat, 'Mattress: sleep (back to Room 214)', () => this.quit());
     it.add(box, () => this.R.life.kept ? `A box. Inside: ${this.R.life.kept}, from your last life.` : 'A box: everything you own fits in it, for now', () => caption('One day this will be a home. Coins from the stairs will buy furniture once the shop opens.', 'say', 4));
     void desk;
@@ -76,10 +76,9 @@ export class HomeScene extends Walker {
   }
   async computer() { this.playing = false; this.G.unlock(); prompt(null); play('click', { vol: 0.4 }); await computerPanel(this.R, S.nick || ''); this.playing = true; lockPointer(); }
   async goOut() {
-    if (this.leaving) return; this.leaving = true; this.playing = false; prompt(null);
-    play('door_open', { vol: 0.5 }); persist();
-    await fade(true, '', 0.8);
-    this.G.goStairs();
+    if (this.leaving) return; this.leaving = true; this.playing = false; prompt(null); this.G.unlock();
+    const going = await this.G.startNight();   // the night menu: topic, difficulty, scores
+    if (!going) { this.leaving = false; this.playing = true; lockPointer(); }
   }
   quit() { persist(); this.playing = false; this.G.goHub(); }
   update(dt, t) {

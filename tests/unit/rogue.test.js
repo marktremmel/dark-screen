@@ -139,14 +139,32 @@ test('typing: several targets, first key picks the nearest', () => {
   assert.equal(T.input('x').result, 'miss');
 });
 
-import { MIMICS } from '../../src/rogue/content/park.js';
-test('park content: typable replies and rules', () => {
+
+import { TOPICS, TOPIC_IDS, WALK_LINE } from '../../src/rogue/content/walks.js';
+import { CARDS, CARD_COUNT } from '../../src/rogue/content/cards.js';
+import { DIFFS, pickTopic, pickWalk, newRun, recordNight } from '../../src/rogue/logic/night.js';
+test('walk topics: six typable lines each, unique ids', () => {
   const ids = new Set();
-  for (const m of MIMICS) {
-    assert.ok(!ids.has(m.id)); ids.add(m.id);
-    assert.ok(/^[a-z ]+$/.test(m.type) && m.type.length <= 30, 'type ' + m.id);
-    assert.ok(/^[a-z ]+$/.test(m.rule), 'rule ' + m.id);
-    assert.ok(THEMES[m.theme] && m.say && m.lesson && !/—/.test(m.lesson + m.say), m.id);
+  for (const [t, T] of Object.entries(TOPICS)) {
+    assert.ok(THEMES[t] && T.title && T.lines.length >= 6, t);
+    for (const l of T.lines) {
+      assert.ok(!ids.has(l.id), 'unique ' + l.id); ids.add(l.id);
+      assert.ok(/^[a-z ]+$/.test(l.type) && l.type.length <= 30, 'type ' + l.id);
+      assert.ok(/^[a-z ]+$/.test(l.rule), 'rule ' + l.id);
+      assert.ok(l.who && l.say && l.lesson && !/—/.test(l.say + l.lesson), l.id);
+    }
   }
-  assert.ok(MIMICS.length >= 9);
+  assert.ok(CARD_COUNT >= 50); assert.ok(CARDS['w:bank'] && CARDS.flyer_lookalike);
+});
+test('night: topics rotate, records keep the bests', () => {
+  const r = rng(3), rec = { nights: [], topics: {} };
+  for (let i = 0; i < 30; i++) {
+    const t = pickTopic(r, rec), w = pickWalk(r, rec);
+    assert.ok(TOPIC_IDS.includes(t)); if (rec.nights[0]) { assert.notEqual(t, rec.nights[0].topic); assert.notEqual(w, rec.nights[0].walk); }
+    const run = newRun(t, 'normal', w); run.xp = i; run.typedChars = 100; run.typeMs = 60000; run.stages = ['stairs'];
+    recordNight(rec, run, 'home');
+  }
+  assert.equal(rec.nights.length, 12); assert.equal(rec.best.xp, 29); assert.equal(rec.best.wpm, 20);
+  const counts = Object.values(rec.topics); assert.ok(Math.max(...counts) - Math.min(...counts) <= 3, 'topics spread evenly');
+  assert.ok(DIFFS.hard.reward > DIFFS.calm.reward);
 });

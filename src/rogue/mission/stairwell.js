@@ -14,10 +14,12 @@ import { S, persist } from '../../core/state.js';
 import { CFG } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
 import { newDescent, prepare, resolve, advance, groundReward } from '../logic/descent.js';
+import { DIFFS, newRun } from '../logic/night.js';
+import { TOPICS } from '../content/walks.js';
 import { earn, nerve, noteAnomaly, die } from '../save/rogueSave.js';
 import { ANOMALY } from '../content/anomalies.js';
 import { dressLanding, L } from './landing.js';
-import { readPanel, rulesPanel, deathPanel, missionChoice } from '../ui/panels.js';
+import { readPanel, rulesPanel } from '../ui/panels.js';
 
 const H = CFG.floorH, HALF = H / 2, RUN = 3.0, STEPS = 8;
 const KS = [-2, -1, 0, 1, 2];
@@ -26,14 +28,13 @@ const ZW = -4.5;                                    // window wall
 const YX = 60;                                      // the yellow rooms are built far away along x
 
 export class Stairwell extends Walker {
-  constructor(G, R) { super(G); this.R = R; this.quitLabel = 'Go home (the night ends here)'; }
+  constructor(G, R, run) { super(G); this.R = R; this.run = run || newRun('T1', 'normal', 'park'); this.D = DIFFS[this.run.diff] || DIFFS.normal; this.quitLabel = 'Go home (the night ends here)'; }
 
   async build() {
     const g = this.newScene(0x040506, 2.2, 12.5);
     this.r = rng(freshSeed());
-    this.d = newDescent(this.R.life.floor); prepare(this.r, this.d);
+    this.d = newDescent(this.R.life.floor, { chance: this.D.anomaly, topic: this.run.topic }); prepare(this.r, this.d);
     this.R.life.nerve = CFG.nerveStart;
-    this.run = { xp: 0, coins: 0, spot: 0, miss: 0, fals: 0 };
     this.mods = {};
     this.buildShaft(g);
     for (const k of KS) this.buildModule(g, k);
@@ -46,7 +47,7 @@ export class Stairwell extends Walker {
       down: { x0: FA[0], x1: FA[1], z0: -0.32, z1: -0.04, y0: -0.7, y1: 0.7 },
     };
     this.col.push(this.gate.up, this.gate.down);
-    this.y = 0; this.lightT = CFG.lightTimer; this.lightsOn = true; this.voiceT = 0; this.busy = false;
+    this.y = 0; this.lightT = this.D.light; this.lightsOn = true; this.voiceT = 0; this.busy = false;
     this.items = [];
     this.dressAll();
   }
@@ -137,8 +138,9 @@ export class Stairwell extends Walker {
     for (const k of KS) {
       const m = this.mods[k];
       while (m.dg.children.length) m.dg.remove(m.dg.children[0]);
-      const res = dressLanding(m.dg, specs[k], { nick, floor: d.floor, live: k === 0 });
+      const res = dressLanding(m.dg, specs[k], { nick, floor: d.floor, live: k === 0, calm: this.run.diff === 'calm' });
       m.res = res;
+      if (k !== 0) res.lampColor = 0xffd9a0;   // only the landing you stand on may show a red bulb: the next one's light must not leak up or down the stairwell
       const l0 = m.lamps[0]; l0.bm.color.set(res.lampColor); if (l0.light) l0.light.color.set(res.lampColor);  // only the landing bulb; the half-landing bulbs stay normal
       if (k === 0) for (const item of res.items) this.items.push(this.it.add(item.obj, () => this.label(item), () => this.use(item)));
     }
@@ -165,7 +167,7 @@ export class Stairwell extends Walker {
       case 'rules': await this.panel(() => rulesPanel()); break;
       case 'door': play('knock', { vol: 0.5 }); caption(item.data.name ? 'You knock. Nobody opens. A television is on somewhere inside.' : 'There is no handle. There is no flat number.', 'say', 3.5); break;
       case 'yourdoor': this.goHome(); break;
-      case 'switch': this.lightT = CFG.lightTimer; play('lightsw', { vol: 0.6 }); if (!this.lightsOn) { this.lightsOn = true; this.applyLights(); } break;
+      case 'switch': this.lightT = this.D.light; play('lightsw', { vol: 0.6 }); if (!this.lightsOn) { this.lightsOn = true; this.applyLights(); } break;
       case 'lift': play('denied', { vol: 0.3 }); caption('You press the button. Nothing. The lift never works at night.', 'say', 3); break;
       case 'postbox': caption('Rows of post boxes. Flyers stick out of most of them.', 'say', 3); break;
       case 'street': this.ground(); break;
@@ -207,6 +209,7 @@ export class Stairwell extends Walker {
       { name: `Nerve: ${L.nerve}${L.nerve <= 30 ? '  (shaking)' : ''}`, hu: 'idegek' },
       { name: `Floors to go: ${this.d.floor - this.d.progress}`, hu: 'hátravan' },
       { name: 'Wrong? UP. Normal? DOWN.', hu: 'fel / le' },
+      { name: `Tonight: ${TOPICS[this.run.topic].title}`, hu: this.D.label.toLowerCase() },
       { name: `Coins tonight: ${this.run.coins}`, hu: 'zseton' },
       { name: this.lightsOn ? `Light: ${Math.ceil(this.lightT)} s` : 'Light: off (F = torch)', hu: 'villany' },
     ]);
@@ -226,6 +229,8 @@ export class Stairwell extends Walker {
     this.y -= lv * H; this.player.yOff = this.y; this.player.sync();
     const d = this.d, from = d.cur, out = resolve(d, dir), R = this.R;
     advance(this.r, d, out);
+    if (out.nerve < 0) out.nerve = -Math.round(-out.nerve * this.D.nerveLoss);
+    out.xp = Math.round(out.xp * this.D.reward); out.coins = Math.round(out.coins * this.D.reward);
     const dead = nerve(R, out.nerve);
     if (out.result === 'pass' || out.result === 'spot') {
       earn(R, out.xp, out.coins); this.run.xp += out.xp; this.run.coins += out.coins;
@@ -233,18 +238,19 @@ export class Stairwell extends Walker {
       if (out.result === 'spot') {
         this.run.spot++; const a = ANOMALY[out.anomaly], isNew = noteAnomaly(R, out.anomaly, true);
         play('rg_signal1', { vol: 0.5 });
-        caption(`You turned back, and you were right. ${a.lesson}`, 'say', 11);
-        if (isNew) setTimeout(() => caption(`New notebook card: "${a.card.title}"`, 'say', 4), 1500);
-      } else caption('Right: nothing was wrong there.', 'say', 2.5);
-      if (d.cur.kind === 'lobby') setTimeout(() => caption('Ground floor. The street door is right there.', 'say', 3), 600);
+        caption(`Right call: something WAS wrong on floor ${from.number}, and you turned back. ${a.lesson}`, 'say', 11);
+        this.run.lessons.push({ zone: 'stairs', theme: a.theme, title: a.card.title, text: a.card.text });
+        if (isNew) { this.run.cards++; setTimeout(() => caption(`New notebook card: "${a.card.title}"`, 'say', 4), 1500); }
+      } else caption(`Right call: floor ${from.number} was normal, and you kept going.`, 'say', 3);
+      if (d.cur.kind === 'lobby') setTimeout(() => caption('Ground floor. The street door is right there.', 'say', 3), 700);
       else setTimeout(() => caption(this.first && d.progress <= 3
-        ? `Floor ${d.cur.number}. Look around: if anything is different, go UP. If all is normal, go DOWN. Either way you get one floor closer.`
-        : `Floor ${d.cur.number}.`, 'say', this.first && d.progress <= 3 ? 7 : 2), 400);
+        ? `Now you are on floor ${d.cur.number}. This is a new landing to check: if anything is different, go UP. If all is normal, go DOWN.`
+        : `Now: floor ${d.cur.number}. Check it.`, 'say', this.first && d.progress <= 3 ? 7 : 2.5), 700);
       persist(); this.updateHud();
       return;
     }
     // a wrong call: the yellow room, then back to your own floor
-    if (out.result === 'miss') { this.run.miss++; noteAnomaly(R, out.anomaly, false); } else this.run.fals++;
+    if (out.result === 'miss') { this.run.miss++; noteAnomaly(R, out.anomaly, false); const a = ANOMALY[out.anomaly]; this.run.lessons.push({ zone: 'stairs', theme: a.theme, title: a.card.title, text: a.card.text }); } else this.run.fals++;
     persist();
     this.toYellow(out, from, dead);
   }
@@ -275,34 +281,29 @@ export class Stairwell extends Walker {
     stopLoop('rgy'); loop('rgst', 'rg_drone_stair', { vol: 0.32 });
     this.y = 0; this.player.yOff = 0; this.dressAll(); this.setObjective();
     this.player.set(-0.95, 1.35, 0);
-    this.lightT = CFG.lightTimer; this.lightsOn = true; this.applyLights();
+    this.lightT = this.D.light; this.lightsOn = true; this.applyLights();
     await fade(false, '', 0.8);
     caption(`Back outside your own door, floor ${this.d.floor}. Start again.`, 'say', 4);
     this.playing = true; this.busy = false; lockPointer();
   }
-  async death() {
-    this.playing = false; this.busy = true; this.G.unlock(); prompt(null);
+  death() {
+    this.playing = false; this.busy = true; prompt(null);
     play('stinger', { vol: 0.4 }); this.yLight.intensity = 0; this.yAmb.intensity = 0;
-    await fade(true, '', 1.5);
-    await fade(false, '', 0.01);      // the death panel is opaque; the fade layer would block its button
-    await deathPanel(this.R, null);
-    die(this.R, null); persist();
-    this.G.goRogue();
+    this.G.loseLife(this.run);
   }
   async ground() {
     if (this.busy) return; this.busy = true; this.playing = false; this.G.unlock(); prompt(null);
-    const rw = groundReward(this.d.floor);
-    earn(this.R, rw.xp, rw.coins); this.R.record.descents++; this.run.xp += rw.xp; this.run.coins += rw.coins; persist();
+    const rw = groundReward(this.d.floor), xp = Math.round(rw.xp * this.D.reward), coins = Math.round(rw.coins * this.D.reward);
+    earn(this.R, xp, coins); this.R.record.descents++; this.run.xp += xp; this.run.coins += coins; this.run.stages.push('stairs'); persist();
     play('door_open', { vol: 0.5 });
-    const where = await missionChoice(this.R);
-    await fade(true, `Ground floor. +${rw.xp} XP, +${rw.coins} coins.\n\n${where === 'park' ? 'Tonight: the park walk.' : 'Tonight: the school across the courtyard.'}`, 0.01);
-    await wait(2.2);
-    if (where === 'park') this.G.goPark(this.run); else this.G.goSchool(this.run);
+    await fade(true, `Ground floor. +${xp} XP, +${coins} coins.\n\nYou push the street door open.`, 0.8);
+    await wait(1.8);
+    this.G.goWalk(this.run);
   }
   async goHome() {
     this.playing = false; this.busy = true; this.G.unlock(); prompt(null);
     await fade(true, '', 0.8);
-    this.G.goRogue();
+    this.G.endNight(this.run, 'home');
   }
   quit() { this.goHome(); }
 

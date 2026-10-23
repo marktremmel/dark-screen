@@ -34,7 +34,7 @@ function flatDoor(g, x, plateLines, o = {}) {
 }
 
 /** Notices on the cork board drawn small (read them with E). */
-function corkBoard(g, notices) {
+function corkBoard(g, notices, changed = -1) {
   const t = canvasTex(96, 72, c => {
     c.fillStyle = '#9a7244'; c.fillRect(0, 0, 96, 72);
     for (let i = 0; i < 120; i++) { c.fillStyle = `rgba(60,35,10,${Math.random() * 0.3})`; c.fillRect(Math.random() * 96, Math.random() * 72, 1, 1); }
@@ -45,7 +45,7 @@ function corkBoard(g, notices) {
       if (red) { c.fillStyle = '#c0392b'; c.fillRect(x, y, 38, 4); c.fillRect(x, y + 48, 38, 4); }
       c.fillStyle = '#222'; for (let l = 0; l < 7; l++) c.fillRect(x + 3, y + 10 + l * 5, 18 + ((l * 7 + i * 3) % 14), 1);
       c.fillStyle = red ? '#c0392b' : '#333'; c.fillRect(x + 3, y + 5, 30, 2);
-      c.fillStyle = '#d33'; c.fillRect(x + 17, y + 1, 3, 3);
+      c.fillStyle = i === changed ? '#ffd23a' : '#d33'; c.fillRect(x + 16, y, i === changed ? 5 : 3, i === changed ? 5 : 3);   // calm: a yellow pin marks a notice worth reading
     });
   });
   const board = planeAt(g, 0.82, 0.62, new THREE.MeshLambertMaterial({ map: t }), L.XL + L.WT + 0.012, 1.5, 0.62, Math.PI / 2);
@@ -121,7 +121,7 @@ export function dressLanding(g, spec, ctx) {
   // the noticeboard
   const ns = [NOTICES.lift, NOTICES.cat];
   if (a && a.where === 'noticeboard') { if (a.notice.startsWith('cat')) ns[1] = NOTICES[a.notice]; else ns[0] = NOTICES[a.notice]; }
-  const board = corkBoard(g, ns);
+  const board = corkBoard(g, ns, ctx.calm && a && a.where === 'noticeboard' ? (a.notice.startsWith('cat') ? 1 : 0) : -1);
   items.push({ obj: board, kind: 'notice', data: { title: 'The noticeboard (hirdetőtábla)', notices: ns } });
 
   // a rubber plant by the stairs

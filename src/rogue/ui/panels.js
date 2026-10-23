@@ -2,7 +2,9 @@
 // Each returns a Promise that resolves when the panel closes. The scenes handle the mouse lock around them.
 import { openScreen, closeScreen } from '../../ui/screens.js';
 import { CFG, floorMult } from '../config.js';
-import { ANOMALY, ANOMALIES } from '../content/anomalies.js';
+import { CARDS, CARD_COUNT } from '../content/cards.js';
+import { TOPICS } from '../content/walks.js';
+import { DIFFS } from '../logic/night.js';
 import { THEMES } from '../content/themes.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -33,7 +35,7 @@ export function rulesPanel() {
       1. Learn what a normal landing looks like: three doors, the lift, the noticeboard, the plant, the floor number.<br>
       2. If anything on a landing is wrong, <b>turn back: go up the stairs.</b><br>
       3. If nothing is wrong, <b>keep going down.</b><br>
-      4. A wrong call sends you back to your own floor.<br>
+      4. A wrong call sends you back to your own floor. Your own floor is always normal, and the way up is locked: start by going down.<br>
       5. Press the light switch (villanykapcsoló). The light only lasts ${CFG.lightTimer} seconds. F is your torch.<br>
       6. Read the notices. Not everything wrong is something you can see from far away.</div>
       <div class="btns"><button class="btn primary" id="x" autofocus>Got it (E)</button></div></div>`);
@@ -45,13 +47,13 @@ export function rulesPanel() {
 export function computerPanel(R, nick) {
   return new Promise(res => {
     const L = R.life, rec = R.record;
-    const cards = rec.notebook.map(id => ANOMALY[id]).filter(Boolean);
+    const cards = rec.notebook.map(id => CARDS[id]).filter(Boolean);
     const caught = Object.values(rec.spotted).reduce((a, b) => a + b, 0), missed = Object.values(rec.missed).reduce((a, b) => a + b, 0);
     const el = openScreen(`<div class="panel" style="width:min(720px,94vw)"><h2>Your computer</h2>
       <p class="sub">${esc(nick)} · life ${L.id} · floor ${L.floor}</p>
       <div><span class="stat">Coins (zseton): ${L.coins}</span><span class="stat">XP (all lives): ${rec.xp}</span><span class="stat">Ground floor reached: ${rec.descents}</span><span class="stat">Caught: ${caught}</span><span class="stat">Missed: ${missed}</span><span class="stat">Deaths: ${rec.deaths}</span></div>
-      <h3>Notebook (jegyzetfüzet): ${cards.length} of ${ANOMALIES.length} cards</h3>
-      ${cards.length ? cards.map(a => `<div style="${PAPER};margin:8px 0"><b>${esc(a.card.title)}</b> <span style="color:#7a6a50;font-size:.85em">· ${esc(THEMES[a.theme].title)}</span><br>${esc(a.card.text)}</div>`).join('') : '<p class="sub">Empty for now. Every anomaly you catch on the stairs adds a card. Cards survive death.</p>'}
+      <h3>Notebook (jegyzetfüzet): ${cards.length} of ${CARD_COUNT} cards</h3>
+      ${cards.length ? cards.map(a => `<div style="${PAPER};margin:8px 0"><b>${esc(a.title)}</b> <span style="color:#7a6a50;font-size:.85em">· ${esc(THEMES[a.theme].title)}</span><br>${esc(a.text)}</div>`).join('') : '<p class="sub">Empty for now. Every anomaly you catch and every reply you type on a walk adds a card. Cards survive death.</p>'}
       <p class="sub">The shop (furniture, stickers, gadgets) opens in the next build. Save your coins.</p>
       <div class="btns"><button class="btn primary" id="x" autofocus>Close (E)</button></div></div>`);
     closable(el, res);
@@ -105,6 +107,46 @@ export function missionChoice(R) {
       <button class="btn" data-m="school" style="text-align:left"><b>The school</b> across the courtyard<br><span class="sub">Screens that pull at you, something in a classroom that moves when you look away, a phone in the gym.</span></button>
       <button class="btn" data-m="park" style="text-align:left"><b>The park walk</b> to the far gate<br><span class="sub">Voices step out of the trees. Type the safe reply before they reach you.</span></button>
       </div></div>`, 'solid');
+    el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
+  });
+}
+
+/** At the front door: tonight's topic, the difficulty, your scores. Resolves with {diff, topic} or null (stay in). */
+export function nightMenu(R, o) {
+  return new Promise(res => {
+    const rec = R.record, best = rec.best || { xp: 0, wpm: 0, stages: 0 }, nights = rec.nights || [];
+    let diff = (R.options && R.options.diff) || 'normal', topic = o.topic;
+    const WALK = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool' };
+    const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Tonight</h2>
+      <div style="${PAPER};margin:6px 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S TOPIC</span><br><b id="tt"></b> <span id="th" style="color:#7a6a50"></span>
+        <br><span style="font-size:.85em">The stairwell, the walk and the cards tonight are mostly about this.</span></div>
+      <h3 style="margin-top:0">Difficulty (nehézség)</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="dd">${Object.values(DIFFS).map(d => `<button class="btn" data-d="${d.id}" style="text-align:left"><b>${d.label}</b> <span class="sub">(${d.hu})</span><br><span class="sub" style="font-size:.8em">${esc(d.desc)}</span></button>`).join('')}</div>
+      <h3>Your scores</h3>
+      <div><span class="stat">Best night: ${best.xp} XP</span><span class="stat">Best typing: ${best.wpm} wpm</span><span class="stat">Most stages in a night: ${best.stages}</span><span class="stat">Nights out: ${nights.length >= 12 ? '12+' : nights.length}</span><span class="stat">Cards: ${rec.notebook.length}/${CARD_COUNT}</span><span class="stat">Lives lost: ${rec.deaths}</span></div>
+      ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.outcome === 'death' ? 'lost the life' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
+      <div class="btns"><button class="btn primary" id="go" autofocus>Go out</button><button class="btn" id="sh">Another topic</button><button class="btn" id="x">Stay in</button></div></div>`);
+    const draw = () => {
+      el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')';
+      el.querySelectorAll('[data-d]').forEach(b => { b.classList.toggle('primary', b.dataset.d === diff); });
+    };
+    el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
+    el.querySelector('#sh').onclick = () => { const ids = Object.keys(TOPICS).filter(t => t !== topic); topic = ids[Math.floor(Math.random() * ids.length)]; draw(); };
+    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; res({ diff, topic }); };
+    el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
+    draw();
+  });
+}
+
+/** At the end of the walk: on to the school, or home with what you have. */
+export function walkExitChoice(run) {
+  return new Promise(res => {
+    const el = openScreen(`<div class="panel" style="width:min(600px,94vw)"><h2>Out on the street</h2>
+      <p>So far tonight: <b>${run.xp} XP</b> and <b>${run.coins} coins</b>. Across the road, the school is dark. One window flickers.</p>
+      <p class="sub">The school is harder and pays more. If your nerve runs out there, you lose this life.</p>
+      <div style="display:grid;gap:10px;margin-top:10px">
+      <button class="btn primary" data-m="school" style="text-align:left"><b>Go on to the school</b><br><span class="sub">Screens that pull at you, something that moves when you look away, a phone in the gym.</span></button>
+      <button class="btn" data-m="home" style="text-align:left"><b>Go home</b><br><span class="sub">Keep everything you earned tonight.</span></button></div></div>`, 'solid');
     el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
   });
 }
