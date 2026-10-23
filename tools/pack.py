@@ -42,6 +42,7 @@ PACKS={
    'rg_terrazzo':('rogue/terrazzo_c.png',128),'rg_mint':('rogue/mint.png',128),'rg_flatdoor':('rogue/flatdoor.png',128),
    'rg_y_wall':('rogue/wallpaper_backrooms_yellow.png',128),'rg_y_carpet':('rogue/carpet_backrooms_damp.png',128),'rg_y_ceil':('rogue/ceiling_tiles_acoustic.png',128),'rg_y_light':('rogue/ceiling_light_panel.png',128)},
    'audio':['rg_drone_stair','rg_drone_yellow','rg_signal1','rg_signal2','lightsw','knock','phonering','door_close','presence','stinger']},
+ 'park':{'glb':['nat_commontree_1','nat_commontree_2','nat_commontree_3','nat_pine_2','nat_bush_common','nat_bush_common_flowers','nat_rock_medium_1','nat_grass_common_tall','nat_plant_7_big'],'tex':{'rg_asphalt':('kits/block/textures/asphalt.png',128)},'audio':['amb_woods','gstep1','gstep2','gstep3','gstep4']},
  'ep7':{'jpg':['gen/ep7_cctv_suspect','gen/ep7_cctv_you'],'audio':['amb_hollow','sec_latch','shutter','vent','plastic2','strain','phonebtn','typing','crton','hatch','knob','lightsw']},
 }
 import sys

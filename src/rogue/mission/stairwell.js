@@ -17,7 +17,7 @@ import { newDescent, prepare, resolve, advance, groundReward } from '../logic/de
 import { earn, nerve, noteAnomaly, die } from '../save/rogueSave.js';
 import { ANOMALY } from '../content/anomalies.js';
 import { dressLanding, L } from './landing.js';
-import { readPanel, rulesPanel, deathPanel } from '../ui/panels.js';
+import { readPanel, rulesPanel, deathPanel, missionChoice } from '../ui/panels.js';
 
 const H = CFG.floorH, HALF = H / 2, RUN = 3.0, STEPS = 8;
 const KS = [-2, -1, 0, 1, 2];
@@ -190,8 +190,11 @@ export class Stairwell extends Walker {
     await fade(true, first ? 'You lock your door. The stairwell light is ticking.\n\nRead the house rules next to your door before you go down.' : 'You lock your door. The stairwell light is ticking.', 0.01);
     await wait(first ? 3.2 : 1.6);
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
-    this.setObjective(); this.updateHud(); lockPointer();
+    this.setObjective(); this.updateHud();
     await fade(false, '', 1.0);
+    if (first) { this.playing = false; this.G.unlock(); await rulesPanel(); this.playing = true; caption('Walk around this landing first and learn it: this is what normal looks like.', 'say', 6); }
+    lockPointer();
+    this.first = first;
   }
   setObjective() {
     const c = this.d.cur;
@@ -203,6 +206,7 @@ export class Stairwell extends Walker {
     checklist(`Lépcsőház · ${c.kind === 'lobby' ? 'ground floor' : c.number + '. emelet'}`, [
       { name: `Nerve: ${L.nerve}${L.nerve <= 30 ? '  (shaking)' : ''}`, hu: 'idegek' },
       { name: `Floors to go: ${this.d.floor - this.d.progress}`, hu: 'hátravan' },
+      { name: 'Wrong? UP. Normal? DOWN.', hu: 'fel / le' },
       { name: `Coins tonight: ${this.run.coins}`, hu: 'zseton' },
       { name: this.lightsOn ? `Light: ${Math.ceil(this.lightT)} s` : 'Light: off (F = torch)', hu: 'villany' },
     ]);
@@ -231,7 +235,11 @@ export class Stairwell extends Walker {
         play('rg_signal1', { vol: 0.5 });
         caption(`You turned back, and you were right. ${a.lesson}`, 'say', 11);
         if (isNew) setTimeout(() => caption(`New notebook card: "${a.card.title}"`, 'say', 4), 1500);
-      } else if (d.cur.kind === 'lobby') caption('Ground floor. The street door is right there.', 'say', 3);
+      } else caption('Right: nothing was wrong there.', 'say', 2.5);
+      if (d.cur.kind === 'lobby') setTimeout(() => caption('Ground floor. The street door is right there.', 'say', 3), 600);
+      else setTimeout(() => caption(this.first && d.progress <= 3
+        ? `Floor ${d.cur.number}. Look around: if anything is different, go UP. If all is normal, go DOWN. Either way you get one floor closer.`
+        : `Floor ${d.cur.number}.`, 'say', this.first && d.progress <= 3 ? 7 : 2), 400);
       persist(); this.updateHud();
       return;
     }
@@ -286,9 +294,10 @@ export class Stairwell extends Walker {
     const rw = groundReward(this.d.floor);
     earn(this.R, rw.xp, rw.coins); this.R.record.descents++; this.run.xp += rw.xp; this.run.coins += rw.coins; persist();
     play('door_open', { vol: 0.5 });
-    await fade(true, `Ground floor. +${rw.xp} XP, +${rw.coins} coins.\n\nTonight's mission: the school across the courtyard.`, 0.8);
-    await wait(2.4);
-    this.G.goSchool(this.run);
+    const where = await missionChoice(this.R);
+    await fade(true, `Ground floor. +${rw.xp} XP, +${rw.coins} coins.\n\n${where === 'park' ? 'Tonight: the park walk.' : 'Tonight: the school across the courtyard.'}`, 0.01);
+    await wait(2.2);
+    if (where === 'park') this.G.goPark(this.run); else this.G.goSchool(this.run);
   }
   async goHome() {
     this.playing = false; this.busy = true; this.G.unlock(); prompt(null);

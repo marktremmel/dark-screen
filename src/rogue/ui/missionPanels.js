@@ -67,8 +67,8 @@ export function gatePanel(gate) {
 /** End of the mission. lessons: [{theme, title, text}] */
 export function missionDebrief(d) {
   return new Promise(res => {
-    const el = openScreen(`<div class="panel debrief" style="width:min(860px,94vw)"><h2>The school, tonight</h2>
-      <p>You came out through the fire exit into the cold. Behind you the corridor screens are dark, the classroom is empty, and the phone is back on the gym floor where you found it.</p>
+    const el = openScreen(`<div class="panel debrief" style="width:min(860px,94vw)"><h2>${esc(d.title || 'The school, tonight')}</h2>
+      <p>${esc(d.body || 'You came out through the fire exit into the cold. Behind you the corridor screens are dark, the classroom is empty, and the phone is back on the gym floor where you found it.')}</p>
       <h3>What you did</h3>
       <div>${d.stats.map(s => `<span class="stat">${esc(s)}</span>`).join('')}</div>
       <h3>What you can do for real</h3><ol>${d.lessons.map(l => `<li><b>${esc(l.title)}</b> <span class="sub">(${esc(THEMES[l.theme].title)})</span>: ${esc(l.text)}</li>`).join('')}</ol>

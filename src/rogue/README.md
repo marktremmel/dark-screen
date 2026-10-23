@@ -15,7 +15,11 @@ The full design is in the planning documents (Lepcsohaz 01 Research, 02 Assets, 
 - `mission/school.js`: the first mission (corridor ring with the Feed, classroom with the Watcher and the Badger lens, gym with the found phone, the exit intercom).
 - `entities/watcher.js`: moves only while unseen, sized and sped up by active trackers, will not enter a safe light.
 - `content/school.js`: attention hooks, trackers, inbox messages, the exit-gate rubric. `logic/reading.js`: minimum reading time and the noise meter.
-- `ui/missionPanels.js`: the phone, the intercom, the mission debrief.
+- `ui/missionPanels.js`: the phone, the mission debrief, the mission choice at the street door is in `ui/panels.js`.
+- `logic/typing.js` + `ui/typing.js`: typing practice. One phrase against the clock (`typeOne`), or several targets at once
+  where the first letter picks the nearest (`Targets` + `LabelLayer`). Case and accents don't matter. While typing,
+  letters never reach the movement keys.
+- `mission/park.js`, `entities/mimic.js`, `content/park.js`: the park walk (three waves of Mimics, the far gate).
 - `ui/panels.js`: notices, house rules, computer, floor picker, death, ground floor.
 - `index.js`: `G.goRogue()` (to your flat) and `G.goStairs()` (out of the front door). Installed from `main.js`.
 
@@ -48,6 +52,13 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   Being caught sends you back to the zone's door. Running and rushed answers make noise; the Watcher hears noise.
 - Not yet: resuming a mission after a reload (you are sent home and keep what you earned), the mission generator (one fixed school
   for now), the other locations and monsters.
+- Session 3 (after Mark's play-test, 23 Oct): typing practice is now the core skill. Screens in the corridor are switched off
+  by typing the setting, trackers are blocked by typing while the Watcher closes in, and the exit gates ask you to type
+  three of tonight's rules (one per zone) against the clock instead of a free answer. New mission: the park walk, chosen
+  at the street door. The stairwell got painted UP/DOWN signs, the house rules open by themselves on the first descent,
+  and every landing says what happened.
+- Performance rule: never add or remove lights during play (every material recompiles; seconds of freeze on slow GPUs).
+  Plants in the park are drawn in 16 m chunks near the player only.
 - Next: Phase 1, session 3 (checkpoint save inside a mission, about 15 more items, tuning after a class play-test), then Phase 2 (the shop).
 
 ## Codes

@@ -95,3 +95,16 @@ export function groundPanel(rw, run) {
     el.querySelector('#x').onclick = () => { closeScreen(el); res(); };
   });
 }
+
+/** At the street door: where tonight? Resolves with 'school' or 'park'. */
+export function missionChoice(R) {
+  return new Promise(res => {
+    const el = openScreen(`<div class="panel" style="width:min(620px,94vw)"><h2>The street door</h2>
+      <p>The courtyard is empty. Two ways lead out into the night.</p>
+      <div style="display:grid;gap:10px;margin-top:10px">
+      <button class="btn" data-m="school" style="text-align:left"><b>The school</b> across the courtyard<br><span class="sub">Screens that pull at you, something in a classroom that moves when you look away, a phone in the gym.</span></button>
+      <button class="btn" data-m="park" style="text-align:left"><b>The park walk</b> to the far gate<br><span class="sub">Voices step out of the trees. Type the safe reply before they reach you.</span></button>
+      </div></div>`, 'solid');
+    el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
+  });
+}

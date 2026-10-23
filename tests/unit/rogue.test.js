@@ -110,7 +110,43 @@ test('school content is complete', () => {
   for (const t of TRACKERS) assert.ok(t.id && t.at.length === 3 && t.label && t.lesson, t.id);
   assert.ok(INBOX.filter(m => m.scam).length >= 3 && INBOX.filter(m => !m.scam).length >= 3);
   for (const m of INBOX) assert.ok(m.from && m.subject && m.body && m.why && THEMES[m.theme], m.id);
-  const ok = ['I will turn off autoplay and notifications at night', 'blokkolom a követőket és a sütiket', 'check the sender address before I click a link'];
-  for (const a of ok) assert.ok(scoreAnswer(a, GATE).score >= 1, a);
-  assert.ok(scoreAnswer('idk', GATE).score < 1);
+  for (const x of [...FEED_LIGHTS, ...TRACKERS, ...INBOX]) {
+    assert.ok(x.rule && /^[a-z ]+$/.test(x.rule), 'typable rule ' + x.id);
+    if (!INBOX.includes(x)) assert.ok(x.type && /^[a-z ]+$/.test(x.type) && x.type.length <= 28, 'typable setting ' + x.id);
+  }
+  assert.ok(GATE.lines >= 1);
+});
+
+import { Phrase, Targets, wpm, timeFor, keyOf } from '../../src/rogue/logic/typing.js';
+test('typing: phrases, accents, punctuation skipped, accuracy', () => {
+  const p = new Phrase('call back');
+  for (const ch of 'cxall back') p.input(ch);
+  assert.ok(p.done); assert.equal(p.errors, 1); assert.equal(p.keys, 10);
+  const h = new Phrase('értesítés ki');
+  for (const ch of 'ertesites ki') h.input(ch);
+  assert.ok(h.done, 'accents optional');
+  const q = new Phrase("don't click");
+  for (const ch of 'dont click') q.input(ch);
+  assert.ok(q.done, 'apostrophe skipped');
+  assert.equal(keyOf('Ő'), 'o'); assert.equal(wpm(50, 60000), 10); assert.ok(timeFor('abc') > 3);
+});
+test('typing: several targets, first key picks the nearest', () => {
+  const T = new Targets(); T.add('far', 'stop', 9); T.add('near', 'send', 3); T.add('other', 'no', 2);
+  assert.equal(T.input('s').id, 'near');
+  assert.equal(T.input('t').result, 'miss');               // locked on "send": t is wrong
+  for (const ch of 'end') T.input(ch);
+  assert.equal(T.list.length, 2); assert.equal(T.lock, null);
+  assert.equal(T.input('x').result, 'miss');
+});
+
+import { MIMICS } from '../../src/rogue/content/park.js';
+test('park content: typable replies and rules', () => {
+  const ids = new Set();
+  for (const m of MIMICS) {
+    assert.ok(!ids.has(m.id)); ids.add(m.id);
+    assert.ok(/^[a-z ]+$/.test(m.type) && m.type.length <= 30, 'type ' + m.id);
+    assert.ok(/^[a-z ]+$/.test(m.rule), 'rule ' + m.id);
+    assert.ok(THEMES[m.theme] && m.say && m.lesson && !/—/.test(m.lesson + m.say), m.id);
+  }
+  assert.ok(MIMICS.length >= 9);
 });

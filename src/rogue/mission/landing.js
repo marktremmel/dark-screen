@@ -131,6 +131,17 @@ export function dressLanding(g, spec, ctx) {
     for (let i = 0; i < 7; i++) { const lf = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 4), leafM); lf.scale.set(1, 0.35, 0.6); const an = i * 0.9; lf.position.set(2.3 + Math.cos(an) * 0.14, 0.45 + i * 0.09, 1.9 + Math.sin(an) * 0.14); lf.rotation.y = an; g.add(lf); }
   }
 
+  // painted signs by the two flights: the house rule, where you need it
+  const sign = (up, x, y, z, rotY) => planeAt(g, 0.78, 0.3, plateMat(104, 40, c => {
+    c.fillStyle = up ? '#3a1414' : '#123a24'; c.fillRect(0, 0, 104, 40);
+    c.fillStyle = up ? '#ff9a8a' : '#9af0c0'; c.beginPath();
+    if (up) { c.moveTo(12, 6); c.lineTo(22, 20); c.lineTo(2, 20); } else { c.moveTo(2, 18); c.lineTo(22, 18); c.lineTo(12, 32); }
+    c.fill(); c.font = '16px m5x7'; c.textBaseline = 'top';
+    pxText(c, up ? 'UP (fel)' : 'DOWN (le)', 28, 3, 16); pxText(c, up ? 'something wrong' : 'all normal', 28, 20, 16);
+  }), x, y, z, rotY);
+  if (!lobby) sign(false, 0.012, 1.55, -0.45, Math.PI / 2);
+  if (!start) sign(true, L.XR - L.WT - 0.012, 1.75, -0.5, -Math.PI / 2);
+
   // anomaly-only extras
   let blink = null;
   if (w === 'ceiling') {

@@ -37,7 +37,12 @@ export const CFG = {
   caughtNerve: 20,
   xpHook: 6, xpTracker: 8, xpMsg: 10, xpGate: 20, xpGateExtra: 10,
   coinsZone: 8, coinsMission: 20,
-  nerveWrongMsg: 10, nerveGateFail: 5,
+  nerveWrongMsg: 10, nerveGateFail: 3, feedFailNerve: 5,
+
+  // the park walk
+  mimicSpeed: 0.55,         // metres per second (a little faster each stretch)
+  mimicNerve: 12,           // nerve lost when one reaches you
+  xpMimic: 10,
 };
 
 /** Reward multiplier for living on a given floor. @param {number} floor */

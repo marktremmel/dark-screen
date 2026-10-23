@@ -9,6 +9,7 @@ import { floorPicker } from './ui/panels.js';
 import { HomeScene } from './home/HomeScene.js';
 import { Stairwell } from './mission/stairwell.js';
 import { School } from './mission/school.js';
+import { Park } from './mission/park.js';
 
 export function installRogue(G) {
   G.goRogue = async () => {
@@ -26,6 +27,13 @@ export function installRogue(G) {
     await ingestPack('npc', AU.ctx, f => loading(true, 0.6 + f * 0.4));
     loading(false);
     await G.switchScene(new School(G, ensureRogue(S.save), run));
+  };
+  G.goPark = async run => {
+    hud(false); loading(true, 0, 'The park…');
+    await ingestPack('park', AU.ctx, f => loading(true, f * 0.5));
+    await ingestPack('npc', AU.ctx, f => loading(true, 0.5 + f * 0.5));
+    loading(false);
+    await G.switchScene(new Park(G, ensureRogue(S.save), run));
   };
   G.goStairs = async () => {
     const R = ensureRogue(S.save);
