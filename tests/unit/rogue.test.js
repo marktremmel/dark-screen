@@ -144,7 +144,7 @@ test('typing: several targets, first key picks the nearest', () => {
 import { TOPICS, TOPIC_IDS, WALK_LINE } from '../../src/rogue/content/walks.js';
 import { CARDS, CARD_COUNT } from '../../src/rogue/content/cards.js';
 import { DIFFS, pickTopic, pickWalk, newRun, recordNight } from '../../src/rogue/logic/night.js';
-test('walk topics: six typable lines each, unique ids', () => {
+test('walk topics: at least six typable lines each, unique ids', () => {
   const ids = new Set();
   for (const [t, T] of Object.entries(TOPICS)) {
     assert.ok(THEMES[t] && T.title && T.lines.length >= 6, t);

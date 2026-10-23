@@ -77,3 +77,18 @@ export function missionDebrief(d) {
     el.querySelector('#x').onclick = () => { play('uiclick', { vol: 0.4 }); closeScreen(el); res(); };
   });
 }
+
+/** A fuse box in the school corridor: one app permission. Resolves 'on', 'off' or null (stepped back). */
+export function fusePanel(f) {
+  return new Promise(res => {
+    const el = openScreen(`<div class="panel" style="width:min(520px,94vw);text-align:center"><h2>Fuse box (biztosítéktábla)</h2>
+      <p style="font-size:1.15em">${esc(f.app)} wants: <b>${esc(f.perm)}</b></p>
+      <p class="sub">Does the app need this for what you use it for?</p>
+      <div class="btns" style="justify-content:center"><button class="btn" data-c="on">Leave it ON (1)</button><button class="btn" data-c="off">Switch it OFF (2)</button><button class="btn" data-c="x">Step back (Esc)</button></div></div>`);
+    let gone = false;
+    const done = c => { if (gone) return; gone = true; removeEventListener('keydown', key, true); closeScreen(el); res(c === 'x' ? null : c); };
+    const key = e => { if (e.key === '1') done('on'); else if (e.key === '2') done('off'); else if (e.key === 'Escape') done('x'); else return; e.preventDefault(); e.stopPropagation(); };
+    setTimeout(() => addEventListener('keydown', key, true), 150);
+    el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => done(b.dataset.c));
+  });
+}

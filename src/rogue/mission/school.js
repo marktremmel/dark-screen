@@ -1,4 +1,6 @@
-// Mission: the empty school at night. Three zones and an exit.
+// Mission: the empty school at night. Three zones and an exit. The school is put together differently each night:
+//  zone 1 is the Feed or the fuse boxes (app permissions), zone 3 the found phone or the Chorus (upstanding);
+//  the classroom trackers are five picked from a larger set. Tonight's topic makes the matching version likelier.
 //  1. The corridor ring (the Feed): screens with attention hooks pull your view. Switch every one off and the north door opens.
 //  2. The classroom (the Watcher): it moves only while you look away. The Badger lens (Q) shows the trackers that feed it.
 //  3. The gym (the found phone): sort the messages, safely only in the one working light. Then the fire exit intercom.
@@ -14,9 +16,10 @@ import { CFG, floorMult } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
 import { Noise } from '../logic/reading.js';
 import { earn, nerve, die } from '../save/rogueSave.js';
-import { FEED_LIGHTS, TRACKERS, INBOX, GATE } from '../content/school.js';
+import { FEED_LIGHTS, TRACKERS, TRACKERS_EXTRA, INBOX, GATE, FUSES, CHORUS } from '../content/school.js';
+import { NPC } from '../../core/npc.js';
 import { Watcher } from '../entities/watcher.js';
-import { phonePanel } from '../ui/missionPanels.js';
+import { phonePanel, fusePanel } from '../ui/missionPanels.js';
 import { DIFFS, newRun } from '../logic/night.js';
 import { schoolExitChoice } from '../ui/panels.js';
 import { typeOne } from '../ui/typing.js';
@@ -35,13 +38,23 @@ export class School extends Walker {
   async build() {
     const g = this.newScene(0x040509, 2.5, 15);
     this.r = rng(freshSeed());
+    const rnd = () => this.r() - 0.5, topic = this.run.topic;
+    this.v = {
+      ring: ['T3', 'T9', 'T12'].includes(topic) ? (this.r() < 0.75 ? 'fuse' : 'feed') : ['T5', 'T11'].includes(topic) ? (this.r() < 0.8 ? 'feed' : 'fuse') : (this.r() < 0.5 ? 'feed' : 'fuse'),
+      gym: topic === 'T6' ? (this.r() < 0.8 ? 'chorus' : 'phone') : (this.r() < 0.4 ? 'chorus' : 'phone'),
+    };
+    if (this.G.forceSchool) Object.assign(this.v, this.G.forceSchool);   // tests
+    this.trackerSet = topic === 'T3' ? [...TRACKERS_EXTRA, ...[...TRACKERS].sort(rnd).slice(0, 3)] : [...TRACKERS, ...TRACKERS_EXTRA].sort(rnd).slice(0, 5);
+    const nn = 2 + (this.r() < 0.5 ? 1 : 0);
+    this.fuseSet = [...FUSES.filter(f => f.need).sort(rnd).slice(0, nn), ...FUSES.filter(f => !f.need).sort(rnd).slice(0, 6 - nn)].sort(rnd);
     this.noise = new Noise();
-    this.st = { zone: 1, hooks: 0, laps: 0, trackers: 0, phone: false, sorted: 0, right: 0, rushed: 0, gateCool: 0, caught: 0, lessons: [] };
+    this.st = { zone: 1, fusesDone: 0, hooks: 0, laps: 0, trackers: 0, phone: false, sorted: 0, right: 0, rushed: 0, gateCool: 0, caught: 0, lessons: [] };
     this.doors = {};
     this.buildRing(g); this.buildRoom(g); this.buildGym(g);
     this.scene.add(new THREE.AmbientLight(0x404a66, 0.2));
     this.scene.add(new THREE.HemisphereLight(0x6070a0, 0x100c0a, 0.15));
     this.watcher = new Watcher(g); this.watcher.speedMul = this.D.speed;
+    this.watcher.root.visible = true; this.watcher.root.position.set(0, -30, 0);   // always in the scene, parked: the light count never changes
     this.setupRig({ arms: true, flash: true, stepVol: 0.3, reach: 2.3 });
     this.flashOn = true;
     this.mult = floorMult(this.R.life.floor) * this.D.reward;
@@ -92,8 +105,10 @@ export class School extends Walker {
     this.lights = [];
     for (const [x, z] of [[0, -1.5], [-6.5, -8], [0, -14.5], [6.5, -4]]) { place(g, 'sk_ceiling_light', x, 0, z, 0); const L = new THREE.PointLight(0xdfe8ff, 1.0, 8, 1.6); L.position.set(x, 2.8, z); g.add(L); this.lights.push(L); }
     this.lights[2].userData.flicker = true;
-    // the attention hooks
-    this.hooks = FEED_LIGHTS.map((f, i) => {
+    // the attention hooks (the Feed), or the fuse boxes
+    this.fuses = [];
+    if (this.v.ring === 'fuse') { this.hooks = []; this.buildFuses(g); }
+    else this.hooks = FEED_LIGHTS.map((f, i) => {
       const [x, z, r] = HOOK_AT[i];
       const t = canvasTex(96, 70, () => { });
       const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.45), new THREE.MeshBasicMaterial({ map: t, fog: false }));
@@ -106,6 +121,29 @@ export class School extends Walker {
     this.doors.north = this.door(g, 'north', 'door_classroom', 0, R.z0);
     this.exitSign = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.16), new THREE.MeshBasicMaterial({ map: canvasTex(48, 16, (c, w, h) => { c.fillStyle = '#3a0e0e'; c.fillRect(0, 0, w, h); c.fillStyle = '#ff7060'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('LOCKED', 6, 1); }), fog: false }));
     this.exitSign.position.set(0, 2.5, R.z0 + 0.1); g.add(this.exitSign);
+  }
+  buildFuses(g) {
+    this.fuses = this.fuseSet.map((f, i) => {
+      const [x, z, r] = HOOK_AT[i], n = new THREE.Vector3(Math.sin(r * D2R), 0, Math.cos(r * D2R));
+      const box = new THREE.Group(); box.position.set(x, 1.45, z); box.rotation.y = r * D2R; g.add(box);
+      const body = texBox(box, null, -0.3, -0.4, -0.02, 0.3, 0.4, 0.1, { color: 0x6c7076 }); body.userData.fuse = true;
+      const t = canvasTex(120, 156, () => { });
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 0.68), new THREE.MeshBasicMaterial({ map: t, fog: false })); face.position.z = 0.102; box.add(face);
+      const fz = { f, mesh: face, tex: t, state: 'pending', pos: new THREE.Vector3(x, 1.45, z), n };
+      this.drawFuse(fz); return fz;
+    });
+  }
+  drawFuse(fz) {
+    const c = fz.tex.userData.g, w = 120, h = 156, f = fz.f;
+    c.fillStyle = '#2a2d33'; c.fillRect(0, 0, w, h); c.strokeStyle = '#8a8f98'; c.strokeRect(1.5, 1.5, w - 3, h - 3);
+    c.fillStyle = '#ffd23a'; c.fillRect(4, 4, w - 8, 15); c.fillStyle = '#1a1a1a'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('! PERMISSION', 8, 3);
+    const wrap = (txt, y, col) => { c.fillStyle = col; let ln = ''; for (const wd of txt.split(' ')) { if (c.measureText(ln + ' ' + wd).width > w - 12 && ln) { c.fillText(ln, 6, y); y += 15; ln = wd; } else ln = ln ? ln + ' ' + wd : wd; } c.fillText(ln, 6, y); return y + 17; };
+    let y = wrap(f.app, 26, '#e8ecf2'); y = wrap('wants: ' + f.perm.toLowerCase(), y + 2, '#9fd0ff');
+    const on = fz.state !== 'off';
+    c.fillStyle = '#111'; c.fillRect(42, 112, 30, 34); c.fillStyle = on ? '#4cff7a' : '#ff5050'; c.fillRect(46, on ? 115 : 130, 22, 13);
+    c.fillStyle = '#c8ccd4'; c.fillText(on ? 'ON' : 'OFF', 80, 122);
+    if (fz.state !== 'pending') { c.fillStyle = 'rgba(80,255,140,.22)'; c.fillRect(0, 0, w, h); }
+    fz.tex.needsUpdate = true;
   }
   drawHook(h, t) {
     const c = h.tex.userData.g, w = 96, hh = 70;
@@ -137,7 +175,7 @@ export class School extends Walker {
       c.fillStyle = 'rgba(0,0,0,0)'; c.clearRect(0, 0, 32, 32); c.fillStyle = '#ff2a2a'; c.beginPath(); c.ellipse(16, 16, 14, 8, 0, 0, Math.PI * 2); c.fill();
       c.fillStyle = '#1a0000'; c.beginPath(); c.arc(16, 16, 5, 0, Math.PI * 2); c.fill(); c.fillStyle = '#fff'; c.fillRect(17, 12, 2, 2);
     });
-    this.trackers = TRACKERS.map(t => {
+    this.trackers = this.trackerSet.map(t => {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true, fog: false, depthTest: true }));
       m.position.set(...t.at); if (t.flat) { m.rotation.x = -Math.PI / 2; m.position.y += 0.01; } else m.rotation.y = t.rot;
       m.visible = false; g.add(m);
@@ -174,6 +212,7 @@ export class School extends Walker {
     const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.068, 0.14), new THREE.MeshBasicMaterial({ color: 0x8fb8ff, fog: false })); scr.rotation.x = -Math.PI / 2; scr.position.y = 0.007; ph.add(scr);
     ph.position.set(6.4, 0.01, -44.4); ph.rotation.y = 0.6; g.add(ph); this.phoneObj = ph;
     this.phoneGlow = new THREE.PointLight(0x8fb8ff, 0.5, 1.6, 1.5); this.phoneGlow.position.set(6.4, 0.25, -44.4); g.add(this.phoneGlow);
+    if (this.v.gym === 'chorus') { ph.visible = false; this.phoneGlow.intensity = 0; this.buildChorus(g); }
     // the fire exit and its intercom
     this.doors.fire = this.door(g, 'fire', 'door_exit', -5, R.z0);
     place(g, 'sk_exit_sign', -5, 0, R.z0 + 0.1, 0);
@@ -182,16 +221,57 @@ export class School extends Walker {
     const eg = new THREE.PointLight(0x5fff9a, 0.5, 4, 1.6); eg.position.set(-5, 2.6, R.z0 + 0.6); g.add(eg);
   }
 
+  buildChorus(g) {
+    const C = this.chorus = { crowd: [], pol: [], done: {}, standT: 0, heat: 0, jeerT: 4, evidence: 0 }, cx = 0, cz = -39.4;
+    place(g, 'sk_bench', cx, 0, cz, 0, { col: this.col });
+    const dani = C.dani = new NPC('npc_mannequin');
+    const lm = new THREE.MeshLambertMaterial({ color: 0xb8b2a8 }); dani.obj.traverse(o => { if (o.isMesh) o.material = lm; });
+    dani.obj.position.set(cx, 0.02, cz + 0.38); dani.facing = 0; dani.obj.rotation.y = 0; g.add(dani.obj); dani.play('Sitting_Idle_Loop', 0);
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.3, 0.8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+    hit.position.set(cx, 0.65, cz); g.add(hit); C.hit = hit; C.center = new THREE.Vector3(cx, 0, cz);
+    const screenTex = canvasTex(24, 40, c => { c.fillStyle = '#dfe9ff'; c.fillRect(0, 0, 24, 40); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(12, 6, 3, 0, 7); c.fill(); c.fillStyle = '#7a8aa8'; c.fillRect(3, 12, 18, 22); });
+    const bodies = ['npc_guard', 'npc_caretaker', 'npc_nagyi'];
+    for (let i = 0; i < 7; i++) {
+      const a = (55 + i * (250 / 6)) * D2R, x = cx + Math.sin(a) * 2.3, z = cz + Math.cos(a) * 2.3;
+      const n = new NPC(bodies[i % 3]); const dm = new THREE.MeshLambertMaterial({ color: 0x3c3e4a, emissive: 0x0a0c12 });
+      n.obj.traverse(o => { if (o.isMesh) o.material = dm; });
+      n.obj.position.set(x, 0, z); n.faceTo(cx, cz); n.obj.rotation.y = n.facing; g.add(n.obj); n.play(i % 2 ? 'Idle_Talking_Loop' : 'Idle_Loop', 0);
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.19), new THREE.MeshBasicMaterial({ map: screenTex, fog: false, transparent: true }));
+      scr.position.set(0.12, 1.5, 0.34); scr.rotation.y = Math.PI; n.obj.add(scr);   // held up at arm's length, screen towards its owner
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.19), new THREE.MeshBasicMaterial({ color: 0x15151a })); back.position.set(0.12, 1.5, 0.345); n.obj.add(back);
+      const col = { x0: x - 0.25, x1: x + 0.25, z0: z - 0.25, z1: z + 0.25 }; this.col.push(col);
+      C.crowd.push({ n, scr, mat: dm, col, state: 'on', f: 1 });
+    }
+    // three photos on the floor: the evidence
+    const polTex = canvasTex(24, 30, c => { c.fillStyle = '#f2efe6'; c.fillRect(0, 0, 24, 30); c.fillStyle = '#4a5468'; c.fillRect(3, 3, 18, 18); c.fillStyle = '#c8b8a0'; c.beginPath(); c.arc(12, 11, 4, 0, 7); c.fill(); });
+    const spots = [[-6, -34.5], [6.5, -36], [-6.5, -44.5], [5.5, -44.2], [-2.5, -44.8], [2.8, -33.4], [-6.8, -40]].sort(() => this.r() - 0.5).slice(0, 3);
+    for (const [x, z] of spots) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.25), new THREE.MeshBasicMaterial({ map: polTex, fog: false })); m.rotation.x = -Math.PI / 2; m.rotation.z = this.r() * 6; m.position.set(x, 0.012, z); g.add(m);
+      C.pol.push({ mesh: m, got: false });
+    }
+    // the report terminal on the west wall
+    const term = new THREE.Group(); term.position.set(GYM.x0 + 0.06, 1.35, -37.5); term.rotation.y = Math.PI / 2; g.add(term);
+    texBox(term, null, -0.32, -0.25, -0.05, 0.32, 0.25, 0.02, { color: 0x2a2c30 });
+    const tt = canvasTex(64, 48, c => { c.fillStyle = '#0a1a2a'; c.fillRect(0, 0, 64, 48); c.fillStyle = '#7fd0ff'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('REPORT', 12, 6); c.fillText('a post', 14, 20); c.fillStyle = '#ffd23a'; c.fillRect(8, 38, 48, 3); });
+    const tf = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.44), new THREE.MeshBasicMaterial({ map: tt, fog: false })); tf.position.z = 0.025; term.add(tf); C.term = tf;
+  }
   setupInteractions() {
     const it = this.it;
     for (const h of this.hooks) it.add(h.mesh, () => h.f.label + ': switch it off', () => this.silence(h), () => !h.off);
+    for (const fz of this.fuses) it.add(fz.mesh, () => `Fuse box: ${fz.f.app} wants ${fz.f.perm.toLowerCase()}`, () => this.fuseUse(fz), () => fz.state === 'pending');
+    if (this.chorus) {
+      const C = this.chorus;
+      for (const p of C.pol) it.add(p.mesh, 'A photo on the floor: pick it up (evidence)', () => this.pickPolaroid(p), () => !p.got);
+      it.add(C.term, 'Report terminal (bejelentés)', () => this.chorusReport(), () => !C.done.report);
+      it.add(C.hit, () => C.done.stand ? `${CHORUS.target}: send him a message` : CHORUS.target, () => this.chorusMessage(), () => !C.done.message);
+    }
     for (const d of this.lockedDoors) it.add(d.obj, `Room ${d.no}`, () => { play('click', { vol: 0.4, rate: 0.6 }); caption('Locked.', 'say', 1.5); });
-    it.add(this.doors.north.obj, 'Door to the classroom', () => { if (!this.doors.north.open) { play('denied', { vol: 0.3 }); caption(`Locked. The screens in the corridor are still on (${this.hooks.length - this.st.hooks} left).`, 'say', 3); } }, () => !this.doors.north.open);
+    it.add(this.doors.north.obj, 'Door to the classroom', () => { if (!this.doors.north.open) { play('denied', { vol: 0.3 }); caption(this.v.ring === 'fuse' ? `Locked. The fuse boxes in the corridor are not sorted yet (${this.fuses.length - this.st.fusesDone} left).` : `Locked. The screens in the corridor are still on (${this.hooks.length - this.st.hooks} left).`, 'say', 3); } }, () => !this.doors.north.open);
     for (const tr of this.trackers) it.add(tr.mesh, () => tr.t.label + ': block it', () => this.block1(tr), () => this.lensOn && !tr.off);
     it.add(this.doors.gymc.obj, 'Door to the gym', () => { play('denied', { vol: 0.3 }); caption(this.lensOn ? 'Locked. Something is still watching through the trackers.' : 'Locked. Something here is still watching you. Try the Badger lens (Q).', 'say', 3.5); }, () => !this.doors.gymc.open);
-    it.add(this.phoneObj, 'A phone on the floor, screen lit', () => this.pickPhone(), () => !this.st.phone);
+    it.add(this.phoneObj, 'A phone on the floor, screen lit', () => this.pickPhone(), () => !this.st.phone && this.v.gym === 'phone');
     it.add(this.intercom, 'Fire exit intercom (kaputelefon)', () => this.gate());
-    it.add(this.doors.fire.obj, 'Fire exit', () => { play('denied', { vol: 0.3 }); caption(this.st.sorted < this.msgs.length ? 'Locked. The intercom next to it blinks.' : 'Locked. Use the intercom.', 'say', 3); });
+    it.add(this.doors.fire.obj, 'Fire exit', () => { play('denied', { vol: 0.3 }); caption(!this.zone3Done() ? 'Locked. The intercom next to it blinks.' : 'Locked. Use the intercom.', 'say', 3); });
   }
 
   // ---------- actions ----------
@@ -226,6 +306,84 @@ export class School extends Walker {
     }
     this.setObjective();
   }
+  async fuseUse(fz) {
+    if (this.typing || fz.state !== 'pending') return;
+    this.playing = false; this.G.unlock(); prompt(null);
+    const ch = await fusePanel(fz.f);
+    this.playing = true; lockPointer();
+    if (!ch) return;
+    const f = fz.f;
+    if ((ch === 'off') === !f.need) {
+      if (ch === 'off') {
+        const r = await this.typeTask(f.type, `Switch it off: type the setting (${f.app})`, timeFor(f.type, 3, 0.3));
+        if (!r.ok) { if (!r.cancelled) { play('beep', { vol: 0.4, rate: 0.7 }); caption('Too slow. The switch springs back.', 'say', 3); } return; }
+        fz.state = 'off'; play('switch_off', { vol: 0.5 });
+      } else { fz.state = 'on'; play('click', { vol: 0.5, rate: 1.2 }); }
+      this.drawFuse(fz); this.st.fusesDone++; this.gain(CFG.xpHook, 0);
+      this.st.lessons.push({ zone: 1, theme: 'T3', title: `${f.app}: ${f.perm.toLowerCase()} ${fz.state === 'off' ? 'off' : 'stays on'}`, text: f.lesson, rule: f.rule });
+      caption((fz.state === 'off' ? 'Switched off. ' : 'Left on, and that is right. ') + f.lesson, 'say', 7);
+      if (this.st.fusesDone === this.fuses.length) {
+        this.doors.north.openUp(); this.gain(0, CFG.coinsZone);
+        this.exitSign.material.map = canvasTex(48, 16, (c, w, hh) => { c.fillStyle = '#0e3a1a'; c.fillRect(0, 0, w, hh); c.fillStyle = '#7dff9a'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('OPEN', 10, 1); });
+        setTimeout(() => caption('The last box hums. Somewhere on the north side, a door clicks open.', 'say', 4), 2500);
+      }
+    } else {
+      play('spark1', { vol: 0.5 }); flash(0.4, 200);
+      const lit = this.lights.filter(L => L.intensity > 0.2 && !L.userData.dead);
+      if (lit.length > 1) { const L = lit[Math.floor(this.r() * lit.length)]; L.userData.dead = true; L.userData.flicker = false; L.intensity = 0; }
+      caption(ch === 'off' ? `${f.app} needs ${f.perm.toLowerCase()} for what you use it for. Switched off, it would just stop working. The box sparks and a light dies.` : `${f.app} does not need ${f.perm.toLowerCase()}. Leaving it on is how data leaks out. The box sparks and a light dies.`, 'say', 6);
+      if (nerve(this.R, -Math.round(CFG.feedFailNerve * this.D.nerveLoss))) this.death();
+    }
+    this.setObjective();
+  }
+  chorusDone(key) {
+    const C = this.chorus; if (C.done[key]) return; C.done[key] = true;
+    const t = CHORUS.tasks[key];
+    this.gain(CFG.xpHook * 2, 0); play('rg_signal1', { vol: 0.4 });
+    this.st.lessons.push({ zone: 3, theme: 'T6', title: t.title, text: t.lesson, rule: t.rule });
+    caption(`${t.title}. ${t.lesson}`, 'say', 7);
+    const on = C.crowd.filter(c => c.state === 'on');
+    const k = Object.keys(C.done).length === 4 ? on.length : 2;
+    for (const c of on.slice(0, k)) { c.state = 'fade'; c.col.off = true; c.mat.transparent = true; }
+    if (Object.keys(C.done).length === 4) {
+      this.gain(0, CFG.coinsZone); this.intercomLed.material.color.set(0xffd040);
+      setTimeout(() => { caption(`The phones go down. "Thanks," ${CHORUS.target} says quietly. "Really." By the fire exit, the intercom lights up.`, 'say', 6); C.dani.play('Idle_Loop', 0.4); C.dani.obj.position.z = -39.0; }, 2200);
+    }
+    this.setObjective();
+  }
+  pickPolaroid(p) {
+    const C = this.chorus; if (p.got) return; p.got = true; p.mesh.visible = false; C.evidence++; play('pickup', { vol: 0.4 });
+    if (C.evidence < C.pol.length) caption(`A printed screenshot of the post, with the comments. You keep it. (${C.evidence}/${C.pol.length})`, 'say', 3.5);
+    else this.chorusDone('evidence');
+  }
+  async chorusReport() {
+    const C = this.chorus; if (C.done.report || this.typing) return;
+    const t = CHORUS.tasks.report, r = await this.typeTask(t.type, 'The report terminal: type your report', timeFor(t.type, 4, 0.3));
+    if (r.ok) this.chorusDone('report'); else if (!r.cancelled) caption('The screen times out. Try again.', 'say', 2.5);
+  }
+  async chorusMessage() {
+    const C = this.chorus; if (C.done.message || this.typing) return;
+    if (!C.done.stand) { caption(`${CHORUS.target} does not look up. Stand next to him for a moment first.`, 'say', 3.5); return; }
+    const t = CHORUS.tasks.message, r = await this.typeTask(t.type, `A message to ${CHORUS.target}`, timeFor(t.type, 4, 0.3));
+    if (r.ok) this.chorusDone('message'); else if (!r.cancelled) caption('You hesitate, and the moment passes. Try again.', 'say', 2.5);
+  }
+  chorusTick(dt) {
+    const C = this.chorus, p = this.player.pos, d = Math.hypot(p.x - C.center.x, p.z - C.center.z);
+    C.dani.update(dt);
+    for (const c of C.crowd) {
+      if (c.state === 'gone') continue;
+      if (c.state === 'fade') { c.f -= dt * 0.8; c.mat.opacity = Math.max(0, c.f); c.scr.material.opacity = Math.max(0, c.f); if (c.f <= 0) { c.state = 'gone'; c.n.obj.visible = false; } c.n.update(dt); continue; }
+      const tx = d < 3.4 ? p.x : C.center.x, tz = d < 3.4 ? p.z : C.center.z; c.n.faceTo(tx, tz);
+      c.n.update(dt); c.scr.material.opacity = Math.random() < 0.04 ? 0.5 : 1;
+    }
+    if (Object.keys(C.done).length === 4) return;
+    if (!C.done.stand && Math.hypot(p.x - C.center.x, p.z - (C.center.z + 0.6)) < 1.3) { C.standT += dt; if (C.standT > 2.5) this.chorusDone('stand'); } else C.standT = 0;
+    C.jeerT -= dt;
+    if (C.jeerT <= 0 && d < 9) { C.jeerT = 5 + this.r() * 4; caption(CHORUS.jeers[Math.floor(this.r() * CHORUS.jeers.length)], 'sfx', 2.5); play('presence', { vol: 0.15 }); }
+    // standing in the circle doing nothing: the crowd turns on you
+    if (d < 3 && !this.typing) { C.heat += dt; if (C.heat > 8) { C.heat = 0; caption('The phones turn towards you. They laugh louder. Nerve −2.', 'say', 3); if (nerve(this.R, -Math.round(2 * this.D.nerveLoss))) this.death(); } } else C.heat = Math.max(0, C.heat - dt);
+  }
+  zone3Done() { return this.v.gym === 'chorus' ? Object.keys(this.chorus.done).length === 4 : this.st.sorted >= this.msgs.length; }
   block1(tr) {
     // blocking is one key press: in the classroom your eyes belong on the figure, not on a typing bar
     if (tr.off || !this.lensOn || this.typing) return;
@@ -275,7 +433,7 @@ export class School extends Walker {
   inLight() { const p = this.player.pos; return Math.hypot(p.x - LAMP.x, p.z - LAMP.z) < LAMP.r; }
   /** The intercom: type three rules from tonight (one per zone) before the time runs out. */
   async gate() {
-    if (this.st.sorted < this.msgs.length) { play('denied', { vol: 0.3 }); caption(this.st.phone ? 'The intercom stays dark. Sort the messages on the phone first.' : 'The intercom stays dark. There is something you have not found yet.', 'say', 3.5); return; }
+    if (!this.zone3Done()) { play('denied', { vol: 0.3 }); caption(this.v.gym === 'chorus' ? `The intercom stays dark. Nobody here has helped ${CHORUS.target} yet.` : this.st.phone ? 'The intercom stays dark. Sort the messages on the phone first.' : 'The intercom stays dark. There is something you have not found yet.', 'say', 3.5); return; }
     if (this.typing || this.gating) return;
     this.gating = true;
     const pick = z => { const ls = this.st.lessons.filter(l => l.zone === z && l.rule); return ls.length ? ls[Math.floor(this.r() * ls.length)].rule : null; };
@@ -315,7 +473,7 @@ export class School extends Walker {
   respawn() {
     const z = this.st.zone;
     if (z === 2) { this.player.set(0, -16.8, 0); this.watcher.place(-5, -25, { x0: -5.6, x1: 5.6, z0: -25.6, z1: -16.4 }); }
-    else { this.player.set(4.5, -32.8, 0); this.watcher.place(7, -45, { x0: -7.5, x1: 7.5, z0: -45.5, z1: -32.6 }, LAMP); }
+    else { this.player.set(4.5, -32.8, 0); if (this.v.gym === 'phone') this.watcher.place(7, -45, { x0: -7.5, x1: 7.5, z0: -45.5, z1: -32.6 }, LAMP); }
   }
   death() {
     this.playing = false; prompt(null); if (this.lensEl) this.lensEl.style.display = 'none';
@@ -346,12 +504,15 @@ export class School extends Walker {
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
     this.setObjective(); this.updateHud(); lockPointer();
     await fade(false, '', 1.0);
-    caption('Screens are glowing somewhere down the corridor. When one is in front of you, it pulls your eyes towards it.', 'say', 5);
+    caption(this.v.ring === 'fuse' ? 'Grey fuse boxes on the corridor walls, each with a yellow sticker: PERMISSION. The north door will not open until they are sorted.' : 'Screens are glowing somewhere down the corridor. When one is in front of you, it pulls your eyes towards it.', 'say', 5);
   }
   setObjective() {
     const s = this.st;
-    if (s.zone === 1) objective(`The screens drag your eyes towards them. Walk up to each one, press E and type the setting that switches it off. ${s.hooks}/${this.hooks.length}`);
+    if (s.zone === 1 && this.v.ring === 'fuse') objective(`Each fuse box is one app permission. Leave on what the app needs; switch off (and type the setting) what it does not. ${s.fusesDone}/${this.fuses.length}`);
+    else if (s.zone === 1) objective(`The screens drag your eyes towards them. Walk up to each one, press E and type the setting that switches it off. ${s.hooks}/${this.hooks.length}`);
     else if (s.zone === 2) objective(`It only moves when you look away. Q: Badger lens. Look at a tracker and press E to block it, then look back at the figure. ${s.trackers}/${this.trackers.length}`);
+    else if (this.v.gym === 'chorus' && !this.zone3Done()) { const C = this.chorus, d = C.done; objective(`Be the upstander. ${d.evidence ? '✓' : '·'} Pick up the evidence (${C.evidence}/3)  ${d.stand ? '✓' : '·'} Stand next to ${CHORUS.target}  ${d.report ? '✓' : '·'} Report it at the terminal  ${d.message ? '✓' : '·'} Message him`); }
+    else if (this.v.gym === 'chorus') objective('Use the intercom by the fire exit: type tonight\'s rules back to it.');
     else if (!s.phone) objective('The gym. Find what is glowing on the floor. Keep to the light when you can.');
     else if (s.sorted < this.msgs.length) objective(`Read the phone in the light (P). Trust it, or report it as a scam. ${s.sorted}/${this.msgs.length}`);
     else objective('Use the intercom by the fire exit: type tonight\'s rules back to it.');
@@ -359,9 +520,10 @@ export class School extends Walker {
   updateHud() {
     const s = this.st, L = this.R.life, n = this.noise.v;
     const rows = [{ name: `Nerve: ${L.nerve}`, hu: 'idegek' }, { name: `Noise: ${n < 10 ? 'quiet' : n < 40 ? 'some' : n < 70 ? 'loud' : 'very loud'}`, hu: 'zaj' }];
-    if (s.zone === 1) rows.push({ name: `Screens on: ${this.hooks.length - s.hooks}`, hu: 'képernyők' });
+    if (s.zone === 1) rows.push(this.v.ring === 'fuse' ? { name: `Fuse boxes left: ${this.fuses.length - s.fusesDone}`, hu: 'biztosítékok' } : { name: `Screens on: ${this.hooks.length - s.hooks}`, hu: 'képernyők' });
     if (s.zone === 2) rows.push({ name: `Trackers left: ${this.trackersLeft()}`, hu: 'követők' }, { name: `Lens: ${this.lensOn ? 'on' : 'off'} (Q)`, hu: 'lencse' });
-    if (s.zone === 3) rows.push({ name: `Messages sorted: ${s.sorted}/${this.msgs.length}`, hu: 'levelek' }, { name: this.inLight() ? 'In the light: safe' : 'In the dark', hu: 'fény' });
+    if (s.zone === 3 && this.v.gym === 'chorus') rows.push({ name: `Upstander actions: ${Object.keys(this.chorus.done).length}/4`, hu: 'kiállás' });
+    else if (s.zone === 3) rows.push({ name: `Messages sorted: ${s.sorted}/${this.msgs.length}`, hu: 'levelek' }, { name: this.inLight() ? 'In the light: safe' : 'In the dark', hu: 'fény' });
     rows.push({ name: `Coins tonight: ${this.run.coins}`, hu: 'zseton' });
     checklist(`The school · zone ${s.zone} of 3`, rows);
   }
@@ -378,9 +540,15 @@ export class School extends Walker {
     }
     if (s.zone === 2 && p.z < ROOM.z0 - 0.4) {
       s.zone = 3; if (this.lensOn) this.toggleLens();
-      this.watcher.place(7, -45, { x0: -7.5, x1: 7.5, z0: -45.5, z1: -32.6 }, LAMP); this.watcher.setSize(0.85); this.dissolving = false;
-      this.watcher.npc.obj.traverse(o => { if (o.isMesh) { o.material.opacity = 1; } });
-      caption('The gym. One lamp still works. In the dark at the far end, a red light blinks on.', 'say', 5);
+      this.dissolving = false;
+      if (this.v.gym === 'phone') {
+        this.watcher.place(7, -45, { x0: -7.5, x1: 7.5, z0: -45.5, z1: -32.6 }, LAMP); this.watcher.setSize(0.85);
+        this.watcher.npc.obj.traverse(o => { if (o.isMesh) { o.material.opacity = 1; } });
+        caption('The gym. One lamp still works. In the dark at the far end, a red light blinks on.', 'say', 5);
+      } else {
+        this.watcher.active = false; this.watcher.root.position.set(0, -30, 0);
+        caption(`The gym. Under the one working lamp, a crowd stands in a circle with their phones up, filming ${CHORUS.target} on the bench.`, 'say', 6);
+      }
       this.setObjective();
     }
   }
@@ -441,7 +609,8 @@ export class School extends Walker {
     this.player.update(dt);
     this.noise.tick(dt, this.player.running);
     this.zoneCheck();
-    if (this.st.zone === 1) this.feed(dt, t);
+    if (this.st.zone === 1 && this.v.ring === 'feed') this.feed(dt, t);
+    if (this.st.zone === 3 && this.chorus) this.chorusTick(dt);
     if (wasPressed('KeyQ')) this.toggleLens();
     if (wasPressed('KeyP')) this.readPhone();
     if (this.watcher.active) {

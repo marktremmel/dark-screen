@@ -13,6 +13,8 @@ export const NOTICES = {
   lift_lookalike: ['LIFT INSPECTION (liftvizsgálat)', 'Thursday 9:00 to 12:00 the lift is out of service.', 'Questions: www.k0zoskepviselo.hu/lift', 'The residents\' representative (közös képviselő)'],
   lift_urgent: ['FINAL WARNING (utolsó figyelmeztetés)', 'Your water will be cut off TODAY at 18:00.', 'Pay the overdue 4 990 Ft now: scan the code and type in your card details.', 'Do not call the office. There is no time.'],
   cat_address: ['LOST CAT (elveszett macska)', 'Ginger, answers to Bajusz.', 'Send us your full address, your flat number and a photo of your front door', 'and we will come round to check if he is with you.'],
+  cat_mock: ['LOOK WHO LIVES HERE', 'A photo of the boy from flat 7, crying at the bus stop.', 'Someone has written "share it!" under it.', 'Twelve neighbours have drawn a smiley next to it.'],
+  lift_fingerprint: ['NEW: SMART BUILDING', 'The hallway screens now recognise each resident\'s phone', 'by its model, screen size, fonts and battery level. No sign-up needed!', 'The residents\' representative (közös képviselő)'],
   liftDoor_wifi: ['FREE WI-FI FOR NEIGHBOURS', 'Network: Lepcsohaz_Free', 'To connect, sign in with your email address', 'and your email password.'],
 };
 
@@ -80,6 +82,12 @@ export const ANOMALIES = [
   { id: 'boxes', theme: 'OBS', where: 'boxes', rule: 'know what normal looks like',
     lesson: 'A pile of boxes stood by the plant. It was never there before.',
     card: { title: 'New things are clues', text: 'Something new in a familiar place is worth a second look, online too: a new login, a new device, a new follower.' } },
+  { id: 'notice_mock', theme: 'T6', where: 'noticeboard', notice: 'cat_mock', rule: 'i do not pass it on',
+    lesson: 'Someone pinned up a photo to humiliate a neighbour, and others joined in with smileys. Online this is the shared screenshot. The upstander (kiálló) moves: do not add to it, keep the evidence, report it, and check on the person.',
+    card: { title: 'Be the upstander', text: 'Do not join in, save the evidence, report it, and send the target a kind message. Any one of these helps, and others often follow.' } },
+  { id: 'notice_fingerprint', theme: 'T3', where: 'noticeboard', notice: 'lift_fingerprint', rule: 'deleting cookies is not enough',
+    lesson: 'The smart building recognises phones without asking: model, screen, fonts and battery add up to a fingerprint (ujjlenyomat). Websites do the same with your browser, even after you delete your cookies.',
+    card: { title: 'Your browser has a fingerprint', text: 'Screen size, fonts, time zone, language and graphics card add up to a pattern that can recognise you without cookies. A tracker blocker and fewer extensions help you blend in.' } },
 ];
 
 export const ANOMALY = Object.fromEntries(ANOMALIES.map(a => [a.id, a]));

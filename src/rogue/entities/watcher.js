@@ -15,8 +15,21 @@ export class Watcher {
     this.npc.obj.traverse(o => { if (o.isMesh) { o.material = dark; } });
     this.root = new THREE.Group(); this.root.add(this.npc.obj); parent.add(this.root);
     this.eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 4), new THREE.MeshBasicMaterial({ color: 0xff1a1a, fog: false }));
-    this.eye.position.set(0, 1.63, 0.12); this.npc.obj.add(this.eye);
-    this.glow = new THREE.PointLight(0xff2020, 0.6, 2.2, 1.5); this.glow.position.set(0, 1.6, 0.35); this.npc.obj.add(this.glow);
+    this.glow = new THREE.PointLight(0xff2020, 0.6, 2.2, 1.5);
+    // the camera sits on the front of the face and moves with the head, so you can see where the red light comes from
+    const o = this.npc.obj; o.updateMatrixWorld(true);
+    let head = null; o.traverse(b => { if (b.isBone && /head$/i.test(b.name)) head = b; });
+    const cam = new THREE.Group();
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.055, 0.05), new THREE.MeshBasicMaterial({ color: 0x1a1a1e }));
+    this.eye.position.set(0, 0, 0.028); cam.add(box, this.eye);
+    if (head) {
+      const p = o.localToWorld(new THREE.Vector3().copy(o.worldToLocal(head.getWorldPosition(new THREE.Vector3()))).add(new THREE.Vector3(0, 0.1, 0.13)));
+      head.add(cam); cam.position.copy(head.worldToLocal(p.clone()));
+      const s = head.getWorldScale(new THREE.Vector3()).x || 1; cam.scale.setScalar(1 / s);
+      cam.quaternion.copy(head.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(o.getWorldQuaternion(new THREE.Quaternion())));
+      const gp = o.localToWorld(o.worldToLocal(p.clone()).add(new THREE.Vector3(0, 0, 0.25)));
+      head.add(this.glow); this.glow.position.copy(head.worldToLocal(gp));
+    } else { cam.position.set(0, 1.62, 0.2); o.add(cam); this.glow.position.set(0, 1.6, 0.4); o.add(this.glow); }
     this.pose = 0; this.poseT = 0; this.active = false; this.size = 1; this.fade = 1;
     this.bounds = null; this.safe = null;   // {x0,x1,z0,z1}; safe = {x, z, r}: a light it will not enter
     this.npc.pose(...POSES[0]);

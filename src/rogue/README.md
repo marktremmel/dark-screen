@@ -76,7 +76,12 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
 - Session 6 (23 Oct, third play-test): the yellow room became the maze; the soft reset per difficulty; the Free Wi-Fi note is
   bigger; in the walk the nearest figure shows what it says above the reply you type, so you read the question first;
   the phone screens sit in front of the figures' faces.
-- Next: stickers for the flat, more school-style encounters per topic.
+- v0.8 / v0.9 (23 Oct, fourth play-test): the build number shows in the corner (src/rogue/config.js VERSION, raise it with every
+  build). The Watcher's camera sits on its face. Topic T3 (tracking and fingerprinting) and four more upstander lines in T6;
+  two new anomalies (a mocking photo on the noticeboard, a "smart building" that fingerprints phones). The school is assembled
+  per night: zone 1 is the Feed or the permission fuse boxes, zone 3 the found phone or the Chorus (four upstander actions),
+  and the classroom trackers are five from a larger set including two fingerprinting scripts.
+- Next: payphone call-back and design detective encounters, lines for T4, T7, T12, the courtyard walk, stickers.
 
 ## Codes
 

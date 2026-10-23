@@ -52,3 +52,53 @@ export const INBOX = [
 
 /** The exit gate: type three rules from tonight, one from each zone, before the time runs out. */
 export const GATE = { lines: 3, base: 4, perChar: 0.34 };
+
+// ---------- variants: the school is put together differently each night ----------
+
+/** Extra trackers for the classroom (fingerprinting). Each night 5 trackers are picked from TRACKERS + these. T3. */
+export const TRACKERS_EXTRA = [
+  { id: 'canvas', type: 'block fingerprinting', rule: 'deleting cookies is not enough', at: [5.9, 1.7, -24.2], rot: -Math.PI / 2, label: 'A script drawing an invisible picture to fingerprint your browser',
+    lesson: 'Canvas fingerprinting: the site draws a hidden picture, and the tiny differences in how your computer draws it help recognise you, even with no cookies. Tracker blockers stop many of these scripts.' },
+  { id: 'fonts', type: 'use a tracker blocker', rule: 'my browser gives clues about me', at: [-1.6, 2.1, -16.1], rot: Math.PI, label: 'A script listing every font on your computer',
+    lesson: 'Your list of fonts, your screen size and your time zone together can single out your browser (böngésző-ujjlenyomat). A tracker blocker and fewer unusual extensions make you look like everyone else.' },
+];
+
+/** Zone 1, the other version: fuse boxes (biztosítéktábla) where every switch is an app permission. T3, T12.
+ *  need: true means the app needs it for what you use it for, so leave it ON. Six are picked each night (two or three needed). */
+export const FUSES = [
+  { id: 'torch_contacts', app: 'Torch app', perm: 'Contacts', need: false, type: 'contacts off', rule: 'only allow what it needs',
+    lesson: 'A torch needs the light and nothing else. An app that asks for your contacts collects your friends\' numbers too, without asking them.' },
+  { id: 'maps_loc', app: 'Maps', perm: 'Location while using', need: true,
+    lesson: 'Maps needs your location to show you the way, and "while using" is enough. The question is always: does it need this for what I use it for?' },
+  { id: 'weather_precise', app: 'Weather', perm: 'Precise location', need: false, type: 'approximate location', rule: 'approximate is enough',
+    lesson: 'A forecast for your district does not need your exact address. Approximate location (hozzávetőleges hely) gives the same weather.' },
+  { id: 'quiz_mic', app: 'Quiz game', perm: 'Microphone', need: false, type: 'microphone off', rule: 'check which apps can hear me',
+    lesson: 'A quiz has no reason to hear you. A microphone permission an app does not need is an open door.' },
+  { id: 'call_mic', app: 'Video call app', perm: 'Microphone', need: true,
+    lesson: 'A video call needs the microphone. Switching off what an app really needs only breaks it; the skill is telling the two apart.' },
+  { id: 'camera_cam', app: 'Camera', perm: 'Camera', need: true,
+    lesson: 'The camera app needs the camera. Easy one, but notice how fast you started doubting everything.' },
+  { id: 'keyboard_net', app: 'Keyboard app', perm: 'Full network access', need: false, type: 'network access off', rule: 'a keyboard sees everything i type',
+    lesson: 'A keyboard with network access could send away everything you type, passwords included. Your phone\'s own keyboard does not need it.' },
+  { id: 'game_track', app: 'Free game', perm: 'Track you across apps', need: false, type: 'ask app not to track', rule: 'say no to tracking across apps',
+    lesson: 'Tracking across apps links what you do everywhere into one profile for advertisers. The game works the same without it.' },
+  { id: 'bus_notif', app: 'Bus timetable app', perm: 'Notifications', need: true,
+    lesson: 'A delay alert for your bus is useful. Notifications you chose on purpose are fine; it is the ones you never asked for that eat your attention.' },
+];
+
+/** Zone 3, the other version: the Chorus in the gym. A crowd lit by phone screens around one person. T6.
+ *  Four upstander actions, in any order. Each one makes some of the crowd lower their phones. */
+export const CHORUS = {
+  target: 'Dani',
+  jeers: ['"lol look at him"', '"post it, post it"', '"everyone has seen it anyway"', '"it\'s just a joke"', '"send it to the group"', '"film his face"'],
+  tasks: {
+    evidence: { title: 'Saved the evidence', rule: 'save evidence before blocking',
+      lesson: 'Screenshots of what happened (bizonyíték) are what adults and platforms need to act. Save them before anything is deleted.' },
+    stand: { title: 'Stood next to him', rule: 'do not wait for someone else',
+      lesson: 'The crowd waits for someone else to move first (bystander effect). One person standing next to the target often makes others stop.' },
+    report: { title: 'Reported it', type: 'i am reporting this post', rule: 'reporting is not snitching',
+      lesson: 'Reporting is how the people who can remove a post find out about it. It protects someone; it is not snitching.' },
+    message: { title: 'Sent him a message', type: 'i am on your side', rule: 'a small message can help',
+      lesson: 'A short private message ("are you okay? I am on your side") tells the target they are not alone. It matters more than it feels like.' },
+  },
+};

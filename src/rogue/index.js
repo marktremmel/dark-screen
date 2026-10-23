@@ -19,13 +19,20 @@ import { Stairwell } from './mission/stairwell.js';
 import { School } from './mission/school.js';
 import { Walk } from './mission/walk.js';
 import { Metro } from './mission/metro.js';
+import { VERSION } from './config.js';
 
 const WALK_NAME = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool' };
 
 export function installRogue(G) {
   const R = () => ensureRogue(S.save);
+  // the build number in the corner, so you always know which version you are playing
+  const tag = document.createElement('div'); tag.textContent = 'Lépcsőház v' + VERSION;
+  tag.style.cssText = 'position:fixed;right:8px;bottom:6px;z-index:40;font:12px m5x7,monospace;color:#9a95b0;opacity:.75;pointer-events:none;display:none';
+  document.body.appendChild(tag);
+  const ROGUE = [HomeScene, Stairwell, Walk, School, Metro];
+  G.onScene = sc => { tag.style.display = ROGUE.some(C => sc instanceof C) ? '' : 'none'; };
   G.goRogue = async () => {
-    G.unlock(); hud(false); loading(true, 0, 'Lépcsőház…');
+    G.unlock(); hud(false); loading(true, 0, 'Lépcsőház v' + VERSION + '…');
     await ingestPack('ep1', AU.ctx, f => loading(true, f * 0.6));
     await ingestPack('ep9', AU.ctx, f => loading(true, 0.6 + f * 0.25));     // grandma's furniture for the shop
     await ingestPack('rogue', AU.ctx, f => loading(true, 0.85 + f * 0.15));

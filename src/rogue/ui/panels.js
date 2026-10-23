@@ -35,8 +35,8 @@ export function rulesPanel() {
       1. Learn what a normal landing looks like: three doors, the lift, the noticeboard, the plant, the floor number.<br>
       2. If anything on a landing is wrong, <b>turn back: go up the stairs.</b><br>
       3. If nothing is wrong, <b>keep going down.</b><br>
-      4. A wrong call sends you back to your own floor. Your own floor is always normal, and the way up is locked: start by going down.<br>
-      5. Press the light switch (villanykapcsoló). The light only lasts ${CFG.lightTimer} seconds. F is your torch.<br>
+      4. A wrong call drops you into the yellow rooms. Find the EXIT and you come out higher up: one floor on Calm, two on Normal, your own floor on Hard. Your own floor is always normal, and the way up from it is locked: start by going down.<br>
+      5. Press the light switch (villanykapcsoló). The light does not last long. F is your torch.<br>
       6. Read the notices. Not everything wrong is something you can see from far away.</div>
       <div class="btns"><button class="btn primary" id="x" autofocus>Got it (E)</button></div></div>`);
     closable(el, res);
@@ -145,7 +145,7 @@ export function walkExitChoice(run) {
       <p>So far tonight: <b>${run.xp} XP</b> and <b>${run.coins} coins</b>. Across the road, the school is dark. One window flickers.</p>
       <p class="sub">The school is harder and pays more. If your nerve runs out there, you lose this life.</p>
       <div style="display:grid;gap:10px;margin-top:10px">
-      <button class="btn primary" data-m="school" style="text-align:left"><b>Go on to the school</b><br><span class="sub">Screens that pull at you, something that moves when you look away, a phone in the gym.</span></button>
+      <button class="btn primary" data-m="school" style="text-align:left"><b>Go on to the school</b><br><span class="sub">Three rooms, a figure that moves when you look away, and something different waiting each night.</span></button>
       <button class="btn" data-m="home" style="text-align:left"><b>Go home</b><br><span class="sub">Keep everything you earned tonight.</span></button></div></div>`, 'solid');
     el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
   });
