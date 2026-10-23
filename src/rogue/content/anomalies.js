@@ -90,4 +90,10 @@ export const ANOMALIES = [
     card: { title: 'Your browser has a fingerprint', text: 'Screen size, fonts, time zone, language and graphics card add up to a pattern that can recognise you without cookies. A tracker blocker and fewer extensions help you blend in.' } },
 ];
 
+/** Where each kind of anomaly sits on a landing, for the message after a miss. */
+export const WHERE = { noticeboard: 'on the noticeboard', liftDoor: 'on the lift door', door2: 'on the middle door', liftDisplay: 'on the lift display',
+  ceiling: 'on the ceiling above the doors', door3sound: 'behind the third door', leftWall: 'on the side wall', floorNumber: 'in the floor number on the wall',
+  lamp: 'in the landing light', plant: 'by the window', switchQR: 'above the light switch', doorNote: 'on a flat door', doorbellCam: 'next to a flat door',
+  liftAd: 'next to the lift', doormat: 'on a doormat', floorNumberWrong: 'in the floor number on the wall', plateSwap: 'in the nameplates', boardEmpty: 'on the noticeboard', boxes: 'by the plant' };
+
 export const ANOMALY = Object.fromEntries(ANOMALIES.map(a => [a.id, a]));

@@ -1,3 +1,4 @@
+import { STICKERS } from './stickers.js';
 // The shop and the flats. DATA ONLY.
 // Furniture: model key (ep1, ep9 and hub packs), price in coins, cosiness (komfort). Cosiness raises your nerve on the stairs.
 // kind: 'floor' stands on the floor (a collider unless walk:true), 'wall' hangs on a wall (posters use a painted picture).
@@ -7,8 +8,8 @@ export const ITEMS = [
   { id: 'sofa', model: 'sofa', name: 'Sofa', hu: 'kanapé', price: 70, cosy: 6, kind: 'floor' },
   { id: 'gran_sofa', model: 'sv_sofa', name: 'Grandma\'s sofa', hu: 'nagyi kanapéja', price: 90, cosy: 7, kind: 'floor' },
   { id: 'coffeetable', model: 'coffeetable', name: 'Coffee table', hu: 'dohányzóasztal', price: 25, cosy: 2, kind: 'floor' },
-  { id: 'tv', model: 'tubetv', name: 'Small TV', hu: 'tévé', price: 45, cosy: 3, kind: 'floor' },
-  { id: 'oldtv', model: 'sv_tv', name: 'Old TV', hu: 'régi tévé', price: 55, cosy: 3, kind: 'floor' },
+  { id: 'tv', top: true, model: 'tubetv', name: 'Small TV', hu: 'tévé', price: 45, cosy: 3, kind: 'floor' },
+  { id: 'oldtv', top: true, model: 'sv_tv', name: 'Old TV', hu: 'régi tévé', price: 55, cosy: 3, kind: 'floor' },
   { id: 'bookshelf', model: 'bookshelf', name: 'Bookshelf', hu: 'könyvespolc', price: 35, cosy: 3, kind: 'floor' },
   { id: 'cupboard', model: 'cupboard', name: 'Cupboard', hu: 'szekrény', price: 35, cosy: 2, kind: 'floor' },
   { id: 'wardrobe', model: 'wardrobe', name: 'Wardrobe', hu: 'ruhásszekrény', price: 50, cosy: 3, kind: 'floor' },
@@ -21,15 +22,36 @@ export const ITEMS = [
   { id: 'plant', model: 'sv_plant', name: 'Big plant', hu: 'szobanövény', price: 18, cosy: 3, kind: 'floor' },
   { id: 'lamp', model: 'sv_lamp', name: 'Standing lamp', hu: 'állólámpa', price: 30, cosy: 3, kind: 'floor' },
   { id: 'piano', model: 'sv_piano', name: 'Piano', hu: 'zongora', price: 150, cosy: 6, kind: 'floor' },
-  { id: 'vase', model: 'sv_vase', name: 'Vase', hu: 'váza', price: 10, cosy: 1, kind: 'floor', walk: true },
-  { id: 'teddy', model: 'teddy', name: 'Teddy bear', hu: 'plüssmaci', price: 10, cosy: 2, kind: 'floor', walk: true },
+  { id: 'vase', top: true, model: 'sv_vase', name: 'Vase', hu: 'váza', price: 10, cosy: 1, kind: 'floor', walk: true },
+  { id: 'teddy', top: true, model: 'teddy', name: 'Teddy bear', hu: 'plüssmaci', price: 10, cosy: 2, kind: 'floor', walk: true },
   { id: 'p_cat', img: 'sm_ep3_cat', name: 'Poster: sleepy cat', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
   { id: 'p_skate', img: 'sm_ep5_skate', name: 'Poster: skater', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
   { id: 'p_rink', img: 'sm_ep3_rink1', name: 'Poster: the rink', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
   { id: 'p_morning', img: 'sm_ep6_morning', name: 'Poster: morning', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
   { id: 'p_bench', img: 'sm_ep3_bench', name: 'Poster: autumn bench', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'desk', model: 'studydesk', name: 'Study desk', hu: 'íróasztal', price: 35, cosy: 2, kind: 'floor' },
+  { id: 'deskchair', model: 'studychair', name: 'Desk chair', hu: 'forgószék', price: 20, cosy: 1, kind: 'floor' },
+  { id: 'gran_closet', model: 'sv_closet', name: 'Grandma\'s cabinet', hu: 'vitrin', price: 60, cosy: 4, kind: 'floor' },
+  { id: 'gran_rug', model: 'sv_carpet', name: 'Grandma\'s rug', hu: 'perzsaszőnyeg', price: 30, cosy: 4, kind: 'floor', walk: true },
+  { id: 'kitchen', model: 'kcabinet', name: 'Kitchen cabinet', hu: 'konyhaszekrény', price: 40, cosy: 2, kind: 'floor' },
+  { id: 'frame', top: true, model: 'photoframe', name: 'Photo frame', hu: 'képkeret', price: 8, cosy: 1, kind: 'floor', walk: true },
+  { id: 'deskphone', top: true, model: 'sv_phone', name: 'Old phone', hu: 'vezetékes telefon', price: 12, cosy: 1, kind: 'floor', walk: true },
+  { id: 'board', top: true, model: 'motherboard', name: 'Old motherboard (from Episode 1)', hu: 'alaplap', price: 15, cosy: 1, kind: 'floor', walk: true },
+  { id: 'p_cake', img: 'sm_ep3_cake', name: 'Poster: birthday cake', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_noodles', img: 'sm_ep5_noodles', name: 'Poster: noodles', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_catfail', img: 'sm_ep5_cat_fail', name: 'Poster: cat fail', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_meme', img: 'sm_ep4_meme', name: 'Poster: the meme', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_school', img: 'sm_ep6_school_front', name: 'Poster: the school', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_window', img: 'sm_ep3_window', name: 'Poster: night window', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_yard', img: 'sm_ep9_courtyard', name: 'Poster: the courtyard', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_selfie', img: 'sm_ep3_selfie', name: 'Poster: schoolyard selfie', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_bedroom', img: 'sm_ep5_bedroom', name: 'Poster: messy bedroom', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
+  { id: 'p_stairs', img: 'sm_ep9_stairwell', name: 'Poster: the stairwell', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
   { id: 'p_family', img: 'sm_ep9_family_photo', name: 'Old family photo', hu: 'családi fotó', price: 15, cosy: 3, kind: 'wall' },
 ];
+// stickers: cheap, small, any wall (Urban Grunge decals, see stickers.js)
+for (const [n, a] of STICKERS) ITEMS.push({ id: 's_' + n, img: 'st_' + n, name: n.startsWith('sign') ? 'Sign ' + n.slice(4) : 'Sticker ' + n.slice(7), hu: 'matrica',
+  price: 5, cosy: 0.5, kind: 'wall', sticker: true, size: Math.min(0.3, 0.42 / a), aspect: a });
 export const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 
 /** Flats you can move into. Rooms are rectangles in the flat's own coordinates (the front door is at x 0.9, z 0). */

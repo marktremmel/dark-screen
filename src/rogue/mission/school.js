@@ -230,15 +230,16 @@ export class School extends Walker {
     const hit = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.3, 0.8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
     hit.position.set(cx, 0.65, cz); g.add(hit); C.hit = hit; C.center = new THREE.Vector3(cx, 0, cz);
     const screenTex = canvasTex(24, 40, c => { c.fillStyle = '#dfe9ff'; c.fillRect(0, 0, 24, 40); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(12, 6, 3, 0, 7); c.fill(); c.fillStyle = '#7a8aa8'; c.fillRect(3, 12, 18, 22); });
-    const bodies = ['npc_guard', 'npc_caretaker', 'npc_nagyi'];
+    const bodies = ['npc_mannequin', 'npc_mannequin2'];   // faceless, like Dani: a crowd you cannot tell apart
     for (let i = 0; i < 7; i++) {
       const a = (55 + i * (250 / 6)) * D2R, x = cx + Math.sin(a) * 2.3, z = cz + Math.cos(a) * 2.3;
-      const n = new NPC(bodies[i % 3]); const dm = new THREE.MeshLambertMaterial({ color: 0x3c3e4a, emissive: 0x0a0c12 });
+      const n = new NPC(bodies[i % 2]); const dm = new THREE.MeshLambertMaterial({ color: [0x34363e, 0x2a2c33, 0x3e3a40][i % 3], emissive: 0x08090c });
       n.obj.traverse(o => { if (o.isMesh) o.material = dm; });
       n.obj.position.set(x, 0, z); n.faceTo(cx, cz); n.obj.rotation.y = n.facing; g.add(n.obj); n.play(i % 2 ? 'Idle_Talking_Loop' : 'Idle_Loop', 0);
       const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.19), new THREE.MeshBasicMaterial({ map: screenTex, fog: false, transparent: true }));
       scr.position.set(0.12, 1.5, 0.34); scr.rotation.y = Math.PI; n.obj.add(scr);   // held up at arm's length, screen towards its owner
       const back = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.19), new THREE.MeshBasicMaterial({ color: 0x15151a })); back.position.set(0.12, 1.5, 0.345); n.obj.add(back);
+      const led = new THREE.Mesh(new THREE.PlaneGeometry(0.025, 0.025), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false })); led.position.set(0.15, 1.57, 0.35); n.obj.add(led);   // the camera light, pointed at him
       const col = { x0: x - 0.25, x1: x + 0.25, z0: z - 0.25, z1: z + 0.25 }; this.col.push(col);
       C.crowd.push({ n, scr, mat: dm, col, state: 'on', f: 1 });
     }

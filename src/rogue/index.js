@@ -9,7 +9,7 @@ import { ensureRogue, die } from './save/rogueSave.js';
 import { rng, freshSeed } from './logic/rng.js';
 import { newRun, pickTopic, pickWalk, recordNight, runWpm, runAcc, DIFFS } from './logic/night.js';
 import { TOPICS } from './content/walks.js';
-import { floorPicker, nightMenu, deathPanel } from './ui/panels.js';
+import { floorPicker, nightMenu, deathPanel, testPanel } from './ui/panels.js';
 import { keepPanel } from './ui/homePanels.js';
 import { thumb } from './ui/thumbs.js';
 import { ITEM } from './content/furniture.js';
@@ -44,10 +44,25 @@ export function installRogue(G) {
   /** From the front door: the night menu, then the stairwell. Resolves false if you stay in. */
   G.startNight = async () => {
     const r = R(), rr = rng(freshSeed());
-    const choice = await nightMenu(r, { topic: pickTopic(rr, r.record) });
+    const choice = await nightMenu(r, { topic: pickTopic(rr, r.record), teacher: !!(S.save && S.save.teacher) });
     if (!choice) return false;
+    if (choice.test) return G.testStage(choice);
     G.run = newRun(choice.topic, choice.diff, pickWalk(rr, r.record)); persist();
     await G.goStairs(G.run);
+    return true;
+  };
+  /** Teacher test menu: jump to one stage and version. */
+  G.testStage = async o => {
+    const r = R(), t = await testPanel(r, o);
+    if (!t) return false;
+    const [stage, a, b] = t.stage.split(':');
+    if (stage === 'coins') { r.life.coins += 500; persist(); return false; }
+    G.run = newRun(t.topic, t.diff, stage === 'walk' ? a : 'park'); G.run.test = true; persist();
+    if (stage === 'stairs') await G.goStairs(G.run);
+    else if (stage === 'maze') { G.testStart = 'maze'; await G.goStairs(G.run); }
+    else if (stage === 'walk') await G.goWalk(G.run);
+    else if (stage === 'school') { G.forceSchool = { ring: a, gym: b }; G.run.stages = ['stairs', 'walk']; await G.goSchool(G.run); G.forceSchool = null; }
+    else if (stage === 'metro') { G.run.stages = ['stairs', 'walk', 'school']; await G.goMetro(G.run); }
     return true;
   };
   G.goStairs = async run => {

@@ -19,7 +19,7 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
     const L = R.life, rec = R.record;
     const el = openScreen(`<div class="panel" style="width:min(900px,95vw)"><h2>Your computer</h2>
       <p class="sub" id="hd"></p>
-      <div class="btns" style="margin:4px 0 10px"><button class="btn" data-t="shop">Shop (bolt)</button><button class="btn" data-t="notebook">Notebook (jegyzetfüzet)</button><button class="btn" data-t="flat">Your flat (lakás)</button><button class="btn" id="x" style="margin-left:auto">Close (Esc)</button></div>
+      <div class="btns" style="margin:4px 0 10px"><button class="btn" data-t="shop">Shop (bolt)</button><button class="btn" data-t="stickers">Stickers (matricák)</button><button class="btn" data-t="notebook">Notebook (jegyzetfüzet)</button><button class="btn" data-t="flat">Your flat (lakás)</button><button class="btn" id="x" style="margin-left:auto">Close (Esc)</button></div>
       <div id="body"></div></div>`);
     const body = el.querySelector('#body');
     let tab = tab0;
@@ -27,11 +27,12 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
     const draw = () => {
       head();
       el.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('primary', b.dataset.t === tab));
-      if (tab === 'shop') {
-        body.innerHTML = `<p class="sub" style="margin-top:0">What you buy goes into the box by the door. Take it out of the box to place it. Cosiness (komfort) adds to your nerve on the stairs, up to +30.</p>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">${ITEMS.map(it => `<div style="${CARD}">
-          <img src="${thumb(it)}" style="width:96px;height:96px;image-rendering:pixelated;border-radius:6px;background:#0c0b12">
-          <b style="font-size:.85em">${esc(it.name)}</b><span class="sub" style="font-size:.72em">${esc(it.hu)} · +${it.cosy} cosy${L.inv[it.id] ? ` · ${L.inv[it.id]} in the box` : ''}</span>
+      if (tab === 'shop' || tab === 'stickers') {
+        const list = ITEMS.filter(it => !!it.sticker === (tab === 'stickers'));
+        body.innerHTML = `<p class="sub" style="margin-top:0">${tab === 'stickers' ? 'Stick them on any wall. Two stickers add one cosiness point.' : 'What you buy goes into the box by the door. Take it out of the box to place it. Small things (a TV, a vase, a frame) can go on top of tables and shelves. Cosiness (komfort) adds to your nerve on the stairs, up to +30.'}</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${tab === 'stickers' ? 100 : 130}px,1fr));gap:8px">${list.map(it => `<div style="${CARD}">
+          <img src="${thumb(it)}" style="width:${it.sticker ? 76 : 96}px;height:${it.sticker ? 76 : 96}px;object-fit:contain;image-rendering:${it.sticker ? 'auto' : 'pixelated'};border-radius:6px;background:#0c0b12">
+          <b style="font-size:.85em">${esc(it.name)}</b><span class="sub" style="font-size:.72em">${esc(it.hu)} · +${it.cosy < 1 ? '½' : it.cosy} cosy${L.inv[it.id] ? ` · ${L.inv[it.id]} in the box` : ''}</span>
           <button class="btn small ${L.coins >= it.price ? 'primary' : ''}" data-buy="${it.id}" ${L.coins >= it.price ? '' : 'disabled style="opacity:.45"'}>${it.price} coins</button></div>`).join('')}</div>`;
         body.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { if (buy(L, b.dataset.buy)) { play('beep', { vol: 0.3, rate: 1.4 }); R._dirty = true; draw(); } });
       } else if (tab === 'notebook') {
@@ -63,7 +64,7 @@ export function boxPanel(R, thumb) {
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Your things (doboz)</h2>
       ${ids.length ? `<p class="sub">Choose something to place. Then look where you want it: E puts it down, R turns it, X puts it back in the box.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">${ids.map(id => `<button class="btn" data-id="${id}" style="${CARD}">
-        <img src="${thumb(ITEM[id])}" style="width:96px;height:96px;image-rendering:pixelated;border-radius:6px;background:#0c0b12"><b style="font-size:.85em">${esc(ITEM[id].name)}</b><span class="sub" style="font-size:.72em">x${inv[id]} · +${ITEM[id].cosy} cosy</span></button>`).join('')}</div>`
+        <img src="${thumb(ITEM[id])}" style="width:96px;height:96px;object-fit:contain;image-rendering:pixelated;border-radius:6px;background:#0c0b12"><b style="font-size:.85em">${esc(ITEM[id].name)}</b><span class="sub" style="font-size:.72em">x${inv[id]} · +${ITEM[id].cosy} cosy</span></button>`).join('')}</div>`
       : '<p>The box is empty. Buy things on your computer; they arrive here.</p>'}
       <div class="btns"><button class="btn" id="x">Close (Esc)</button></div></div>`);
     const key = e => { if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); done(null); } };
@@ -82,7 +83,7 @@ export function keepPanel(R, thumb) {
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw);text-align:center"><h2>Keep one thing</h2>
       <p>Everything else stays behind. Choose one thing to carry into your next flat.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">${ids.map(id => `<button class="btn" data-id="${id}" style="${CARD}">
-        <img src="${thumb(ITEM[id])}" style="width:96px;height:96px;image-rendering:pixelated;border-radius:6px;background:#0c0b12"><b style="font-size:.85em">${esc(ITEM[id].name)}</b></button>`).join('')}</div>
+        <img src="${thumb(ITEM[id])}" style="width:96px;height:96px;object-fit:contain;image-rendering:pixelated;border-radius:6px;background:#0c0b12"><b style="font-size:.85em">${esc(ITEM[id].name)}</b></button>`).join('')}</div>
       <div class="btns" style="justify-content:center"><button class="btn" id="x">Keep nothing</button></div></div>`, 'solid');
     el.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.id); });
     el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };

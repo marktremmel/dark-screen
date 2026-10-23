@@ -7,6 +7,15 @@ import { CFG } from '../config.js';
 
 const POSES = [['Idle_Loop', 0.1], ['Interact', 0.45], ['Idle_Talking_Loop', 0.6], ['Interact', 0.8]];
 
+let _flare = null;
+function flareTex() {
+  if (_flare) return _flare;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.15, 'rgba(255,200,200,.8)'); gr.addColorStop(0.45, 'rgba(255,60,60,.25)'); gr.addColorStop(1, 'rgba(255,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  _flare = new THREE.CanvasTexture(c); _flare.colorSpace = THREE.SRGBColorSpace; return _flare;
+}
+
 export class Watcher {
   /** @param {THREE.Group} parent */
   constructor(parent) {
@@ -22,6 +31,10 @@ export class Watcher {
     const cam = new THREE.Group();
     const box = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.055, 0.05), new THREE.MeshBasicMaterial({ color: 0x1a1a1e }));
     this.eye.position.set(0, 0, 0.028); cam.add(box, this.eye);
+    // the recording light glares at you: a soft glow and a thin horizontal streak, like a lens flare
+    const glowTex = flareTex();
+    const mk = (sx, sy, op) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a2a, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp.scale.set(sx, sy, 1); sp.position.z = 0.05; cam.add(sp); return sp; };
+    this.flare = mk(0.42, 0.42, 0.85); this.streak = mk(1.3, 0.045, 0.7); this.flareT = Math.random() * 6;
     if (head) {
       const p = o.localToWorld(new THREE.Vector3().copy(o.worldToLocal(head.getWorldPosition(new THREE.Vector3()))).add(new THREE.Vector3(0, 0.1, 0.13)));
       head.add(cam); cam.position.copy(head.worldToLocal(p.clone()));
@@ -47,6 +60,8 @@ export class Watcher {
    */
   update(dt, c) {
     if (!this.active) return null;
+    this.flareT += dt; const pulse = 0.75 + 0.25 * Math.sin(this.flareT * 3.1) + (Math.random() < 0.03 ? -0.4 : 0);
+    if (this.flare) { this.flare.material.opacity = 0.85 * pulse * this.fade; this.streak.material.opacity = 0.7 * pulse * this.fade; }
     const p = this.pos, dx = c.player.x - p.x, dz = c.player.z - p.z, d = Math.hypot(dx, dz);
     this.root.rotation.y = Math.atan2(dx, dz);
     if (c.seen) return null;                                   // frozen while you look at it
@@ -64,6 +79,7 @@ export class Watcher {
     this.fade -= dt * 0.5;
     this.npc.obj.traverse(o => { if (o.isMesh) { o.material.transparent = true; o.material.opacity = Math.max(0, this.fade); } });
     this.glow.intensity = 0.6 * Math.max(0, this.fade);
+    if (this.flare) { this.flare.material.opacity = 0.85 * Math.max(0, this.fade); this.streak.material.opacity = 0.7 * Math.max(0, this.fade); }
     if (this.fade <= 0) { this.active = false; this.root.visible = false; return true; }
     return false;
   }

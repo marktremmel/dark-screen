@@ -125,7 +125,7 @@ export function nightMenu(R, o) {
       <h3>Your scores</h3>
       <div><span class="stat">Best night: ${best.xp} XP</span><span class="stat">Best typing: ${best.wpm} wpm</span><span class="stat">Most stages in a night: ${best.stages}</span><span class="stat">Nights out: ${nights.length >= 12 ? '12+' : nights.length}</span><span class="stat">Cards: ${rec.notebook.length}/${CARD_COUNT}</span><span class="stat">Lives lost: ${rec.deaths}</span></div>
       ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.outcome === 'death' ? 'lost the life' : n.outcome === 'metro' ? 'the whole night' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
-      <div class="btns"><button class="btn primary" id="go" autofocus>Go out</button><button class="btn" id="sh">Another topic</button><button class="btn" id="x">Stay in</button></div></div>`);
+      <div class="btns"><button class="btn primary" id="go" autofocus>Go out</button><button class="btn" id="sh">Another topic</button><button class="btn" id="x">Stay in</button>${o.teacher ? '<button class="btn" id="tm" style="margin-left:auto">Test a stage (teacher)</button>' : ''}</div></div>`);
     const draw = () => {
       el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')';
       el.querySelectorAll('[data-d]').forEach(b => { b.classList.toggle('primary', b.dataset.d === diff); });
@@ -133,6 +133,33 @@ export function nightMenu(R, o) {
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
     el.querySelector('#sh').onclick = () => { const ids = Object.keys(TOPICS).filter(t => t !== topic); topic = ids[Math.floor(Math.random() * ids.length)]; draw(); };
     el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; res({ diff, topic }); };
+    el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
+    const tm = el.querySelector('#tm'); if (tm) tm.onclick = () => { closeScreen(el); R.options.diff = diff; res({ diff, topic, test: true }); };
+    draw();
+  });
+}
+
+/** Teacher only: jump straight to one stage and version, for play-testing. Resolves the choice or null. */
+export function testPanel(R, o) {
+  return new Promise(res => {
+    let topic = o.topic, diff = o.diff;
+    const B = (k, label, sub) => `<button class="btn small" data-s="${k}" style="text-align:left;padding:6px 9px" title="${sub || ''}"><b style="font-size:.9em">${label}</b></button>`;
+    const el = openScreen(`<div class="panel" style="width:min(860px,96vw);max-height:94vh;overflow:auto"><h2 style="margin:0 0 4px">Test a stage (teacher)</h2>
+      <p class="sub">Jumps straight in. Rewards still count, so use a teacher nickname. Topic and difficulty apply to the stage.</p>
+      <div class="btns" style="flex-wrap:wrap">${Object.entries(TOPICS).map(([id, t]) => `<button class="btn small" data-t="${id}">${esc(t.title)}</button>`).join('')}</div>
+      <div class="btns">${Object.values(DIFFS).map(d => `<button class="btn small" data-d="${d.id}">${d.label}</button>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:8px">
+        ${B('stairs', 'Stairwell', 'from your floor')}${B('maze', 'The yellow maze', 'as after a wrong call')}
+        ${B('walk:park', 'Walk: the park')}${B('walk:backrooms', 'Walk: the yellow rooms')}${B('walk:hotel', 'Walk: the hotel corridor')}${B('walk:pool', 'Walk: the empty pool')}
+        ${B('school:feed:phone', 'School: screens + phone', 'the Feed, the Watcher, the found phone')}${B('school:fuse:phone', 'School: fuses + phone', 'permissions, the Watcher, the phone')}
+        ${B('school:feed:chorus', 'School: screens + Chorus', 'the Feed, the Watcher, Dani')}${B('school:fuse:chorus', 'School: fuses + Chorus', 'permissions, the Watcher, Dani')}
+        ${B('metro', 'Metro', 'the posts and the Collector')}${B('coins', '+500 coins', 'for testing the shop')}
+      </div>
+      <div class="btns"><button class="btn" id="x">Back</button></div></div>`, 'solid');
+    const draw = () => { el.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('primary', b.dataset.t === topic)); el.querySelectorAll('[data-d]').forEach(b => b.classList.toggle('primary', b.dataset.d === diff)); };
+    el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { topic = b.dataset.t; draw(); });
+    el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
+    el.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { closeScreen(el); res({ stage: b.dataset.s, topic, diff }); });
     el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
     draw();
   });

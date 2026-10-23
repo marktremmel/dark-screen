@@ -7,7 +7,7 @@ export function ensureHome(life) { life.inv = life.inv || {}; life.home = life.h
 export const flatOf = life => FLATS[(life.flat || 1) - 1];
 
 /** Cosiness of what is placed (things in the box don't count). */
-export function cosiness(life) { return Math.min(COSY_MAX, (life.home || []).reduce((s, h) => s + ((ITEM[h.id] || {}).cosy || 0), 0)); }
+export function cosiness(life) { return Math.min(COSY_MAX, Math.floor((life.home || []).reduce((s, h) => s + ((ITEM[h.id] || {}).cosy || 0), 0))); }
 /** Nerve you start a night with: the base, the flat's bonus, and the cosiness. */
 export const startNerve = life => CFG.nerveStart + flatOf(ensureHome(life)).nerve + cosiness(life);
 

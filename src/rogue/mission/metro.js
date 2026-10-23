@@ -210,6 +210,16 @@ export class Metro extends Walker {
       if (s.timer <= 0) { s.train = 'arriving'; play('rumble', { vol: 0.6 }); caption('A rush of air. The last train pulls in.', 'say', 3); }
     }
     this.collectorUpdate(dt);
+    // too close to the Collector: it swats you away
+    this.swatCool = Math.max(0, (this.swatCool || 0) - dt);
+    { const c = this.collector.obj.position, P = this.player, dx = P.pos.x - c.x, dz = P.pos.z - c.z, d = Math.hypot(dx, dz);
+      if (d < 1.15 && !this.swatCool && s.train === 'away') {
+        this.swatCool = 2.5; this.knock = { x: dx / (d || 1), z: dz / (d || 1), t: 0.35 };
+        if (!S.settings.quiet) flash(0.5, 250); play('thump', { vol: 0.5 }); play('paper', { vol: 0.3 });
+        caption('It swats you away without even looking. Nerve −4.', 'say', 3);
+        if (nerve(this.R, -Math.round(4 * this.D.nerveLoss))) { this.playing = false; this.G.loseLife(this.run); return; }
+      } }
+    if (this.knock) { const k = this.knock, sp = 9 * dt; this.player.pos.x += k.x * sp; this.player.pos.z += k.z * sp; this.player.collide(); this.player.sync(); k.t -= dt; if (k.t <= 0) this.knock = null; }
     this.updateFlash(dt); this.updateArms(dt, t);
     this._h = (this._h || 0) + dt; if (this._h > 0.25) { this._h = 0; this.updateHud(); }
     if (s.train === 'in' && this.player.pos.z < -4.4) { prompt('The last train: E to board'); if (wasPressed('KeyE')) this.board(); }

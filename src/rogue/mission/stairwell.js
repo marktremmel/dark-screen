@@ -17,7 +17,7 @@ import { newDescent, prepare, resolve, advance, groundReward } from '../logic/de
 import { DIFFS, newRun } from '../logic/night.js';
 import { TOPICS } from '../content/walks.js';
 import { earn, nerve, noteAnomaly, die } from '../save/rogueSave.js';
-import { ANOMALY } from '../content/anomalies.js';
+import { ANOMALY, WHERE } from '../content/anomalies.js';
 import { dressLanding, L } from './landing.js';
 import { readPanel, rulesPanel } from '../ui/panels.js';
 import { Watcher } from '../entities/watcher.js';
@@ -116,7 +116,7 @@ export class Stairwell extends Walker {
     const Y = this.yellow = new THREE.Group(); g.add(Y);
     const yl = new THREE.PointLight(0xfff0b0, 0, 14, 1.0); yl.position.set(YX, 2.3, 0); g.add(yl); this.yLight = yl;
     const ya = new THREE.AmbientLight(0xe8d890, 0); g.add(ya); this.yAmb = ya;
-    this.watcher = new Watcher(g); this.watcher.speedMul = 0.75 * this.D.speed;
+    this.watcher = new Watcher(g); this.watcher.speedMul = 1.15 * this.D.speed;
     this.watcher.root.visible = true; this.watcher.root.position.set(YX - 30, -20, 0);   // always in the scene (never change the light count), parked out of sight
   }
   /** Build a new maze: N x N cells of C metres, a spanning tree of openings, an exit on the far side. */
@@ -197,7 +197,7 @@ export class Stairwell extends Walker {
     if (this.typing || n.done) return;
     this.typing = true; this.player.frozen = true; prompt(null);
     this.typeHandle = {};
-    const r = await typeOne({ text: n.line.type, title: 'Type it and the figure loses you for a while', time: timeFor(n.line.type, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
+    const r = await typeOne({ text: n.line.type, title: `${n.line.who}: "${n.line.say}" Your answer (it hides you from the figure):`, time: timeFor(n.line.type, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
     this.typing = false; this.player.frozen = false;
     if (!r.ok) { if (!r.cancelled) caption('The screen flickers. Try again.', 'say', 2); return; }
     n.done = true; this.run.typedChars += n.line.type.length; this.run.xp += 2; earn(this.R, 2, 0); nerve(this.R, 2);
@@ -266,7 +266,7 @@ export class Stairwell extends Walker {
     this.playing = false; hud(false); music(null);
     loop('rgst', 'rg_drone_stair', { vol: 0.32 }); this.loops.push('rgst');
     this.player.set(-0.95, 1.35, 0);
-    const first = !this.R.record.descents && !this.R.record.deaths && !Object.keys(this.R.record.missed).length && !this.R.record.notebook.length;
+    const first = !this.G.testStart && !this.R.record.descents && !this.R.record.deaths && !Object.keys(this.R.record.missed).length && !this.R.record.notebook.length;
     await fade(true, first ? 'You lock your door. The stairwell light is ticking.\n\nRead the house rules next to your door before you go down.' : 'You lock your door. The stairwell light is ticking.', 0.01);
     await wait(first ? 3.2 : 1.6);
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
@@ -275,6 +275,11 @@ export class Stairwell extends Walker {
     if (first) { this.playing = false; this.G.unlock(); await rulesPanel(); this.playing = true; caption('Walk around this landing first and learn it: this is what normal looks like.', 'say', 6); }
     lockPointer();
     this.first = first;
+    if (this.G.testStart === 'maze') {   // teacher test menu: straight into the yellow maze
+      this.G.testStart = null;
+      const ids = Object.keys(ANOMALY), a = ids[Math.floor(this.r() * ids.length)];
+      this.toYellow({ result: 'miss', anomaly: a, nerve: 0 }, this.d.cur, false);
+    }
   }
   setObjective() {
     const c = this.d.cur;
@@ -349,7 +354,8 @@ export class Stairwell extends Walker {
     this.wFreeze = 0; this.scareT = 6 + this.r() * 6;
     await fade(false, '', 0.8);
     const n = from.kind === 'lobby' ? 'the ground floor' : `floor ${from.number}`;
-    if (out.result === 'miss') caption(`Something was wrong on ${n} and you kept going. ${ANOMALY[out.anomaly].lesson}`, 'say', 12);
+    this.mazeWhat = out.result === 'miss' ? `You missed it ${WHERE[ANOMALY[out.anomaly].where] || 'on the landing'} ("${ANOMALY[out.anomaly].card.title}"). Type its rule:` : 'Nothing was wrong on that landing. Type the rule:';
+    if (out.result === 'miss') caption(`Something was wrong on ${n}, ${WHERE[ANOMALY[out.anomaly].where] || 'on the landing'}, and you kept going. ${ANOMALY[out.anomaly].lesson}`, 'say', 12);
     else caption(`Nothing was wrong on ${n}. Turning back on a normal landing costs nerve too.`, 'say', 7);
     setTimeout(() => caption(`Nerve −${-out.nerve}. Find the EXIT. Something tall is in here with you: it only moves when you are not looking.`, 'say', 6), 3000);
     this.updateHud();
@@ -360,7 +366,7 @@ export class Stairwell extends Walker {
     if (this.typing) return;
     this.typing = true; this.player.frozen = true; prompt(null);
     this.typeHandle = {};
-    const r = await typeOne({ text: this.mazeRule, title: 'The door will open for the rule you needed', time: timeFor(this.mazeRule, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
+    const r = await typeOne({ text: this.mazeRule, title: this.mazeWhat || 'Type the rule to open the door', time: timeFor(this.mazeRule, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
     this.typing = false; this.player.frozen = false;
     if (r.ok) { this.run.typedChars += this.mazeRule.length; this.leaveYellow(); return; }
     if (!r.cancelled) { caption('The door stays shut. Try again.', 'say', 2.5); if (nerve(this.R, -2)) this.death(); }
@@ -426,8 +432,11 @@ export class Stairwell extends Walker {
       const p = this.player.pos; this.yLight.position.set(p.x, 2.3, p.z);
       if (this.wFreeze > 0) this.wFreeze -= dt;
       else if (this.watcher.active) {
+        const w = this.watcher.pos, ox = w.x, oz = w.z, far = Math.hypot(w.x - p.x, w.z - p.z) > 7;
+        this.watcher.speedMul = (far ? 1.7 : 1.15) * this.D.speed;   // far away it hurries, so looking away always costs you
         this.watcher.update(dt, { player: this.mazeTarget(p), seen: this.mazeSeen(), trackers: 0, noise: 0 });
-        const w = this.watcher.pos; if (Math.hypot(w.x - p.x, w.z - p.z) < 0.85) { this.mazeCaught(); return; }
+        if (Math.hypot(w.x - ox, w.z - oz) > 0.0005) { this.stepT = (this.stepT || 0) - dt; if (this.stepT <= 0) { this.stepT = 0.62; play('thump', { vol: far ? 0.08 : 0.2, rate: 0.7, pos: [w.x, 0.2, w.z] }); } }
+        if (Math.hypot(w.x - p.x, w.z - p.z) < 0.85) { this.mazeCaught(); return; }
       }
       // the rooms are not quite right: panels flicker, something knocks far away
       this.scareT -= dt;

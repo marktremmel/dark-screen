@@ -81,7 +81,13 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   two new anomalies (a mocking photo on the noticeboard, a "smart building" that fingerprints phones). The school is assembled
   per night: zone 1 is the Feed or the permission fuse boxes, zone 3 the found phone or the Chorus (four upstander actions),
   and the classroom trackers are five from a larger set including two fingerprinting scripts.
-- Next: payphone call-back and design detective encounters, lines for T4, T7, T12, the courtyard walk, stickers.
+- v0.10 (23 Oct, after the v0.9 play-test): teacher test menu ("Test a stage" in the night menu when the teacher key is on:
+  any stage and version, topic, difficulty, +500 coins); 76 stickers (Urban Grunge, filtered: `content/stickers.js`, packed as
+  `st_*` images, own shop tab); 18 more shop items and posters; small things (`top: true`) go on top of furniture; posters
+  are self-lit (they were black); the Watcher's camera has a flare; the maze figure hurries when far and you hear its steps;
+  the maze door and screens say what you are answering; a miss names where the anomaly was (`WHERE` in anomalies.js); a
+  bigger QR sticker; the gym crowd are faceless mannequins with phone lights; the Collector swats you away when you get close.
+- Next: payphone call-back and design detective encounters, lines for T4, T7, T12, the courtyard walk.
 
 ## Codes
 

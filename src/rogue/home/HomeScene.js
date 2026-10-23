@@ -19,6 +19,14 @@ import { thumb } from '../ui/thumbs.js';
 
 const HH = 2.65, CELL = 0.2;
 
+const texCache = {};
+/** A texture from a packed image, made once and shared. */
+function imgTex(key) {
+  if (texCache[key]) return texCache[key];
+  const im = new Image(), t = new THREE.Texture(im); t.colorSpace = THREE.SRGBColorSpace;
+  im.onload = () => { t.needsUpdate = true; }; im.src = A.img[key] || ''; return (texCache[key] = t);
+}
+
 export class HomeScene extends Walker {
   constructor(G, R) { super(G); this.R = R; ensureHome(R.life); this.quitLabel = 'Back to Room 214 (your flat is saved)'; }
 
@@ -114,8 +122,10 @@ export class HomeScene extends Walker {
   makeObj(id) {
     const it = ITEM[id];
     if (it.kind === 'wall') {
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshLambertMaterial({ map: (() => { const im = new Image(); const t = new THREE.Texture(im); t.colorSpace = THREE.SRGBColorSpace; im.onload = () => { t.needsUpdate = true; }; im.src = A.img[it.img]; return t; })() }));
-      const fr = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.02), psxMat({ color: 0x2a2018 })); fr.position.z = -0.012; m.add(fr);
+      // posters and stickers are lit by themselves (a lit material went black in a dim corner)
+      const sz = it.size || 0.62, sticker = it.sticker;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(sz * (it.aspect || 1), sz), new THREE.MeshBasicMaterial({ map: imgTex(it.img), color: 0xd0ccc4, transparent: !!sticker, alphaTest: sticker ? 0.4 : 0 }));
+      if (!sticker) { const fr = new THREE.Mesh(new THREE.BoxGeometry(sz + 0.08, sz + 0.08, 0.02), psxMat({ color: 0x2a2018 })); fr.position.z = -0.012; m.add(fr); }
       return m;
     }
     return inst(it.model);
@@ -125,8 +135,8 @@ export class HomeScene extends Walker {
     const o = this.makeObj(h.id);
     o.position.set(h.x, h.y || 0, h.z); o.rotation.y = h.ry != null ? h.ry : (h.r || 0) * Math.PI / 2;
     this.root.add(o);
-    const rec = { h, o, col: null, it: null };
-    if (it.kind === 'floor' && !it.walk) rec.col = this.colFor(o, true);
+    const rec = { h, o, col: null, it: null, it0: it };
+    if (it.kind === 'floor' && !it.walk && !(h.y > 0.05)) rec.col = this.colFor(o, true);
     rec.it = this.it.add(o, () => `${it.name}: E to move it`, () => this.pickUp(rec), () => !this.placing);
     this.placed.push(rec);
   }
@@ -136,6 +146,13 @@ export class HomeScene extends Walker {
     lift(L, i); this.root.remove(rec.o); this.it.remove(rec.it);
     if (rec.col) this.col.splice(this.col.indexOf(rec.col), 1);
     this.placed.splice(this.placed.indexOf(rec), 1);
+    // whatever stood on it goes back into the box
+    if (!(rec.h.y > 0.05)) {
+      const b = new THREE.Box3().setFromObject(rec.o);
+      for (const r2 of this.placed.slice()) if (r2.h.y > 0.05 && r2.h.x > b.min.x && r2.h.x < b.max.x && r2.h.z > b.min.z && r2.h.z < b.max.z) {
+        const j = L.home.indexOf(r2.h); if (j >= 0) lift(L, j); putBack(L, r2.h.id); this.root.remove(r2.o); this.it.remove(r2.it); this.placed.splice(this.placed.indexOf(r2), 1);
+      }
+    }
     this.startPlacing(rec.h.id, rec.h.r || 0);
   }
   async openBox() {
@@ -167,10 +184,15 @@ export class HomeScene extends Walker {
       }
     } else {
       const o = ray.ray.origin, d = ray.ray.direction;
-      if (d.y < -0.05) {
+      // small things can go on top of furniture: a TV on the table, a teddy on the bed
+      const onTop = P.item.top ? ray.intersectObjects(this.placed.filter(r => r.it0 && r.it0.kind === 'floor' && !r.it0.top).map(r => r.o), true).find(h => h.distance < 3.5 && h.face && h.face.normal.clone().transformDirection(h.object.matrixWorld).y > 0.7) : null;
+      if (onTop) {
+        const x = Math.round(onTop.point.x / 0.05) * 0.05, z = Math.round(onTop.point.z / 0.05) * 0.05;
+        P.ghost.position.set(x, onTop.point.y, z); P.ghost.rotation.y = P.r * Math.PI / 2; seen = true; ok = true; P.y = onTop.point.y;
+      } else if (d.y < -0.05) {
         const t = -o.y / d.y; if (t < 4) {
           const x = Math.round((o.x + d.x * t) / 0.25) * 0.25, z = Math.round((o.z + d.z * t) / 0.25) * 0.25;
-          P.ghost.position.set(x, 0, z); P.ghost.rotation.y = P.r * Math.PI / 2; P.ghost.updateMatrixWorld(true); seen = true;
+          P.ghost.position.set(x, 0, z); P.ghost.rotation.y = P.r * Math.PI / 2; P.ghost.updateMatrixWorld(true); seen = true; P.y = 0;
           const b = new THREE.Box3().setFromObject(P.ghost);
           const corners = [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z]];
           const L = this.R.life;
@@ -189,7 +211,7 @@ export class HomeScene extends Walker {
     if (wasPressed('KeyR')) { P.r = (P.r + 1) % 4; play('click', { vol: 0.25, rate: 1.3 }); }
     if (wasPressed('KeyX')) { this.root.remove(P.ghost); putBack(this.R.life, P.id); this.placing = null; persist(); this.refreshHud(); this.setObjective(); play('box', { vol: 0.4 }); return; }
     if (wasPressed('KeyE') && ok) {
-      const h = P.item.kind === 'wall' ? { id: P.id, x: P.ghost.position.x, y: P.ghost.position.y, z: P.ghost.position.z, ry: P.ry } : { id: P.id, x: P.ghost.position.x, y: 0, z: P.ghost.position.z, r: P.r };
+      const h = P.item.kind === 'wall' ? { id: P.id, x: P.ghost.position.x, y: P.ghost.position.y, z: P.ghost.position.z, ry: P.ry } : { id: P.id, x: P.ghost.position.x, y: P.y || 0, z: P.ghost.position.z, r: P.r };
       this.root.remove(P.ghost); this.placing = null;
       placeItem(this.R.life, h); this.spawnPlaced(h); persist();
       play('drop', { vol: 0.4 }); this.refreshHud(); this.setObjective();

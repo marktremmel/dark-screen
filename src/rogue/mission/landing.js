@@ -133,11 +133,11 @@ export function dressLanding(g, spec, ctx) {
   const swHit = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.05), new THREE.MeshBasicMaterial({ visible: false })); swHit.position.copy(btn.position); g.add(swHit);
   items.push({ obj: swHit, kind: 'switch' });
   if (w === 'switchQR') {
-    const qr = planeAt(g, 0.12, 0.16, new THREE.MeshLambertMaterial({ map: canvasTex(24, 32, c => {
-      c.fillStyle = '#fff'; c.fillRect(0, 0, 24, 32); c.fillStyle = '#000';
-      for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if ((x * 7 + y * 3 + x * y) % 3 === 0) c.fillRect(2 + x * 4, 2 + y * 4, 4, 4);
-      c.fillRect(2, 2, 6, 6); c.fillRect(16, 2, 6, 6); c.fillRect(2, 16, 6, 6); c.fillStyle = '#d0306a'; c.fillRect(2, 25, 20, 4);
-    }) }), -0.44, 1.48, lz + 0.006, 0);
+    const qr = planeAt(g, 0.26, 0.34, new THREE.MeshBasicMaterial({ color: 0xe8e4dc, map: canvasTex(26, 34, c => {
+      c.fillStyle = '#ff3d8a'; c.fillRect(0, 0, 26, 34); c.fillStyle = '#fff'; c.fillRect(2, 2, 22, 22); c.fillStyle = '#000';
+      for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if ((x * 7 + y * 3 + x * y) % 3 === 0) c.fillRect(3 + x * 4, 3 + y * 4, 4, 4);
+      c.fillRect(3, 3, 6, 6); c.fillRect(17, 3, 6, 6); c.fillRect(3, 17, 6, 6); c.fillStyle = '#fff'; c.font = '8px m5x7'; c.textBaseline = 'top'; c.fillText('SCAN ME', 1, 25);
+    }) }), -0.44, 1.62, lz + 0.006, 0);
     items.push({ obj: qr, kind: 'notice', data: { title: 'A sticker above the light switch', notices: [['SCAN TO TURN ON THE LIGHTS', 'New smart lighting in your building!', 'Scan the code and sign in to switch the lights on.']] } });
   }
   if (w === 'liftAd') {
