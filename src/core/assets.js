@@ -72,6 +72,8 @@ export async function ingestPack(name, audioCtx, onProgress) {
     const kl = new GLTFLoader(mgr);
     for (const [k, v] of Object.entries(K.pieces)) jobs.push(async () => {
       const g = await kl.parseAsync(b64ToBuf(v), 'kit/');
+      const cols = []; g.scene.traverse(o => { if (o.isMesh && /collider/i.test(o.name)) cols.push(o); });
+      for (const o of cols) o.parent.remove(o);   // collision proxies are not meant to be seen (they showed as grey boxes in the metro)
       psxify(g.scene, true); A.models[K.prefix + k] = g.scene; A.anims[K.prefix + k] = g.animations || [];
     });
   }

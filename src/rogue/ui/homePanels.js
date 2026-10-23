@@ -1,5 +1,6 @@
 // Screens in your flat: the computer (notebook, shop, moving), the box of your things, and choosing what to keep.
-import { openScreen, closeScreen } from '../../ui/screens.js';
+import { openScreen, closeScreen, saveToFile } from '../../ui/screens.js';
+import { mountMaker, preparePosters } from './posterMaker.js';
 import { play } from '../../core/audio.js';
 import { ITEMS, ITEM, FLATS } from '../content/furniture.js';
 import { CARDS, CARD_COUNT } from '../content/cards.js';
@@ -17,9 +18,9 @@ const CARD = 'background:#1a1822;border:1px solid #2e2a3a;border-radius:10px;pad
 export function homeComputer(R, nick, thumb, tab0 = 'shop') {
   return new Promise(res => {
     const L = R.life, rec = R.record;
-    const el = openScreen(`<div class="panel" style="width:min(900px,95vw)"><h2>Your computer</h2>
+    const el = openScreen(`<div class="panel" style="width:min(900px,95vw);max-height:94vh;overflow:auto"><h2>Your computer</h2>
       <p class="sub" id="hd"></p>
-      <div class="btns" style="margin:4px 0 10px"><button class="btn" data-t="shop">Shop (bolt)</button><button class="btn" data-t="stickers">Stickers (matricák)</button><button class="btn" data-t="notebook">Notebook (jegyzetfüzet)</button><button class="btn" data-t="flat">Your flat (lakás)</button><button class="btn" id="x" style="margin-left:auto">Close (Esc)</button></div>
+      <div class="btns" style="margin:4px 0 10px"><button class="btn" data-t="shop">Shop (bolt)</button><button class="btn" data-t="stickers">Stickers (matricák)</button><button class="btn" data-t="maker">Make a poster</button><button class="btn" data-t="notebook">Notebook (jegyzetfüzet)</button><button class="btn" data-t="flat">Your flat (lakás)</button><button class="btn" id="sf" style="margin-left:auto" title="Double-click the file later to open the game with this save">Save to a file</button><button class="btn" id="x">Close (Esc)</button></div>
       <div id="body"></div></div>`);
     const body = el.querySelector('#body');
     let tab = tab0;
@@ -28,13 +29,15 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
       head();
       el.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('primary', b.dataset.t === tab));
       if (tab === 'shop' || tab === 'stickers') {
-        const list = ITEMS.filter(it => !!it.sticker === (tab === 'stickers'));
+        const list = ITEMS.filter(it => !it.custom && !!it.sticker === (tab === 'stickers'));
         body.innerHTML = `<p class="sub" style="margin-top:0">${tab === 'stickers' ? 'Stick them on any wall. Two stickers add one cosiness point.' : 'What you buy goes into the box by the door. Take it out of the box to place it. Small things (a TV, a vase, a frame) can go on top of tables and shelves. Cosiness (komfort) adds to your nerve on the stairs, up to +30.'}</p>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${tab === 'stickers' ? 100 : 130}px,1fr));gap:8px">${list.map(it => `<div style="${CARD}">
           <img src="${thumb(it)}" style="width:${it.sticker ? 76 : 96}px;height:${it.sticker ? 76 : 96}px;object-fit:contain;image-rendering:${it.sticker ? 'auto' : 'pixelated'};border-radius:6px;background:#0c0b12">
           <b style="font-size:.85em">${esc(it.name)}</b><span class="sub" style="font-size:.72em">${esc(it.hu)} · +${it.cosy < 1 ? '½' : it.cosy} cosy${L.inv[it.id] ? ` · ${L.inv[it.id]} in the box` : ''}</span>
           <button class="btn small ${L.coins >= it.price ? 'primary' : ''}" data-buy="${it.id}" ${L.coins >= it.price ? '' : 'disabled style="opacity:.45"'}>${it.price} coins</button></div>`).join('')}</div>`;
         body.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { if (buy(L, b.dataset.buy)) { play('beep', { vol: 0.3, rate: 1.4 }); R._dirty = true; draw(); } });
+      } else if (tab === 'maker') {
+        mountMaker(body, R, async r => { await preparePosters(rec); L.inv['cp_' + r.id] = (L.inv['cp_' + r.id] || 0) + 1; R._dirty = true; head(); play('beep', { vol: 0.3, rate: 1.2 }); });
       } else if (tab === 'notebook') {
         const cards = rec.notebook.map(id => CARDS[id]).filter(Boolean);
         body.innerHTML = `<p class="sub" style="margin-top:0">${cards.length} of ${CARD_COUNT} cards. Every anomaly you catch and every reply you type on a walk adds one. Cards survive death.</p>` +
@@ -53,6 +56,7 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
     setTimeout(() => addEventListener('keydown', key, true), 150);
     el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
     el.querySelector('#x').onclick = () => done({});
+    el.querySelector('#sf').onclick = () => { saveToFile(); el.querySelector('#hd').textContent = 'Saved to your Downloads folder. Double-click the file to open the game with this save.'; };
     draw();
   });
 }

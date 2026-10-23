@@ -3,17 +3,21 @@
 import * as THREE from 'three';
 import { NPC } from '../../core/npc.js';
 import { canvasTex } from '../../core/world.js';
+import { bone, attach, hideBone } from './rig.js';
 
 const BODIES = ['npc_guard', 'npc_caretaker', 'npc_nagyi'];
 let faceTex = null;
 function face() {
   if (faceTex) return faceTex;
-  faceTex = canvasTex(32, 40, c => {
-    const g = c.createRadialGradient(16, 18, 2, 16, 18, 18); g.addColorStop(0, '#d8c8b8'); g.addColorStop(1, '#2a3a5a');
-    c.fillStyle = g; c.fillRect(0, 0, 32, 40);
-    c.fillStyle = 'rgba(20,20,30,.55)'; c.fillRect(9, 14, 4, 3); c.fillRect(19, 14, 4, 3); c.fillRect(12, 26, 8, 2);
-    for (let y = 0; y < 40; y += 2) { c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(0, y, 32, 1); }
-    c.fillStyle = '#9fc8ff'; c.fillRect(0, 0, 32, 2); c.fillRect(0, 38, 32, 2);
+  faceTex = canvasTex(40, 70, c => {
+    const g = c.createLinearGradient(0, 0, 0, 70); g.addColorStop(0, '#3a4a66'); g.addColorStop(1, '#1a2234'); c.fillStyle = g; c.fillRect(0, 0, 40, 70);
+    c.fillStyle = '#c9a98c'; c.beginPath(); c.ellipse(20, 30, 11, 14, 0, 0, 7); c.fill();               // a face, a little too close to the camera
+    c.fillStyle = '#4a3426'; c.beginPath(); c.ellipse(20, 19, 12, 7, 0, Math.PI, 0); c.fill();
+    c.fillStyle = '#2a1e18'; c.fillRect(13, 28, 5, 2); c.fillRect(23, 28, 5, 2); c.fillStyle = '#7a4a40'; c.fillRect(16, 38, 8, 2);
+    c.fillStyle = '#2b3a52'; c.fillRect(6, 46, 28, 24);                                              // shoulders
+    for (let y = 0; y < 70; y += 2) { c.fillStyle = 'rgba(0,0,0,.14)'; c.fillRect(0, y, 40, 1); }
+    c.fillStyle = '#e8f0ff'; c.fillRect(0, 0, 40, 4); c.fillStyle = '#ff3b3b'; c.fillRect(31, 7, 5, 5);  // status bar and the REC dot
+    c.fillStyle = '#1a1a1a'; c.fillRect(14, 62, 12, 3);
   });
   return faceTex;
 }
@@ -21,17 +25,22 @@ function face() {
 export class Mimic {
   constructor(parent, i, data, x, z, speed) {
     this.data = data; this.id = data.id; this.speed = speed; this.state = 'walk'; this.t = 0;
+    // the look follows Mark's painting "Phone-Faced Stranger in the Stairwell": an ordinary person in ordinary clothes,
+    // and where the head should be, a phone held up, showing a face on a video call
     this.npc = new NPC(BODIES[i % BODIES.length], { speed });
-    const dark = new THREE.MeshLambertMaterial({ color: 0x4a4c5a, emissive: 0x0c0e16 });
-    this.npc.obj.traverse(o => { if (o.isMesh) o.material = dark; });
+    this.npc.obj.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (o.material.color) o.material.color.multiplyScalar(0.55); } });
     this.root = new THREE.Group(); this.root.add(this.npc.obj); this.root.position.set(x, 0, z); parent.add(this.root);
-    this.screen = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.3), new THREE.MeshBasicMaterial({ map: face(), fog: false, transparent: true }));
-    this.screen.position.set(0, 1.58, 0.3); this.npc.obj.add(this.screen);   // held in front of the face, so it never cuts through the head
+    const phone = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.33, 0.025), new THREE.MeshLambertMaterial({ color: 0x18181c })); phone.add(body);
+    this.screen = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.3), new THREE.MeshBasicMaterial({ map: face(), fog: false, transparent: true })); this.screen.position.z = 0.0135; phone.add(this.screen);
+    const neck = bone(this.npc.obj, 'Neck');
+    if (neck) { attach(this.npc.obj, neck, phone, new THREE.Vector3(0, 0.17, 0.03)); hideBone(this.npc, 'Head'); }
+    else { phone.position.set(0, 1.6, 0.05); this.npc.obj.add(phone); }
     // no point light here: adding lights mid-game makes every material recompile (a long freeze on school computers)
     this.npc.play('Walk_Loop', 0);
   }
   get pos() { return this.root.position; }
-  head() { return new THREE.Vector3(this.pos.x, 2.05, this.pos.z); }
+  head() { return new THREE.Vector3(this.pos.x, 2.0, this.pos.z); }
   /** @returns {'reached'|null} */
   update(dt, player) {
     this.t += dt;

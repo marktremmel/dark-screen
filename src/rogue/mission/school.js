@@ -18,6 +18,7 @@ import { Noise } from '../logic/reading.js';
 import { earn, nerve, die } from '../save/rogueSave.js';
 import { FEED_LIGHTS, TRACKERS, TRACKERS_EXTRA, INBOX, GATE, FUSES, CHORUS } from '../content/school.js';
 import { NPC } from '../../core/npc.js';
+import { sitDown } from '../entities/rig.js';
 import { Watcher } from '../entities/watcher.js';
 import { phonePanel, fusePanel } from '../ui/missionPanels.js';
 import { DIFFS, newRun } from '../logic/night.js';
@@ -226,22 +227,27 @@ export class School extends Walker {
     place(g, 'sk_bench', cx, 0, cz, 0, { col: this.col });
     const dani = C.dani = new NPC('npc_mannequin');
     const lm = new THREE.MeshLambertMaterial({ color: 0xb8b2a8 }); dani.obj.traverse(o => { if (o.isMesh) o.material = lm; });
-    dani.obj.position.set(cx, 0.02, cz + 0.38); dani.facing = 0; dani.obj.rotation.y = 0; g.add(dani.obj); dani.play('Sitting_Idle_Loop', 0);
+    dani.obj.position.set(cx, 0.02, cz - 0.04); dani.facing = 0; dani.obj.rotation.y = 0; g.add(dani.obj); dani.pose('Idle_Loop', 0.2); sitDown(dani);
     const hit = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.3, 0.8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
     hit.position.set(cx, 0.65, cz); g.add(hit); C.hit = hit; C.center = new THREE.Vector3(cx, 0, cz);
+    // the crowd follows Mark's painting "Phone-Lit Circle in the Gym": dark shapes of people, each lit from below by a phone
     const screenTex = canvasTex(24, 40, c => { c.fillStyle = '#dfe9ff'; c.fillRect(0, 0, 24, 40); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(12, 6, 3, 0, 7); c.fill(); c.fillStyle = '#7a8aa8'; c.fillRect(3, 12, 18, 22); });
-    const bodies = ['npc_mannequin', 'npc_mannequin2'];   // faceless, like Dani: a crowd you cannot tell apart
-    for (let i = 0; i < 7; i++) {
-      const a = (55 + i * (250 / 6)) * D2R, x = cx + Math.sin(a) * 2.3, z = cz + Math.cos(a) * 2.3;
-      const n = new NPC(bodies[i % 2]); const dm = new THREE.MeshLambertMaterial({ color: [0x34363e, 0x2a2c33, 0x3e3a40][i % 3], emissive: 0x08090c });
+    const glowTex = canvasTex(32, 32, c => { const g = c.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(190,215,255,.9)'); g.addColorStop(1, 'rgba(120,160,255,0)'); c.fillStyle = g; c.fillRect(0, 0, 32, 32); });
+    const bodies = ['npc_guard', 'npc_caretaker', 'npc_nagyi', 'npc_mannequin'];
+    for (let i = 0; i < 10; i++) {
+      const a = (50 + i * (260 / 9)) * D2R, rr = 2.3 + (i % 2) * 0.5, x = cx + Math.sin(a) * rr, z = cz + Math.cos(a) * rr;
+      const n = new NPC(bodies[i % bodies.length]); const dm = new THREE.MeshLambertMaterial({ color: [0x1a1b20, 0x15161a, 0x1e1c22][i % 3], emissive: 0x050507 });
       n.obj.traverse(o => { if (o.isMesh) o.material = dm; });
       n.obj.position.set(x, 0, z); n.faceTo(cx, cz); n.obj.rotation.y = n.facing; g.add(n.obj); n.play(i % 2 ? 'Idle_Talking_Loop' : 'Idle_Loop', 0);
-      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.19), new THREE.MeshBasicMaterial({ map: screenTex, fog: false, transparent: true }));
-      scr.position.set(0.12, 1.5, 0.34); scr.rotation.y = Math.PI; n.obj.add(scr);   // held up at arm's length, screen towards its owner
-      const back = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.19), new THREE.MeshBasicMaterial({ color: 0x15151a })); back.position.set(0.12, 1.5, 0.345); n.obj.add(back);
-      const led = new THREE.Mesh(new THREE.PlaneGeometry(0.025, 0.025), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false })); led.position.set(0.15, 1.57, 0.35); n.obj.add(led);   // the camera light, pointed at him
+      // the phone, held up in front of the chest, screen towards its owner's face; a soft glow lights the face
+      const ph = new THREE.Group();
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.15), new THREE.MeshBasicMaterial({ map: screenTex, fog: false, transparent: true })); scr.rotation.set(-0.5, Math.PI, 0); ph.add(scr);
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.15), new THREE.MeshBasicMaterial({ color: 0x101014 })); back.rotation.set(-0.5, 0, 0); back.position.z = 0.004; ph.add(back);
+      const led = new THREE.Mesh(new THREE.PlaneGeometry(0.018, 0.018), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false })); led.position.set(0.025, 0.05, 0.01); led.rotation.x = -0.5; ph.add(led);   // the camera light, pointed at him
+      const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); gl.scale.set(0.3, 0.3, 1); gl.position.set(0, 0.1, -0.1); ph.add(gl);
+      ph.position.set(0.05, 1.28, 0.32); n.obj.add(ph);
       const col = { x0: x - 0.25, x1: x + 0.25, z0: z - 0.25, z1: z + 0.25 }; this.col.push(col);
-      C.crowd.push({ n, scr, mat: dm, col, state: 'on', f: 1 });
+      C.crowd.push({ n, scr, mat: dm, col, state: 'on', f: 1, gl });
     }
     // three photos on the floor: the evidence
     const polTex = canvasTex(24, 30, c => { c.fillStyle = '#f2efe6'; c.fillRect(0, 0, 24, 30); c.fillStyle = '#4a5468'; c.fillRect(3, 3, 18, 18); c.fillStyle = '#c8b8a0'; c.beginPath(); c.arc(12, 11, 4, 0, 7); c.fill(); });
@@ -348,7 +354,7 @@ export class School extends Walker {
     for (const c of on.slice(0, k)) { c.state = 'fade'; c.col.off = true; c.mat.transparent = true; }
     if (Object.keys(C.done).length === 4) {
       this.gain(0, CFG.coinsZone); this.intercomLed.material.color.set(0xffd040);
-      setTimeout(() => { caption(`The phones go down. "Thanks," ${CHORUS.target} says quietly. "Really." By the fire exit, the intercom lights up.`, 'say', 6); C.dani.play('Idle_Loop', 0.4); C.dani.obj.position.z = -39.0; }, 2200);
+      setTimeout(() => { caption(`The phones go down. "Thanks," ${CHORUS.target} says quietly. "Really." By the fire exit, the intercom lights up.`, 'say', 6); if (C.dani.cur) C.dani.cur.paused = false; C.dani.obj.position.z = -38.9; C.standing = true; }, 2200);
     }
     this.setObjective();
   }
@@ -369,11 +375,11 @@ export class School extends Walker {
     if (r.ok) this.chorusDone('message'); else if (!r.cancelled) caption('You hesitate, and the moment passes. Try again.', 'say', 2.5);
   }
   chorusTick(dt) {
+    if (this.chorus.standing) this.chorus.dani.update(dt);   // he stands up when it is over
     const C = this.chorus, p = this.player.pos, d = Math.hypot(p.x - C.center.x, p.z - C.center.z);
-    C.dani.update(dt);
     for (const c of C.crowd) {
       if (c.state === 'gone') continue;
-      if (c.state === 'fade') { c.f -= dt * 0.8; c.mat.opacity = Math.max(0, c.f); c.scr.material.opacity = Math.max(0, c.f); if (c.f <= 0) { c.state = 'gone'; c.n.obj.visible = false; } c.n.update(dt); continue; }
+      if (c.state === 'fade') { c.f -= dt * 0.8; c.mat.opacity = Math.max(0, c.f); c.scr.material.opacity = Math.max(0, c.f); c.gl.material.opacity = 0.4 * Math.max(0, c.f); if (c.f <= 0) { c.state = 'gone'; c.n.obj.visible = false; } c.n.update(dt); continue; }
       const tx = d < 3.4 ? p.x : C.center.x, tz = d < 3.4 ? p.z : C.center.z; c.n.faceTo(tx, tz);
       c.n.update(dt); c.scr.material.opacity = Math.random() < 0.04 ? 0.5 : 1;
     }

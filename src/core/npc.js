@@ -36,6 +36,7 @@ export class NPC {
     let dr = this.facing - this.obj.rotation.y; while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
     this.obj.rotation.y += dr * Math.min(1, dt * 6);
     if (this.mixer) this.mixer.update(dt);
+    if (this.hidden) for (const b of this.hidden) b.scale.setScalar(0.001);   // parts hidden on purpose stay hidden
   }
   forward() { return new THREE.Vector3(Math.sin(this.obj.rotation.y), 0, Math.cos(this.obj.rotation.y)); }
 }

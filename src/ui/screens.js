@@ -1,4 +1,4 @@
-import { S, DEFAULT_SETTINGS, persist, listPlayers, lastPlayer, loadPlayer, exportCode, importCode, epData } from '../core/state.js';
+import { S, DEFAULT_SETTINGS, persist, listPlayers, lastPlayer, loadPlayer, exportCode, importCode, peekCode, epData } from '../core/state.js';
 import { rich, CREDITS, CONTENT_NOTE, LOCKS_ON } from '../text.js';
 import { play, setVolumes, resumeAudio } from '../core/audio.js';
 import { setBrightness } from '../core/render.js';
@@ -68,7 +68,45 @@ export function titleScreen() {
     el.querySelector('#set').onclick = () => { resumeAudio(); settingsScreen(); };
     el.querySelector('#cred').onclick = () => creditsScreen();
     el.querySelector('#code').onclick = () => importScreen(n => { closeScreen(el); resolve(n); });
+    // opened from a save file: offer to load it straight away
+    const hm = (location.hash || '').match(/^#load=(SK1-[A-Za-z0-9_-]+-[A-Z0-9]+)/);
+    if (hm) {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
+      let info = null; try { info = peekCode(hm[1]); } catch (e) { }
+      if (info) {
+        const d = t => t ? new Date(t).toLocaleString() : 'unknown';
+        const newer = info.localUpdated > info.updated + 60000;
+        const p = openScreen(`<div class="panel" style="width:min(560px,94vw);text-align:center"><h2>Welcome back, ${esc(info.nick)}</h2>
+          <p>Your save file is from <b>${d(info.updated)}</b>.</p>
+          ${newer ? `<p class="err">This computer already has a newer save for ${esc(info.nick)} (${d(info.localUpdated)}). Loading the file replaces it.</p>` : ''}
+          <div class="btns" style="justify-content:center"><button class="btn primary" id="ld" autofocus>Load my save and play</button><button class="btn" id="no">Not now</button></div></div>`);
+        p.querySelector('#no').onclick = () => closeScreen(p);
+        p.querySelector('#ld').onclick = () => { try { const n = importCode(hm[1]); resumeAudio(); applySettings(); closeScreen(p); closeScreen(el); resolve(n); } catch (e) { closeScreen(p); } };
+      }
+    }
   });
+}
+
+/** Download the save as a small web page: double-clicking it opens the game with this save (and shows the code too). */
+export function saveToFile() {
+  const code = exportCode(), nick = S.nick || 'player', when = new Date().toLocaleString();
+  const game = location.href.split('#')[0];
+  const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sötét Képernyő: ${esc(nick)}'s save</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#0b0a10;color:#e8e2d6;font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.5">
+<h1 style="font-weight:600">Opening Sötét Képernyő…</h1>
+<p>This is <b>${esc(nick)}</b>'s save from ${esc(when)}. The game should open by itself in a moment.</p>
+<p><a id="go" style="color:#8fe3c9" href="#">Open the game with this save</a></p>
+<p style="color:#a49fb4">If it does not open (for example on a different computer): start the game, choose <b>Load a save code</b> on the title screen and paste this code (mentési kód):</p>
+<textarea readonly style="width:100%;height:120px;background:#16141f;color:#e8e2d6;border:1px solid #3a3550;border-radius:8px;padding:8px" onclick="this.select()">${code}</textarea>
+<script>
+var code=${JSON.stringify(code)}, game=${JSON.stringify(game)};
+document.getElementById('go').href = game + '#load=' + code;
+setTimeout(function(){ location.href = game + '#load=' + code; }, 900);
+</script></body></html>`;
+  const blob = new Blob([page], { type: 'text/html' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nick.replace(/[^\w\u00C0-\u017F-]+/g, '_') + '_Sotet_Kepernyo_save.html';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
 }
 
 export function importScreen(done) {
@@ -87,8 +125,10 @@ export function exportScreen() {
   const el = openScreen(`<div class="panel" style="width:min(640px,94vw)"><h2>Your save code</h2>
     <p class="sub">Progress is saved automatically on this computer. To continue on another computer, copy this code (for example into your notes) and load it there.</p>
     <textarea id="c" readonly>${esc(code)}</textarea>
-    <div class="btns"><button class="btn primary" id="cp">Copy</button><button class="btn" id="x">Close</button></div><div class="sub" id="m"></div></div>`);
+    <div class="btns"><button class="btn primary" id="cp">Copy</button><button class="btn" id="sf">Save to a file</button><button class="btn" id="x">Close</button></div><div class="sub" id="m"></div>
+    <p class="sub" style="font-size:.85em">A save file opens the game with your save when you double-click it.</p></div>`);
   el.querySelector('#x').onclick = () => closeScreen(el);
+  el.querySelector('#sf').onclick = () => { saveToFile(); el.querySelector('#m').textContent = 'Saved to your Downloads folder.'; };
   el.querySelector('#cp').onclick = () => { const t = el.querySelector('#c'); t.select(); try { navigator.clipboard.writeText(code).then(() => el.querySelector('#m').textContent = 'Copied.').catch(() => { document.execCommand('copy'); el.querySelector('#m').textContent = 'Copied.'; }); } catch (e) { document.execCommand('copy'); el.querySelector('#m').textContent = 'Copied.'; } };
   return el;
 }
@@ -175,11 +215,12 @@ export function debriefScreen(d, stats, nextLabel) {
       <div class="help"><h3 style="margin-top:0">${rich(d.helpTitle)}</h3><p>${rich(d.help)}</p></div>
       ${stats ? `<div style="margin-top:12px">${stats.map(s => `<span class="stat">${esc(s)}</span>`).join('')}</div>` : ''}
       <p class="sub" style="margin-top:14px">${rich(d.teaser)}</p>
-      ${code ? `<div class="savebox"><h3 style="margin:0 0 4px">Your save code (mentési kód)</h3><p class="sub" style="margin:0 0 6px">${LOCKS_ON ? 'Copy it into your reflection sheet. Your teacher uses it to see that you finished.' : 'Keep it to carry your progress to another computer or browser (title screen, Load a save code).'}</p><textarea readonly>${esc(code)}</textarea><div class="btns" style="margin-top:6px"><button class="btn" id="cp">Copy the code</button><span class="sub copied"></span></div></div>` : ''}
+      ${code ? `<div class="savebox"><h3 style="margin:0 0 4px">Your save code (mentési kód)</h3><p class="sub" style="margin:0 0 6px">${LOCKS_ON ? 'Copy it into your reflection sheet. Your teacher uses it to see that you finished.' : 'Keep it to carry your progress to another computer or browser (title screen, Load a save code).'}</p><textarea readonly>${esc(code)}</textarea><div class="btns" style="margin-top:6px"><button class="btn" id="cp">Copy the code</button><button class="btn" id="sf">Save to a file</button><span class="sub copied"></span></div></div>` : ''}
       <p class="sub" style="font-size:.78em">Tip: hover over the <span class="term" tabindex="0" data-tip="Like this one! Underlined words have a short explanation.">dotted words</span> to see what they mean.</p>
       <div class="btns">${nextLabel ? `<button class="btn primary" id="nx">${esc(nextLabel)}</button>` : ''}<button class="btn ${nextLabel ? '' : 'primary'}" id="x" autofocus>Back to the lab</button></div></div>`, 'solid');
     el.querySelector('#x').onclick = () => { closeScreen(el); res('lab'); };
     const cp = el.querySelector('#cp'); if (cp) cp.onclick = () => copyText(el, code);
+    const sf = el.querySelector('#sf'); if (sf) sf.onclick = () => { saveToFile(); const c = el.querySelector('.copied'); if (c) c.textContent = 'Saved to your Downloads folder.'; };
     const nx = el.querySelector('#nx'); if (nx) nx.onclick = () => { closeScreen(el); res('next'); };
   });
 }

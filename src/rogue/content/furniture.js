@@ -1,4 +1,5 @@
 import { STICKERS } from './stickers.js';
+import { PAINTINGS } from './paintings.js';
 // The shop and the flats. DATA ONLY.
 // Furniture: model key (ep1, ep9 and hub packs), price in coins, cosiness (komfort). Cosiness raises your nerve on the stairs.
 // kind: 'floor' stands on the floor (a collider unless walk:true), 'wall' hangs on a wall (posters use a painted picture).
@@ -49,8 +50,10 @@ export const ITEMS = [
   { id: 'p_stairs', img: 'sm_ep9_stairwell', name: 'Poster: the stairwell', hu: 'poszter', price: 12, cosy: 2, kind: 'wall' },
   { id: 'p_family', img: 'sm_ep9_family_photo', name: 'Old family photo', hu: 'családi fotó', price: 15, cosy: 3, kind: 'wall' },
 ];
+// Mark's paintings as framed posters (wider than tall)
+for (const [img, a, title] of PAINTINGS) ITEMS.push({ id: 'pp_' + img.slice(3), img, name: 'Painting: ' + title, hu: 'festmény', price: 25, cosy: 3, kind: 'wall', size: 0.55, aspect: a });
 // stickers: cheap, small, any wall (Urban Grunge decals, see stickers.js)
-for (const [n, a] of STICKERS) ITEMS.push({ id: 's_' + n, img: 'st_' + n, name: n.startsWith('sign') ? 'Sign ' + n.slice(4) : 'Sticker ' + n.slice(7), hu: 'matrica',
+for (const [n, a, label] of STICKERS) ITEMS.push({ id: 's_' + n, img: 'st_' + n, name: label, hu: 'matrica',
   price: 5, cosy: 0.5, kind: 'wall', sticker: true, size: Math.min(0.3, 0.42 / a), aspect: a });
 export const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 

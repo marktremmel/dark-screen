@@ -43,6 +43,7 @@ PACKS={
    'rg_y_wall':('rogue/wallpaper_backrooms_yellow.png',128),'rg_y_carpet':('rogue/carpet_backrooms_damp.png',128),'rg_y_ceil':('rogue/ceiling_tiles_acoustic.png',128),'rg_y_light':('rogue/ceiling_light_panel.png',128),
    'rg_hotel_carpet':('rogue/hotel_carpet.png',128),'rg_hotel_wall':('rogue/hotel_wall.png',128),'rg_pool_blue':('rogue/pool_blue.png',128),'rg_pool_white':('rogue/pool_white.png',128),'rg_stripe':('rogue/stripe_mustard.png',128)},
    'jpg':['gen/sm_'+n for n in 'ep3_cat ep3_cake ep5_noodles ep5_skate ep3_bench ep5_cat_fail ep4_meme ep6_school_front ep3_window ep3_rink1 ep9_courtyard ep3_selfie ep5_bedroom ep9_stairwell ep9_family_photo ep6_morning'.split()],
+   'paint':sorted(f[:-4] for f in os.listdir('assets_src/paint') if f.endswith('.jpg')) if os.path.isdir('assets_src/paint') else [],
    'stickers':sorted(f[:-4] for f in os.listdir('assets_src/stickers') if f.endswith('.png')) if os.path.isdir('assets_src/stickers') else [],
    'audio':['rg_drone_stair','rg_drone_yellow','rg_signal1','rg_signal2','lightsw','knock','phonering','door_close','presence','stinger']},
  'metro':{'kits':{'subway':('kits/subway','sw_',512,['mod_ceiling_tall','mod_platform_edge','mod_platform_floor','mod_track_straight','mod_wall_tall','prop_bench_01','prop_bin_01','prop_timetable_01','prop_turnstile_01','prop_worklight_01'])}},
@@ -69,6 +70,9 @@ for name,P in PACKS.items():
     for i in P.get('jpg',[]):
         if os.path.exists(f'build/{i}.jpg'): d['img'][os.path.basename(i)]='data:image/jpeg;base64,'+b64(f'build/{i}.jpg')
         else: print('  (missing picture, skipped:',i,')')
+    for n in P.get('paint',[]):
+        im=Image.open(f'{SRC}/paint/{n}.jpg').convert('RGB'); im.thumbnail((800,800),Image.LANCZOS); buf=io.BytesIO(); im.save(buf,'JPEG',quality=80)
+        d['img']['pt_'+n]='data:image/jpeg;base64,'+base64.b64encode(buf.getvalue()).decode()
     for n in P.get('stickers',[]): d['img']['st_'+n]='data:image/png;base64,'+png_b64(f'{SRC}/stickers/{n}.png',160)
     for a in P.get('audio',[]): d['audio'][a]=b64(f'{SRC}/audio/{a}.ogg')
     if 'font' in P: d['font']=b64(f'{SRC}/font/{P["font"]}')

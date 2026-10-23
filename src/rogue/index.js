@@ -20,6 +20,8 @@ import { School } from './mission/school.js';
 import { Walk } from './mission/walk.js';
 import { Metro } from './mission/metro.js';
 import { VERSION } from './config.js';
+import { titleCard } from './ui/titleCard.js';
+import { CARDS_FOR } from './content/paintings.js';
 
 const WALK_NAME = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool' };
 
@@ -69,6 +71,7 @@ export function installRogue(G) {
     hud(false); loading(true, 0, 'The stairwell…');
     await ingestPack('npc', AU.ctx, f => loading(true, f));        // the figure in the yellow rooms
     loading(false);
+    if (G.testStart !== 'maze') await titleCard(CARDS_FOR.stairs, 'Lépcsőház', `Tonight: ${TOPICS[(run || G.run).topic].title}. Down to the ground floor.`);
     await G.switchScene(new Stairwell(G, R(), run || G.run));
   };
   G.goWalk = async run => {
@@ -76,6 +79,7 @@ export function installRogue(G) {
     if (run.walk === 'park') await ingestPack('park', AU.ctx, f => loading(true, f * 0.5));
     await ingestPack('npc', AU.ctx, f => loading(true, 0.5 + f * 0.5));
     loading(false);
+    if (CARDS_FOR[run.walk]) await titleCard(CARDS_FOR[run.walk], WALK_NAME[run.walk][0].toUpperCase() + WALK_NAME[run.walk].slice(1), TOPICS[run.topic].title);
     await G.switchScene(new Walk(G, R(), run));
   };
   G.goSchool = async run => {
@@ -83,6 +87,7 @@ export function installRogue(G) {
     await ingestPack('kit_school', AU.ctx, f => loading(true, f * 0.6));
     await ingestPack('npc', AU.ctx, f => loading(true, 0.6 + f * 0.4));
     loading(false);
+    await titleCard(CARDS_FOR.school, 'The school', 'The front door is open. It should not be.');
     await G.switchScene(new School(G, R(), run));
   };
   G.goMetro = async run => {
@@ -90,6 +95,7 @@ export function installRogue(G) {
     await ingestPack('metro', AU.ctx, f => loading(true, f * 0.4));
     await ingestPack('npc', AU.ctx, f => loading(true, 0.4 + f * 0.6));
     loading(false);
+    await titleCard(CARDS_FOR.metro, 'The last train', 'Your old posts are glowing all over the platform.');
     await G.switchScene(new Metro(G, R(), run));
   };
   /** The end of a night that you survived: the debrief, the scores, home. */

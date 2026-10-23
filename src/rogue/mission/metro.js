@@ -17,6 +17,7 @@ import { DIFFS } from '../logic/night.js';
 import { earn, nerve, noteCard } from '../save/rogueSave.js';
 import { POSTS } from '../content/posts.js';
 import { NPC } from '../../core/npc.js';
+import { bone, attach, hideBone } from '../entities/rig.js';
 
 const X1 = 24, EDGE = -5.6;
 
@@ -37,11 +38,21 @@ export class Metro extends Walker {
     this.posts = [...rev, ...safe].map((p, i) => this.makePost(g, p, slots[i]));
     // the Collector
     const c = this.col_ = new NPC('npc_guard', { speed: 0.55 * this.D.speed });
-    const dark = new THREE.MeshLambertMaterial({ color: 0x2a2630, emissive: 0x08060a });
+    // the look follows Mark's painting "Ominous Figure in the Eerie Hallway": a tall dark coat with no head showing,
+    // two plastic bags in its hands, glowing with the things it has collected
+    const dark = new THREE.MeshLambertMaterial({ color: 0x1c1a20, emissive: 0x050406 });
     c.obj.traverse(o => { if (o.isMesh) o.material = dark; });
-    c.obj.scale.setScalar(1.3); c.obj.position.set(X1 - 1.5, 0, -2.5); g.add(c.obj);
-    const bagM = new THREE.MeshBasicMaterial({ color: 0xffd27a, fog: true });
-    for (const sx of [-0.32, 0.32]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.32, 0.14), bagM); b.position.set(sx, 0.62, 0.05); c.obj.add(b); }
+    c.obj.scale.setScalar(1.25); c.obj.position.set(X1 - 1.5, 0, -2.5); g.add(c.obj);
+    hideBone(c, 'Head');
+    const bagM = new THREE.MeshBasicMaterial({ color: 0xffc070, transparent: true, opacity: 0.82, fog: true });
+    const itemTex = canvasTex(32, 32, cx => { cx.fillStyle = '#f4e8d0'; cx.fillRect(2, 4, 14, 18); cx.fillStyle = '#5a6a88'; cx.fillRect(4, 6, 10, 10); cx.fillStyle = '#e8d8b0'; cx.fillRect(15, 10, 14, 18); cx.fillStyle = '#8a5a48'; cx.fillRect(17, 12, 10, 10); });
+    for (const side of ['Left', 'Right']) {
+      const hand = bone(c.obj, side + 'Hand'); if (!hand) continue;
+      const bag = new THREE.Group();
+      const sack = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), bagM); sack.scale.set(1, 1.35, 0.8); sack.position.y = -0.26; bag.add(sack);
+      const inside = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), new THREE.MeshBasicMaterial({ map: itemTex, transparent: true, opacity: 0.85, fog: true })); inside.position.set(0, -0.24, 0.13); bag.add(inside);
+      attach(c.obj, hand, bag, new THREE.Vector3(0, 0, 0));
+    }
     this.collector = c; this.cState = { target: null, t: 0, wait: 8 };
   }
 

@@ -59,9 +59,21 @@ export function exportCode() {
   const data = { n: S.nick, e: {} };
   for (const [k, v] of Object.entries(S.save.eps)) { data.e[k] = { d: v.done ? 1 : 0, b: v.best || 0, s: v.state || null }; if (v.choices) data.e[k].c = v.choices; if (v.stats) data.e[k].t = v.stats; if (v.at) data.e[k].a = v.at; }
   if (S.save.keys) data.k = Object.keys(S.save.keys).map(Number);
+  if (S.save.rogue) data.r = S.save.rogue;            // Lépcsőház: the flat, the record, the notebook
+  data.u = S.save.updated || Date.now();
   const json = JSON.stringify(data);
   const b = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return 'SK1-' + b + '-' + crc(b);
+}
+/** What a code holds, without loading it: { nick, updated }. Throws like importCode. */
+export function peekCode(code) {
+  code = (code || '').trim().replace(/\s+/g, '');
+  const m = code.match(/^SK1-([A-Za-z0-9_-]+)-([A-Z0-9]+)$/);
+  if (!m || crc(m[1]) !== m[2]) throw new Error('The save is damaged.');
+  let b = m[1].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
+  const data = JSON.parse(decodeURIComponent(escape(atob(b))));
+  const local = readAll().players || {};
+  return { nick: data.n, updated: data.u || 0, localUpdated: local[data.n] ? (local[data.n].updated || 0) : 0 };
 }
 export function importCode(code) {
   code = (code || '').trim().replace(/\s+/g, '');
@@ -73,6 +85,7 @@ export function importCode(code) {
   const sv = loadPlayer(data.n);
   for (const [k, v] of Object.entries(data.e || {})) sv.eps[k] = { done: !!v.d, best: v.b || 0, state: v.s || null, choices: v.c || undefined, stats: v.t || undefined, at: v.a || undefined };
   if (data.k) { sv.keys = sv.keys || {}; for (const k of data.k) sv.keys[k] = true; }
+  if (data.r) sv.rogue = data.r;
   persist();
   return data.n;
 }

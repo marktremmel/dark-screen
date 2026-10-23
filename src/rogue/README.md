@@ -87,7 +87,11 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   are self-lit (they were black); the Watcher's camera has a flare; the maze figure hurries when far and you hear its steps;
   the maze door and screens say what you are answering; a miss names where the anomaly was (`WHERE` in anomalies.js); a
   bigger QR sticker; the gym crowd are faceless mannequins with phone lights; the Collector swats you away when you get close.
-- Next: payphone call-back and design detective encounters, lines for T4, T7, T12, the courtyard walk.
+- v0.11 (23 Oct): Mark's sticker sheets (`tools/stickers.py`) and paintings (`content/paintings.js`, `ui/titleCard.js`); the poster
+  maker (`ui/posterMaker.js`, recipes in `record.posters`); save to a file (`saveToFile` in ui/screens.js, `#load=` on the title
+  screen, the save code now includes the rogue save); monsters reworked after the paintings (`entities/rig.js`: attach, hideBone,
+  sitDown); kit collider meshes are no longer drawn; topic T7 (kindness). Doc 04 has the details and the open list.
+- Next: payphone call-back and design detective encounters, lines for T4, T8, T12, the courtyard walk.
 
 ## Codes
 

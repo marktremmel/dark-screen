@@ -14,6 +14,7 @@ import { S, persist } from '../../core/state.js';
 import { ITEM } from '../content/furniture.js';
 import { ensureHome, flatOf, cosiness, startNerve, takeOut, putBack, placeItem, lift, insideFlat } from '../logic/home.js';
 import { homeComputer, boxPanel } from '../ui/homePanels.js';
+import { preparePosters } from '../ui/posterMaker.js';
 import { floorPicker } from '../ui/panels.js';
 import { thumb } from '../ui/thumbs.js';
 
@@ -31,6 +32,7 @@ export class HomeScene extends Walker {
   constructor(G, R) { super(G); this.R = R; ensureHome(R.life); this.quitLabel = 'Back to Room 214 (your flat is saved)'; }
 
   async build() {
+    await preparePosters(this.R.record);   // the player's own posters: images and shop items before anything is placed
     const g = this.newScene(0x07080c, 5, 22);
     const L = this.R.life, F = flatOf(L);
     this.buildRooms(g, F);
@@ -125,7 +127,7 @@ export class HomeScene extends Walker {
       // posters and stickers are lit by themselves (a lit material went black in a dim corner)
       const sz = it.size || 0.62, sticker = it.sticker;
       const m = new THREE.Mesh(new THREE.PlaneGeometry(sz * (it.aspect || 1), sz), new THREE.MeshBasicMaterial({ map: imgTex(it.img), color: 0xd0ccc4, transparent: !!sticker, alphaTest: sticker ? 0.4 : 0 }));
-      if (!sticker) { const fr = new THREE.Mesh(new THREE.BoxGeometry(sz + 0.08, sz + 0.08, 0.02), psxMat({ color: 0x2a2018 })); fr.position.z = -0.012; m.add(fr); }
+      if (!sticker) { const fr = new THREE.Mesh(new THREE.BoxGeometry(sz * (it.aspect || 1) + 0.08, sz + 0.08, 0.02), psxMat({ color: 0x2a2018 })); fr.position.z = -0.012; m.add(fr); }
       return m;
     }
     return inst(it.model);
