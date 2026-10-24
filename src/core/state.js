@@ -1,7 +1,7 @@
 // Global state + saving (localStorage per nickname, plus export/import codes).
 import { EPISODES, epPos, BUILT, LOCKS_ON, UNLOCK_HASH, TEACHER_HASH, codeHash, normCode } from '../text.js';
 const KEY = 'sotetkepernyo.v1';
-export const DEFAULT_SETTINGS = { quiet: false, brightness: 1.0, projector: false, master: 0.9, music: 0.6, mouse: 1.0, bigText: false, bob: true, subs: true, calibrated: false, sharp: false, grain: true };
+export const DEFAULT_SETTINGS = { quiet: false, brightness: 1.0, projector: false, master: 0.9, music: 0.6, mouse: 1.0, bigText: false, bob: true, subs: true, calibrated: false, sharp: false, grain: true, post: true };
 
 export const S = {
   nick: null,

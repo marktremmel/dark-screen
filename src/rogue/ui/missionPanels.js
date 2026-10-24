@@ -101,11 +101,11 @@ export function callPanel(call, typeFn) {
     const end = r => { closeScreen(el); res(r); };
     b.innerHTML = `<p class="sub">A voice that sounds exactly like <b>${esc(call.who)}</b>:</p>
       <div style="background:#16141f;border-left:3px solid #ff9a8a;padding:8px 12px;border-radius:6px">${esc(call.say)}</div>
-      <div style="display:grid;gap:8px;margin-top:12px">
-        <button class="btn" data-c="gave" style="text-align:left">${esc(call.wants)}</button>
-        <button class="btn" data-c="question" style="text-align:left">Ask: "${esc(call.question)}"</button>
-        <button class="btn primary" data-c="callback" style="text-align:left">Hang up, and call ${esc(call.who === 'Mum' ? 'Mum' : call.who.startsWith('Your bank') ? 'the bank' : call.who)} back on the number you already have</button>
-        <button class="btn" data-c="hangup" style="text-align:left">Just hang up</button></div>`;
+      <div style="display:grid;gap:8px;margin-top:12px">${[   // v0.19: shuffled, and none highlighted (the right answer was green before)
+        `<button class="btn" data-c="gave" style="text-align:left">${esc(call.wants)}</button>`,
+        `<button class="btn" data-c="question" style="text-align:left">Ask: "${esc(call.question)}"</button>`,
+        `<button class="btn" data-c="callback" style="text-align:left">Hang up, and call ${esc(call.who.startsWith('Your bank') ? 'the bank' : call.who.replace(/^Your /, 'your '))} back on the number you already have</button>`,
+        `<button class="btn" data-c="hangup" style="text-align:left">Just hang up</button>`].sort(() => Math.random() - 0.5).join('')}</div>`;
     b.querySelectorAll('[data-c]').forEach(x => x.onclick = async () => {
       const c = x.dataset.c;
       if (c === 'gave') { b.innerHTML = `<p>The line goes dead the moment you finish. Somewhere, someone has exactly what they wanted.</p><p class="sub">${esc(call.lesson)}</p><div class="btns"><button class="btn" id="ok">Hang up</button></div>`; play('hangup', { vol: 0.5 }); b.querySelector('#ok').onclick = () => end('gave'); return; }
@@ -113,7 +113,7 @@ export function callPanel(call, typeFn) {
       if (c === 'question') { b.innerHTML = `<p>A pause. "What? I... I don\'t have time for this!" The line goes dead.</p><p class="sub">A question only the real person could answer is a good test. Calling back on the number you know is even better.</p><div class="btns"><button class="btn" id="ok">Hang up</button></div>`; play('hangup', { vol: 0.5 }); b.querySelector('#ok').onclick = () => end('question'); return; }
       closeScreen(el);
       const digits = call.number.replace(/\+/g, '').trim();
-      const r = await typeFn(digits, `Dial ${call.who === 'Mum' ? 'Mum' : call.who}'s number from your contacts: ${call.number}`);
+      const r = await typeFn(digits, `Dial ${call.who.replace(/^Your /, 'your ')}'s number from your contacts: ${call.number}`);
       const el2 = openScreen(`<div class="panel" style="width:min(560px,94vw)"><h2>The payphone</h2>${r.ok ? `<p>It rings twice. Then the real ${esc(call.who === 'Your bank (security team)' ? 'bank' : call.who)}:</p><div style="background:#16141f;border-left:3px solid #8fe3c9;padding:8px 12px;border-radius:6px">${esc(call.real)}</div><p class="sub">${esc(call.lesson)}</p>` : '<p>You fumble the number and the line clicks dead. You still did not give them anything.</p>'}<div class="btns"><button class="btn primary" id="ok">Hang up</button></div></div>`);
       el2.querySelector('#ok').onclick = () => { closeScreen(el2); res(r.ok ? 'callback' : 'hangup'); };
     });

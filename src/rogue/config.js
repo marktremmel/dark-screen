@@ -1,5 +1,5 @@
 // The Lépcsőház build number, shown in the corner during the mode. Raise it with every build that goes to Mark.
-export const VERSION = '0.18';
+export const VERSION = '0.19';
 
 // Lépcsőház: every tuning number in one place. Change numbers here, never in the code.
 export const CFG = {

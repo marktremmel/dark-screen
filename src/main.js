@@ -115,7 +115,7 @@ function frame(now) {
   if (sc) {
     if (!S.paused && !anyScreenOpen() || (sc.updateWhileOverlay && !S.paused)) sc.update(dt, G.t);
     else if (sc.idle) sc.idle(dt, G.t);
-    R.renderer.render(sc.scene, G.camera);
+    if (!(G.post && G.post(sc, dt))) R.renderer.render(sc.scene, G.camera);   // Lépcsőház draws through its camera effects (rogue/ui/post.js)
     if (sc.vmRender) sc.vmRender(R.renderer);
     updateListener(G.camera);
   }

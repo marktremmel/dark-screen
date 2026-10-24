@@ -34,6 +34,19 @@ import { STREETS, buildStreet } from './streets.js';
 import { shaft, glow, makeDust } from '../ui/fx.js';
 
 const PX = z => 2.4 * Math.sin(z / 10);               // the park path's centre line
+/** A path as one strip of triangles along a centre line x = fx(z): no overlapping pieces, so nothing can flicker. */
+function pathRibbon(fx, z0, z1, w, texName, step = 0.75) {
+  const pos = [], uv = [], idx = []; let len = 0, prev = null;
+  for (let z = z0, i = 0; z >= z1 - 1e-6; z -= step, i++) {
+    const x = fx(z), dx = (fx(z - 0.01) - x) / 0.01, n = Math.hypot(1, dx), nx = 1 / n, nz = dx / n;   // across the path
+    if (prev) len += Math.hypot(x - prev[0], z - prev[1]); prev = [x, z];
+    pos.push(x - nx * w / 2, 0, z - nz * w / 2, x + nx * w / 2, 0, z + nz * w / 2); uv.push(0, len / 1.2, w / 1.2, len / 1.2);
+    if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+  const t = tex(texName); const m = psxMat({ map: t, color: 0x9a9a9a, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const mesh = new THREE.Mesh(geo, m); mesh.position.y = 0.02; return mesh;
+}
 const STYLE = {
   backrooms: { bg: 0x1c1808, fog: [2, 15], wall: 'rg_y_wall', floor: 'rg_y_carpet', ceil: 'rg_y_ceil', light: 0xfff0b0, panel: 0xfff6d0, hemi: [0xfff0c0, 0x403818, 0.55], h: 2.7, drone: 'rg_drone_yellow',
     intro: 'You open the street door. It is not the street.\nYellow wallpaper, damp carpet, a hum in the lights.' },
@@ -122,13 +135,10 @@ export class Walk extends Walker {
     const col = this.col, Z_END = this.zEnd = -76;
     this.scene.add(new THREE.HemisphereLight(0x7a8ac0, 0x14180e, 0.6));
     const moon = new THREE.DirectionalLight(0xa8b8ff, 0.32); moon.position.set(-20, 30, 10); this.scene.add(moon);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 100), psxMat({ map: tex('grass', 40, 50), color: 0x6a7a58 }));
+    // v0.19: Mark's PSX grass (the old worn-grass tile looked shabby) and one continuous paved path (the overlapping pieces still flickered)
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 100), psxMat({ map: tex(A.tex.rg_grass ? 'rg_grass' : 'grass', 30, 50), color: 0x7a8a68 }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -36); g.add(ground);
-    const pm = psxMat({ map: tex('rg_asphalt', 1, 1), color: 0x9a9a9a });
-    for (let z = 5; z > Z_END - 2; z -= 1.5) {
-      const z2 = z - 1.6, x1 = PX(z), x2 = PX(z2), s = new THREE.Mesh(new THREE.PlaneGeometry(2.4, Math.hypot(x2 - x1, 1.6) + 0.05), pm);
-      s.rotation.x = -Math.PI / 2; s.rotation.z = Math.atan2(x2 - x1, 1.6); s.position.set((x1 + x2) / 2, 0.012 + (Math.round(z / 1.5) & 1) * 0.004, (z + z2) / 2); g.add(s);   // overlapping pieces at different heights: equal heights flickered (z-fighting)
-    }
+    g.add(pathRibbon(PX, 5, Z_END - 2, 2.4, A.tex.rg_paving ? 'rg_paving' : 'rg_asphalt'));
     // your panel block, right behind you: you have just come out of its front door
     this.buildBlock(g, 5.6);
     const fm = 0x2a2e2a;

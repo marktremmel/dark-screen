@@ -2,7 +2,6 @@
 // - shaft(): a fake volumetric light cone under a lamp (additive, no depth write)
 // - glow(): a soft flare sprite on a bulb
 // - makeDust(): specks floating in the torch beam
-// - grain(): film grain and a vignette over the picture (a setting, on by default)
 // - routeStrip(): tonight's route in the corner, with where you are now
 import * as THREE from 'three';
 import { S } from '../../core/state.js';
@@ -26,50 +25,32 @@ export function glow(g, x, y, z, color = 0xffd9a0, size = 0.9, opacity = 0.55) {
   s.position.set(x, y, z); s.scale.set(size, size, 1); g.add(s); return s;
 }
 
-/** Dust in the torch beam: specks in front of the camera that drift and turn slowly. Call the result each frame. */
-export function makeDust(scene, camera, n = 70) {
-  const pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xb8ae98, size: 0.008, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: true }));
+/** Dust in the torch beam (v0.19: in the world now, so you move through it; before, it was stuck to the camera).
+ * Specks float in a box around you and drift; each one glows only while it is inside the torch's cone. */
+export function makeDust(scene, camera, n = 220) {
+  const pos = new Float32Array(n * 3), colr = new Float32Array(n * 3), geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(colr, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.02, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: true }));
   pts.frustumCulled = false; scene.add(pts);
-  const local = Array.from({ length: n }, () => ({ d: 0.4 + Math.random() * 2.2, a: Math.random() * 6.28, r: Math.random(), vy: (Math.random() - 0.5) * 0.05, y: 0 }));
-  const v = new THREE.Vector3();
+  const B = 3.2, H = 1.6, P = Array.from({ length: n }, () => ({ x: (Math.random() - 0.5) * 2 * B, y: Math.random() * 2 * H, z: (Math.random() - 0.5) * 2 * B, vx: (Math.random() - 0.5) * 0.06, vy: (Math.random() - 0.5) * 0.03, vz: (Math.random() - 0.5) * 0.06, ph: Math.random() * 6.28 }));
+  const cam = new THREE.Vector3(), fw = new THREE.Vector3(); let level = 0, t = 0;
+  const wrap = (v, c, r) => v - c > r ? v - 2 * r : v - c < -r ? v + 2 * r : v;
   return (dt, on) => {
-    const target = on ? 0.22 : 0; pts.material.opacity += (target - pts.material.opacity) * Math.min(1, dt * 4);
-    pts.visible = pts.material.opacity > 0.02; if (!pts.visible) return;
+    level += ((on ? 1 : 0) - level) * Math.min(1, dt * 4); pts.visible = level > 0.02; if (!pts.visible) return;
+    t += dt; camera.getWorldPosition(cam); camera.getWorldDirection(fw);
     for (let i = 0; i < n; i++) {
-      const p = local[i]; p.y += p.vy * dt; p.a += dt * 0.05; if (Math.abs(p.y) > 0.4) p.vy = -p.vy;
-      const spread = p.d * 0.38 * p.r;   // inside the beam's cone
-      v.set(Math.cos(p.a) * spread, Math.sin(p.a) * spread * 0.7 + p.y * 0.3, -p.d).applyMatrix4(camera.matrixWorld);
-      pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z;
+      const p = P[i]; p.x += (p.vx + Math.sin(t * 0.3 + p.ph) * 0.02) * dt; p.y += p.vy * dt; p.z += (p.vz + Math.cos(t * 0.25 + p.ph) * 0.02) * dt;
+      p.x = wrap(p.x, cam.x, B); p.z = wrap(p.z, cam.z, B); p.y = wrap(p.y, cam.y, H);
+      const dx = p.x - cam.x, dy = p.y - cam.y, dz = p.z - cam.z, d = Math.hypot(dx, dy, dz) || 1, cos = (dx * fw.x + dy * fw.y + dz * fw.z) / d;
+      const inBeam = Math.max(0, (cos - 0.86) / 0.14) * Math.max(0, 1 - d / 3.4) * (d > 0.25 ? 1 : 0);   // inside the cone, fading with distance
+      const v = inBeam * level * (0.6 + 0.4 * Math.sin(t * 2 + p.ph)) * 0.75;
+      pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z; colr[i * 3] = v; colr[i * 3 + 1] = v * 0.95; colr[i * 3 + 2] = v * 0.82;
     }
-    geo.attributes.position.needsUpdate = true;
+    geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
   };
 }
 
-/** Film grain and a vignette, drawn inside the 3D picture as one full-screen quad. It costs almost nothing because
- * the game draws at 270 lines. (A first try used a page overlay; in testing that slowed the frame rate down a lot.) */
-let grainMat = null;
-function grainQuad() {
-  if (!grainMat) grainMat = new THREE.ShaderMaterial({
-    uniforms: { uT: { value: 0 }, uA: { value: 0.028 } },
-    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy * 2.0, 0.0, 1.0); }',
-    fragmentShader: 'uniform float uT; uniform float uA; varying vec2 vUv; float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)) + uT) * 43758.5453); }' +
-      'void main(){ float n = h(floor(gl_FragCoord.xy) + floor(uT * 12.0)); vec2 d = vUv - 0.5; float v = smoothstep(0.32, 0.78, length(d * vec2(1.25, 1.0)));' +
-      ' gl_FragColor = vec4(vec3(n), uA) * (1.0 - v) + vec4(0.0, 0.0, 0.0, v * 0.6); }',
-    transparent: true, depthTest: false, depthWrite: false,
-  });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), grainMat); m.frustumCulled = false; m.renderOrder = 9999; m.userData.grain = true;
-  m.onBeforeRender = () => { grainMat.uniforms.uT.value = (performance.now() / 1000) % 100; };
-  return m;
-}
-/** Put the grain into a scene (or take it out, when the setting is off). */
-export function grain(scene, on) {
-  if (!scene) return;
-  on = on && S.settings.grain !== false;
-  let q = scene.children.find(c => c.userData && c.userData.grain);
-  if (on && !q) scene.add(q = grainQuad());
-  if (q) q.visible = on;
-}
+// Film grain and the vignette moved to ui/post.js in v0.19 (camera effects).
 
 /** Tonight's route in the bottom-left corner: done stages ticked, the current one marked. */
 let stripEl = null;

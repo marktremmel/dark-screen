@@ -148,7 +148,8 @@ export function settingsScreen(onClose) {
     ${sl('mouse', 'Mouse speed', '', 0.3, 2.5, 0.05)}
     ${tg('subs', 'Sound subtitles', 'Shows what you hear, like [footsteps in the hallway].')}
     ${tg('sharp', 'Sharper picture', 'Draws the game at a higher resolution. Still pixelated, just finer. Turn off on slow computers.')}
-    ${tg('grain', 'Film grain', 'A little grain and darker corners in Lépcsőház, like an old camera. Turn off if it bothers you.')}
+    ${tg('post', 'Camera effects', 'Lépcsőház only: a little motion blur when you turn, the background softens when something is close, darker corners. Turn off on slow computers.')}
+    ${tg('grain', 'Film grain', 'A very faint grain on top of the camera effects.')}
     ${tg('bigText', 'Large text', '')}
     ${tg('bob', 'Head bobbing', 'Turn off if walking makes you feel dizzy.')}
     <div class="btns"><button class="btn" id="cal">Calibrate brightness</button><button class="btn primary" id="x">Done</button></div></div>`);

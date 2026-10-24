@@ -6,7 +6,7 @@ import { R } from '../../core/render.js';
 const cache = {};
 let scene, cam, rt;
 export function thumb(item) {
-  if (item.img) return A.img[item.img] || '';
+  if (item.img) return (item.img.startsWith('gl_') && A.img['th_' + item.img.slice(3)]) || A.img[item.img] || '';   // v0.19: small shop pictures
   if (item.led) {   // a glowing strip
     if (cache[item.id]) return cache[item.id];
     const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'); g.fillStyle = '#15131c'; g.fillRect(0, 0, 96, 96);

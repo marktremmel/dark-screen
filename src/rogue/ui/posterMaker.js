@@ -78,7 +78,7 @@ export function mountMaker(body, R, onPrint) {
     ${rec.posters.length ? `<h4 style="margin:10px 0 4px">Your posters (they stay yours even if you lose a life)</h4><div id="gal" style="display:flex;flex-wrap:wrap;gap:6px"></div>` : ''}`;
   const pv = body.querySelector('#pv');
   const draw = async () => { const cv = await renderPoster(r, 640, sel); pv.width = cv.width; pv.height = cv.height; pv.getContext('2d').drawImage(cv, 0, 0); };
-  body.querySelector('#bs').innerHTML = bases.map(k => `<img data-b="${k}" src="${A.img[k]}" style="height:44px;border-radius:3px;cursor:pointer;outline:${k === r.base ? '2px solid #8fe3c9' : 'none'}">`).join('');
+  body.querySelector('#bs').innerHTML = bases.map(k => `<img data-b="${k}" src="${(k.startsWith('gl_') && A.img['th_' + k.slice(3)]) || A.img[k]}" style="height:44px;border-radius:3px;cursor:pointer;outline:${k === r.base ? '2px solid #8fe3c9' : 'none'}">`).join('');
   body.querySelector('#ss').innerHTML = STICKERS.map(([n]) => `<img data-s="st_${n}" src="${A.img['st_' + n] || ''}" style="height:34px;cursor:pointer">`).join('');
   body.querySelectorAll('[data-b]').forEach(im => im.onclick = () => { r.base = im.dataset.b; body.querySelectorAll('[data-b]').forEach(x => x.style.outline = x === im ? '2px solid #8fe3c9' : 'none'); draw(); });
   body.querySelectorAll('[data-s]').forEach(im => im.onclick = () => { r.st.push({ k: im.dataset.s, x: 0.5, y: 0.5, s: 0.22 }); sel = r.st.length - 1; draw(); });

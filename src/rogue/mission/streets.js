@@ -103,8 +103,8 @@ export function buildStreet(W, g, kind) {
   const puddle = (x, z, w, d) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ color: 0x1a2230, transparent: true, opacity: 0.75, fog: true, polygonOffset: true, polygonOffsetFactor: -2 })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.015, z); g.add(m); return m; };
 
   if (kind === 'courtyard') {
-    const gr = new THREE.Mesh(new THREE.PlaneGeometry(hw * 2 + 2, L + 12), psxMat({ map: tex('grass', 16, 30), color: 0x5a6a4c })); gr.rotation.x = -Math.PI / 2; gr.position.set(0, 0, -L / 2 + 2); g.add(gr);
-    plane(g, 'rg_asphalt', -1.3, Z_END - 1, 1.3, 5, 0.012, { tile: 2, color: 0x9a9a9a });
+    const gr = new THREE.Mesh(new THREE.PlaneGeometry(hw * 2 + 2, L + 12), psxMat({ map: tex(A.tex.rg_grass ? 'rg_grass' : 'grass', 12, 37), color: 0x6a7a5c })); gr.rotation.x = -Math.PI / 2; gr.position.set(0, 0, -L / 2 + 2); g.add(gr);
+    const pv = plane(g, A.tex.rg_paving ? 'rg_paving' : 'rg_asphalt', -1.3, Z_END - 1, 1.3, 5, 0.02, { tile: 1.2, color: 0x9a9a9a }); pv.material.polygonOffset = true; pv.material.polygonOffsetFactor = -2; pv.material.polygonOffsetUnits = -2;
     W.buildBlock(g, 5.6);
     facade(-hw, 1, 4, 4, Z_END - 1, 0.25, 0.25); facade(hw, -1, 4, 4, Z_END - 1, 0.25, 0.25);
     // the far side: another block with an archway through it
@@ -115,7 +115,7 @@ export function buildStreet(W, g, kind) {
     texBox(g, null, -11, 0, Z_END - 9, -3, 12, Z_END - 0.3, { color: 0x15161a, col }); texBox(g, null, 3, 0, Z_END - 9, 11, 12, Z_END - 0.3, { color: 0x15161a, col });
     texBox(g, null, -3, 3, Z_END - 9, 3, 12, Z_END - 0.3, { color: 0x15161a });
     plane(g, null, -3, Z_END - 9, 3, Z_END - 0.3, 0.01, { color: 0x101114 });
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(6, 3), new THREE.MeshBasicMaterial({ color: 0x3a4250, fog: false })); glow.position.set(0, 1.5, Z_END - 8.9); g.add(glow);   // the street beyond the archway
+    const beyond = new THREE.Mesh(new THREE.PlaneGeometry(6, 3), new THREE.MeshBasicMaterial({ color: 0x3a4250, fog: false })); beyond.position.set(0, 1.5, Z_END - 8.9); g.add(beyond);   // the street beyond the archway
     gate(-3, 3, Z_END + 0.1);
     // the playground (Mark's model, real size), turned so it fits beside the path; the rocket climbing frame; a sandbox; a carpet rack
     place(g, 'playground', -6.3, 0, -27, 90); col.push({ x0: -11, x1: -1.7, z0: -33.5, z1: -20.5 });
@@ -163,7 +163,7 @@ export function buildStreet(W, g, kind) {
       if (red) puddle(x - side * 0.8, z, 1.2, 1.6).material.color.set(0x3a1418);   // the puddle under it catches the red
     });
     // the end: a fence gate onto the lit street
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(hw * 2, 4), new THREE.MeshBasicMaterial({ map: canvasTex(8, 32, c => { const gr = c.createLinearGradient(0, 0, 0, 32); gr.addColorStop(0, '#0c0e14'); gr.addColorStop(0.55, '#2a3040'); gr.addColorStop(1, '#5a5040'); c.fillStyle = gr; c.fillRect(0, 0, 8, 32); }), fog: false })); glow.position.set(0, 2, Z_END - 2); g.add(glow);   // the lit street beyond, sodium-orange at the bottom
+    const beyond = new THREE.Mesh(new THREE.PlaneGeometry(hw * 2, 4), new THREE.MeshBasicMaterial({ map: canvasTex(8, 32, c => { const gr = c.createLinearGradient(0, 0, 0, 32); gr.addColorStop(0, '#0c0e14'); gr.addColorStop(0.55, '#2a3040'); gr.addColorStop(1, '#5a5040'); c.fillStyle = gr; c.fillRect(0, 0, 8, 32); }), fog: false })); beyond.position.set(0, 2, Z_END - 2); g.add(beyond);   // the lit street beyond, sodium-orange at the bottom
     texBox(g, null, -hw, 0, Z_END - 2.1, hw, 0.02, Z_END, { color: 0x2a2c30 });
     gate(-hw, hw, Z_END + 0.1);
     W.backDoors = sideStuff.filter(s => s.door);

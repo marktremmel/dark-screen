@@ -1,8 +1,7 @@
-import sys, time, json, os
+import sys, time, json
 from playwright.sync_api import sync_playwright
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-URL = 'file://' + os.path.join(ROOT, 'game', 'index.html')
-OUT = os.path.join(ROOT, 'build', 'shots') + '/'
+URL = 'file:///home/claude/sotet/game/index.html'
+OUT = '/home/claude/sotet/build/shots/'
 import os; os.makedirs(OUT, exist_ok=True)
 
 def run(script, w=1280, h=720, prefix='t'):
@@ -12,7 +11,7 @@ def run(script, w=1280, h=720, prefix='t'):
         ctx = b.new_context(viewport={'width': w, 'height': h})
         pg = ctx.new_page()
         pg.on('console', lambda m: logs.append(f'[{m.type}] {m.text}'))
-        pg.on('pageerror', lambda e: logs.append(f'[PAGEERROR] {e}'))
+        pg.on('pageerror', lambda e: logs.append(f'[PAGEERROR] {e} :: {getattr(e,"stack","")[:600]}'))
         pg.goto(URL)
         n = [0]
         def shot(name):

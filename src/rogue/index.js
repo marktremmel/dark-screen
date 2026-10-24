@@ -23,7 +23,9 @@ import { Metro } from './mission/metro.js';
 import { VERSION } from './config.js';
 import { titleCard } from './ui/titleCard.js';
 import { CARDS_FOR } from './content/paintings.js';
-import { grain, routeStrip, hideRouteStrip } from './ui/fx.js';
+import { routeStrip, hideRouteStrip } from './ui/fx.js';
+import { postRender } from './ui/post.js';
+import { R as RR } from '../core/render.js';
 
 
 export function installRogue(G) {
@@ -33,7 +35,7 @@ export function installRogue(G) {
   tag.style.cssText = 'position:fixed;right:8px;bottom:6px;z-index:40;font:12px m5x7,monospace;color:#9a95b0;opacity:.75;pointer-events:none;display:none';
   document.body.appendChild(tag);
   const ROGUE = [HomeScene, Stairwell, Walk, School, Metro];
-  G.afterBuild = sc => grain(sc.scene, ROGUE.some(C => sc instanceof C));   // v0.18: film grain and vignette inside the picture (a setting)
+  G.post = (sc, dt) => ROGUE.some(C => sc instanceof C) && postRender(RR.renderer, sc.scene, G.camera, dt);   // v0.19: camera effects (a setting)
   G.onScene = sc => {
     const rogue = ROGUE.some(C => sc instanceof C); tag.style.display = rogue ? '' : 'none';
     if (rogue && !(sc instanceof HomeScene) && G.run) routeStrip(G.run, stageName); else hideRouteStrip();
@@ -99,7 +101,8 @@ export function installRogue(G) {
     const nx = nextStage(run, from);
     if (!nx) { await fade(true, '', 0.6); return G.endNight(run, 'full'); }
     if (from !== 'stairs') {
-      G.unlock(); const c = await nextChoice(run, nx);
+      G.unlock(); await fade(false, '', 0.3);   // the metro ends on a black screen: the choice must not sit under it (v0.19 fix: the long night got stuck here)
+      const c = await nextChoice(run, nx);
       await fade(true, '', 0.6);
       if (c === 'home') return G.endNight(run, from);
     }
