@@ -110,17 +110,25 @@ document.getElementById('view').addEventListener('click', () => {
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last) / 1000); last = now; G.t += dt;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (G.capture) return;   // the trailer capture steps the frames itself (G.stepFrame)
+  stepFrame(dt);
+}
+/** One frame: update (or the cutscene's camera) and draw. */
+function stepFrame(dt) {
+  G.t += dt;
   const sc = G.scene;
   if (sc) {
-    if (!S.paused && !anyScreenOpen() || (sc.updateWhileOverlay && !S.paused)) sc.update(dt, G.t);
+    if (G.cine) G.cine.tick(dt, G.t);   // v0.23: a cutscene drives the camera; the scene itself stands still
+    else if (!S.paused && !anyScreenOpen() || (sc.updateWhileOverlay && !S.paused)) sc.update(dt, G.t);
     else if (sc.idle) sc.idle(dt, G.t);
     if (!(G.post && G.post(sc, dt))) R.renderer.render(sc.scene, G.camera);   // Lépcsőház draws through its camera effects (rogue/ui/post.js)
-    if (sc.vmRender) sc.vmRender(R.renderer);
+    if (sc.vmRender && !G.cine) sc.vmRender(R.renderer);
     updateListener(G.camera);
   }
   clearPressed();
 }
+G.stepFrame = stepFrame;
 
 // dialogue panels (<p><b>Who:</b> text</p>) get a babble voice when they appear
 new MutationObserver(muts => {

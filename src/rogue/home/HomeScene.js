@@ -401,6 +401,7 @@ export class HomeScene extends Walker {
     this.playing = false; this.G.unlock(); prompt(null); play('click', { vol: 0.4 });
     const r = await homeComputer(this.R, S.nick || '', thumb);
     persist();
+    if (r.intro) { await this.G.playIntro(); this.G.goRogue(); return; }   // v0.23: Help → watch the intro again
     if (this.R._rebuild) { this.R._rebuild = false; this.G.goRogue(); return; }   // new walls: build the flat again
     if (r.move) {
       const { moveUp } = await import('../logic/home.js');

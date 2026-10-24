@@ -108,3 +108,10 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
 ## Codes
 
 The classroom build asks for a code at the Lépcsőház door: PANELHAZ (accents and case don't matter). The teacher key opens it too.
+- v0.23 (25 Oct): item 8. `ui/cine.js` is a small cutscene engine: shots in the mode's scenes (built with `build()` but never `enter()`ed,
+  on a copy of the save), a camera gliding between keyframes `[x, y, z, yaw°, pitch°]`, letterbox text, a "figure says / you type"
+  overlay, sound cues. `main.js` calls `G.cine.tick(dt)` instead of the scene's update while one runs; `G.stepFrame(dt)` and
+  `G.capture` let `tools/ccap.py` render it frame by frame. `content/intro.js` is the intro (first start, and Help on the computer,
+  `record.intro` marks it seen); `content/trailer.js` is the trailer (`tools/ccap.py trailer 1 trailer`, then `tools/trailer_mix.py`).
+  The computer (`ui/homePanels.js`) is now a small desktop: apps in three groups (Your flat, You, Help), a status strip, new
+  "Your nights" (record) and "Save" (file, code, settings) and "How to play" apps.

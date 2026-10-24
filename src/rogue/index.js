@@ -2,7 +2,7 @@
 // A night: your flat -> the night menu (topic, difficulty, scores) -> the stairwell -> the walk (park or a liminal place)
 // -> the school or home -> the night's debrief. main.js gives G.switchScene; this file adds the rest.
 import { ingestPack } from '../core/assets.js';
-import { AU } from '../core/audio.js';
+import { AU, music } from '../core/audio.js';
 import { hud, loading, fade } from '../core/hud.js';
 import { S, persist } from '../core/state.js';
 import { ensureRogue, die, earn } from './save/rogueSave.js';
@@ -26,6 +26,9 @@ import { CARDS_FOR } from './content/paintings.js';
 import { routeStrip, hideRouteStrip } from './ui/fx.js';
 import { postRender } from './ui/post.js';
 import { R as RR } from '../core/render.js';
+import { playCine, cineMimic } from './ui/cine.js';
+import { INTRO, DEMO_HOME, INTRO_LOOPS } from './content/intro.js';
+import { TRAILER, TRAILER_OPTS } from './content/trailer.js';
 
 
 export function installRogue(G) {
@@ -35,9 +38,19 @@ export function installRogue(G) {
   tag.style.cssText = 'position:fixed;right:8px;bottom:6px;z-index:40;font:12px m5x7,monospace;color:#9a95b0;opacity:.75;pointer-events:none;display:none';
   document.body.appendChild(tag);
   const ROGUE = [HomeScene, Stairwell, Walk, School, Metro];
+  G.playCine = (shots, o) => playCine(G, shots, o); G.cineMimic = cineMimic;   // v0.23: cutscenes (the intro, the trailer)
+  /** v0.23: the intro cutscene (first start, and Help on the computer). Leaves the scene empty: the caller goes home after. */
+  G.playIntro = async () => {
+    hud(false); loading(false); await fade(false, '', 0.01);
+    try { await playCine(G, INTRO, { home: DEMO_HOME, loops: INTRO_LOOPS, music: 'mus_dark', musicVol: 0.25 }); }
+    catch (e) { console.error('intro', e); }
+    music(null);
+    const r = R(); r.record.intro = 1; persist();
+  };
+  G.playTrailer = () => playCine(G, TRAILER, { ...TRAILER_OPTS, loops: INTRO_LOOPS });   // tools/ccap.py renders it
   G.post = (sc, dt) => ROGUE.some(C => sc instanceof C) && postRender(RR.renderer, sc.scene, G.camera, dt);   // v0.19: camera effects (a setting)
   G.onScene = sc => {
-    const rogue = ROGUE.some(C => sc instanceof C); tag.style.display = rogue ? '' : 'none';
+    const rogue = ROGUE.some(C => sc instanceof C); tag.style.display = rogue && !G.cine ? '' : 'none';
     if (rogue && !(sc instanceof HomeScene) && G.run) routeStrip(G.run, stageName); else hideRouteStrip();
   };
   G.goRogue = async () => {
@@ -50,6 +63,7 @@ export function installRogue(G) {
     loading(false);
     const r = R(); persist();
     if (!r.life.floor) { await fade(false, '', 0.01); r.life.floor = await floorPicker(r); persist(); await fade(true, '', 0.01); }
+    if (!r.record.intro && !(r.record.nights || []).length && !G.noIntro) await G.playIntro();   // v0.23: the very first time: how a night works
     await G.switchScene(new HomeScene(G, r));
   };
   /** From the front door: the night menu, then the stairwell. Resolves false if you stay in. */

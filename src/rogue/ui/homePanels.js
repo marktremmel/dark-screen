@@ -1,5 +1,8 @@
 // Screens in your flat: the computer (notebook, shop, moving), the box of your things, and choosing what to keep.
-import { openScreen, closeScreen, saveToFile } from '../../ui/screens.js';
+import { openScreen, closeScreen, saveToFile, settingsScreen } from '../../ui/screens.js';
+import { exportCode } from '../../core/state.js';
+import { TOPICS } from '../content/walks.js';
+import { WALK_NAME } from '../logic/routes.js';
 import { mountMaker, preparePosters } from './posterMaker.js';
 import { play } from '../../core/audio.js';
 import { ITEMS, ITEM, FLATS, WALLS } from '../content/furniture.js';
@@ -19,16 +22,31 @@ const CARD = 'background:#1a1822;border:1px solid #2e2a3a;border-radius:10px;pad
 export function homeComputer(R, nick, thumb, tab0 = 'shop') {
   return new Promise(res => {
     const L = R.life, rec = R.record;
-    const el = openScreen(`<div class="panel" style="width:min(900px,95vw);max-height:94vh;overflow:auto"><h2>Your computer</h2>
-      <p class="sub" id="hd"></p>
-      <div class="btns" style="margin:4px 0 10px"><button class="btn" data-t="shop">Shop (bolt)</button><button class="btn" data-t="stickers">Stickers (matricák)</button><button class="btn" data-t="maker">Make a poster</button><button class="btn" data-t="notebook">Notebook (jegyzetfüzet)</button><button class="btn" data-t="flat">Your flat (lakás)</button><button class="btn" id="sf" style="margin-left:auto" title="Double-click the file later to open the game with this save">Save to a file</button><button class="btn" id="x">Close (Esc)</button></div>
-      <div id="body"></div></div>`);
+    // v0.23: the computer as a small desktop. The apps sit in three groups down the left; the status strip on top.
+    const APPS = [
+      ['Your flat', [['shop', 'Shop', 'bolt'], ['stickers', 'Stickers', 'matricák'], ['maker', 'Posters', 'poszter'], ['flat', 'The flat', 'lakás: falak, költözés']]],
+      ['You', [['notebook', 'Notebook', 'jegyzetfüzet'], ['record', 'Your nights', 'eredmények'], ['save', 'Save', 'mentés']]],
+      ['Help', [['help', 'How to play', 'súgó'], ['intro', 'Intro', 'bevezető']]],
+    ];
+    const el = openScreen(`<div class="panel" style="width:min(1000px,96vw);height:min(680px,94vh);display:flex;flex-direction:column;padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#121019;border-bottom:1px solid #2e2a3a">
+        <b style="font-family:m5x7,monospace;font-size:1.5em;letter-spacing:1px;color:#8fe3c9">PANEL·OS</b><span id="hd" style="display:flex;flex-wrap:wrap;gap:6px;flex:1"></span>
+        <button class="btn small" id="x">Close (Esc)</button></div>
+      <div style="display:flex;flex:1;min-height:0">
+        <nav id="nav" style="width:170px;flex:none;background:#0e0d14;border-right:1px solid #2e2a3a;padding:8px;overflow:auto">${APPS.map(([g, list]) => `<div style="font:12px m5x7,monospace;letter-spacing:2px;color:#77728a;text-transform:uppercase;margin:8px 6px 3px">${g}</div>` +
+          list.map(([id, name, hu]) => `<button class="btn" data-t="${id}" title="${hu}" style="display:block;width:100%;text-align:left;margin:2px 0;padding:5px 10px;font-size:.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</button>`).join('')).join('')}</nav>
+        <div id="body" style="flex:1;overflow:auto;padding:12px 16px"></div></div></div>`);
     const body = el.querySelector('#body');
     let tab = tab0;
-    const head = () => { el.querySelector('#hd').textContent = `${nick} · life ${L.id} · ${L.floor}. emelet · ${flatOf(L).name} · ${L.coins} coins · cosiness ${cosiness(L)} (nerve on the stairs: ${startNerve(L)})`; };
+    const chip = (a, b) => `<span style="background:#1c1a26;border:1px solid #2e2a3a;border-radius:20px;padding:2px 9px;font-size:.8em">${a}${b ? ` <span style="opacity:.55">${b}</span>` : ''}</span>`;
+    const head = () => { el.querySelector('#hd').innerHTML = [chip(esc(nick || 'you')), chip(`${L.floor}. emelet`, esc(flatOf(L).name)), chip(`${L.coins} coins`, 'zseton'), chip(`cosiness ${cosiness(L)}/30`, 'komfort'), chip(`nerve ${startNerve(L)}`, 'idegek'), chip(`${rec.notebook.length}/${CARD_COUNT} cards`)].join(''); };
     const draw = () => {
       head();
       el.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('primary', b.dataset.t === tab));
+      if (tab === 'record') return drawRecord();
+      if (tab === 'save') return drawSave();
+      if (tab === 'help') return drawHelp();
+      if (tab === 'intro') { done({ intro: true }); return; }
       if (tab === 'shop' || tab === 'stickers') {
         const FOLDERS = [['cozy', 'Cosy (Mark\'s sheet)'], ['retro', 'Retro city'], ['cartoon', 'Cartoon'], ['sticker', 'Street stickers'], ['sign', 'Signs']];
         const fold = it => FOLDERS.find(([k]) => it.id.startsWith('s_' + k))?.[0];
@@ -60,12 +78,42 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
         body.querySelectorAll('[data-wall]').forEach(b => b.onclick = () => { L.wall = b.dataset.wall; R._rebuild = true; draw(); });
       }
     };
+    const drawRecord = () => {
+      const ns = rec.nights || [], b = rec.best || {}, tp = rec.topics || {};
+      const stat = (n, l) => `<div style="background:#1a1822;border:1px solid #2e2a3a;border-radius:10px;padding:10px 12px;min-width:120px"><div style="font:28px m5x7,monospace;color:#f2e6cf">${n}</div><div class="sub" style="font-size:.78em">${l}</div></div>`;
+      const OUT = { full: 'the whole night', home: 'went home early', death: 'lost the flat', labyrinth: 'the labyrinth' };
+      body.innerHTML = `<h3 style="margin-top:0">Your nights (eredmények)</h3><div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${stat(Object.values(tp).reduce((a, c) => a + c, 0), 'nights out')}${stat(rec.xp, 'XP, all lives')}${stat(b.wpm || 0, 'best typing (wpm)')}${stat(b.xp || 0, 'best night (XP)')}${stat(b.rooms || 0, 'labyrinth rooms')}${stat(rec.descents, 'ground floor reached')}${stat(rec.deaths, 'flats lost')}</div>
+        <h3>The last nights</h3>${ns.length ? `<table style="width:100%;border-collapse:collapse;font-size:.88em">${ns.slice(0, 12).map(n => `<tr style="border-bottom:1px solid #2a2636"><td style="padding:5px 4px">${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td style="opacity:.75">${esc(WALK_NAME[n.walk] || '')}</td><td>${esc(OUT[n.outcome] || n.outcome || '')}</td><td style="text-align:right">+${n.xp} XP</td><td style="text-align:right;opacity:.75">${n.wpm} wpm</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet. The front door is waiting.</p>'}
+        <h3>Topics you have met</h3><div style="display:flex;flex-wrap:wrap;gap:6px">${Object.entries(TOPICS).map(([id, T]) => chip(esc(T.title), tp[id] ? '×' + tp[id] : 'not yet')).join('')}</div>`;
+    };
+    const drawSave = () => {
+      const code = exportCode();
+      body.innerHTML = `<h3 style="margin-top:0">Save (mentés)</h3><p>Your flat and your notebook save by themselves on this computer. To take them to another computer, or to hand them in to your teacher, use one of these.</p>
+        <div style="${PAPER}"><b>A save file.</b> It goes to your Downloads folder. Double-click it later and the game opens with your save.<div class="btns" style="margin-top:8px"><button class="btn primary" id="sf">Save to a file</button></div></div>
+        <div style="${PAPER}"><b>A save code (mentési kód).</b> Paste it into your reflection sheet, or load it on the title screen of another computer.<textarea id="cd" readonly style="width:100%;height:80px;margin-top:6px">${esc(code)}</textarea><div class="btns" style="margin-top:6px"><button class="btn" id="cp">Copy the code</button></div></div>
+        <p class="sub" id="m"></p><div class="btns"><button class="btn" id="st">Settings (beállítások)</button></div>`;
+      const msg = t => { body.querySelector('#m').textContent = t; };
+      body.querySelector('#sf').onclick = () => { saveToFile(); msg('Saved to your Downloads folder.'); };
+      body.querySelector('#cp').onclick = () => { const t = body.querySelector('#cd'); t.select(); try { navigator.clipboard.writeText(code).then(() => msg('Copied.')).catch(() => { document.execCommand('copy'); msg('Copied.'); }); } catch (e) { document.execCommand('copy'); msg('Copied.'); } };
+      body.querySelector('#st').onclick = () => { removeEventListener('keydown', key, true); el.style.visibility = 'hidden'; settingsScreen(() => { el.style.visibility = ''; addEventListener('keydown', key, true); }); };
+    };
+    const drawHelp = () => {
+      const row = (k, t) => `<div style="${PAPER}"><b>${k}</b><br>${t}</div>`;
+      body.innerHTML = `<h3 style="margin-top:0">How to play (súgó)</h3>
+        ${row('A night', 'Go out through the front door. Choose tonight\'s topic and how hard it is; the route is picked for you. You can come home after any stage and keep what you earned.')}
+        ${row('The stairwell', 'Learn what a normal landing looks like. Something different (a red bulb, a note, a strange notice)? Go back up. All normal? Go down. A wrong call sends you to the yellow rooms.')}
+        ${row('The walk', 'Stand still and read what the figures say, then type the safe reply before they reach you. At the exit, type tonight\'s rules back.')}
+        ${row('Nerve (idegek)', 'Mistakes cost nerve. A cosy flat, a meal and a rest give you more. Run out and you lose the flat, but the notebook stays.')}
+        ${row('Keys', 'Mouse to look, W A S D to walk, Shift to run (it is loud), E to use, F for the torch, Esc to pause.')}
+        <div class="btns"><button class="btn primary" id="iv">Watch the intro again</button></div>`;
+      body.querySelector('#iv').onclick = () => done({ intro: true });
+    };
     const key = e => { if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); done({}); } };
     const done = r => { removeEventListener('keydown', key, true); closeScreen(el); res(r); };
     setTimeout(() => addEventListener('keydown', key, true), 150);
     el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
     el.querySelector('#x').onclick = () => done({});
-    el.querySelector('#sf').onclick = () => { saveToFile(); el.querySelector('#hd').textContent = 'Saved to your Downloads folder. Double-click the file to open the game with this save.'; };
     draw();
   });
 }
