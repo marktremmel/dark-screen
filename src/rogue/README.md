@@ -94,7 +94,8 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
 - v0.12 (24 Oct): T4 and T12 lines; gentle figures on the kindness night; flicker fixes (texture filtering in core/assets.js,
   z-fighting in the park); sharper posters; a real QR code (content/qr.js); fog and glare; the flat is lived in (sit, lie, eat,
   TV, walls, LED strips with the hack in ui/ledApp.js); poster sizing; the Metro_PSX subway car. Doc 04 has the details.
-- Next: the underpass walk, payphone and design detective encounters, T8 home jobs.
+- v0.13 (24 Oct): the underpass walk (heyheythere kits), the payphone on every walk (content/calls.js), gym glare overlay.
+- Next: design detective, T8 home jobs, monsters second pass.
 
 ## Codes
 

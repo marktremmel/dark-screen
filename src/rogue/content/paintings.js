@@ -20,5 +20,5 @@ export const PAINTINGS = [
   ["pt_warm_light_cold_stairwell", 1.5, "Going out"],
 ];
 /** Title cards: which painting opens which stage. */
-export const CARDS_FOR = { stairs: 'pt_warm_light_cold_stairwell', park: 'pt_misty_twilight_park_with_tram_glow', hotel: 'pt_endless_teal_hallway_with_cat_posters',
+export const CARDS_FOR = { stairs: 'pt_warm_light_cold_stairwell', park: 'pt_misty_twilight_park_with_tram_glow', hotel: 'pt_endless_teal_hallway_with_cat_posters', underpass: 'pt_empty_underground_passageway_2',
   school: 'pt_midnight_school_hallway_glow', metro: 'pt_midnight_metro_empty_platform_glow' };

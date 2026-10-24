@@ -70,7 +70,7 @@ export async function ingestPack(name, audioCtx, onProgress) {
   // modular kits: many small GLB pieces sharing one atlas texture (external 'atlas.png')
   for (const [kit, K] of Object.entries(P.kits || {})) {
     const atlasURL = 'data:image/png;base64,' + K.atlas;
-    const mgr = new THREE.LoadingManager(); mgr.setURLModifier(u => /atlas\.png$/.test(u) ? atlasURL : u);
+    const mgr = new THREE.LoadingManager(); mgr.setURLModifier(u => /atlas[^/]*\.png$/.test(u) ? atlasURL : u);   // atlas_glow.png too (its glow is not used)
     const kl = new GLTFLoader(mgr);
     for (const [k, v] of Object.entries(K.pieces)) jobs.push(async () => {
       const g = await kl.parseAsync(b64ToBuf(v), 'kit/');

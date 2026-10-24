@@ -11,7 +11,7 @@ export const DIFFS = {
     anomaly: 0.55, back: Infinity, nerveLoss: 1.4, speed: 1.25, typeTime: 0.8, light: 20, reward: 1.5 },
 };
 
-export const WALKS = ['park', 'backrooms', 'hotel', 'pool'];
+export const WALKS = ['park', 'backrooms', 'hotel', 'pool', 'underpass'];
 
 /** Pick tonight's topic: themes you have met least come first, never the same as last night. */
 export function pickTopic(r, record) {

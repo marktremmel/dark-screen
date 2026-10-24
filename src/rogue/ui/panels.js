@@ -116,7 +116,7 @@ export function nightMenu(R, o) {
   return new Promise(res => {
     const rec = R.record, best = rec.best || { xp: 0, wpm: 0, stages: 0 }, nights = rec.nights || [];
     let diff = (R.options && R.options.diff) || 'normal', topic = o.topic;
-    const WALK = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool' };
+    const WALK = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool', underpass: 'the underpass' };
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Tonight</h2>
       <div style="${PAPER};margin:6px 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S TOPIC</span><br><b id="tt"></b> <span id="th" style="color:#7a6a50"></span>
         <br><span style="font-size:.85em">The stairwell, the walk and the cards tonight are mostly about this.</span></div>
@@ -150,7 +150,7 @@ export function testPanel(R, o) {
       <div class="btns">${Object.values(DIFFS).map(d => `<button class="btn small" data-d="${d.id}">${d.label}</button>`).join('')}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:8px">
         ${B('stairs', 'Stairwell', 'from your floor')}${B('maze', 'The yellow maze', 'as after a wrong call')}
-        ${B('walk:park', 'Walk: the park')}${B('walk:backrooms', 'Walk: the yellow rooms')}${B('walk:hotel', 'Walk: the hotel corridor')}${B('walk:pool', 'Walk: the empty pool')}
+        ${B('walk:park', 'Walk: the park')}${B('walk:backrooms', 'Walk: the yellow rooms')}${B('walk:hotel', 'Walk: the hotel corridor')}${B('walk:pool', 'Walk: the empty pool')}${B('walk:underpass', 'Walk: the underpass')}
         ${B('school:feed:phone', 'School: screens + phone', 'the Feed, the Watcher, the found phone')}${B('school:fuse:phone', 'School: fuses + phone', 'permissions, the Watcher, the phone')}
         ${B('school:feed:chorus', 'School: screens + Chorus', 'the Feed, the Watcher, Dani')}${B('school:fuse:chorus', 'School: fuses + Chorus', 'permissions, the Watcher, Dani')}
         ${B('metro', 'Metro', 'the posts and the Collector')}${B('coins', '+500 coins', 'for testing the shop')}

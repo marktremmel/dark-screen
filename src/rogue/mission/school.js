@@ -387,6 +387,10 @@ export class School extends Walker {
       c.gl.scale.setScalar(c.glare); c.gl.material.opacity = 0.25 + c.glare * 0.6;
       c.n.update(dt); c.scr.material.opacity = Math.random() < 0.04 ? 0.5 : 1;
     }
+    // a full-screen glare when the phones point at you (Mark: more blinding)
+    { const on = C.crowd.filter(c => c.state === 'on'), g = on.length ? on.reduce((a, c) => a + Math.max(0, (c.glare || 0.3) - 0.3), 0) / on.length / 0.55 : 0;
+      if (!this.glareEl) { const e = this.glareEl = document.createElement('div'); e.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at 50% 55%, rgba(225,235,255,.95) 0%, rgba(170,195,255,.45) 35%, rgba(120,150,255,0) 75%);opacity:0'; document.body.appendChild(e); }
+      this.glareEl.style.opacity = (Math.min(1, g) * 0.55 * (0.9 + Math.random() * 0.1)).toFixed(3); }
     if (Object.keys(C.done).length === 4) return;
     if (!C.done.stand && Math.hypot(p.x - C.center.x, p.z - (C.center.z + 0.6)) < 1.3) { C.standT += dt; if (C.standT > 2.5) this.chorusDone('stand'); } else C.standT = 0;
     C.jeerT -= dt;
@@ -502,7 +506,7 @@ export class School extends Walker {
     if (next === 'metro') this.G.goMetro(this.run); else this.G.endNight(this.run, 'school');
   }
   quit() { this.playing = false; if (this.lensEl) this.lensEl.style.display = 'none'; fade(true, '', 0.6).then(() => this.G.endNight(this.run, 'home')); }
-  exit() { super.exit(); if (this.lensEl) { this.lensEl.remove(); this.lensEl = null; } }
+  exit() { super.exit(); if (this.lensEl) { this.lensEl.remove(); this.lensEl = null; } if (this.glareEl) { this.glareEl.remove(); this.glareEl = null; } }
 
   // ---------- flow ----------
   async enter() {

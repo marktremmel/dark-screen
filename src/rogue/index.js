@@ -23,7 +23,7 @@ import { VERSION } from './config.js';
 import { titleCard } from './ui/titleCard.js';
 import { CARDS_FOR } from './content/paintings.js';
 
-const WALK_NAME = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool' };
+const WALK_NAME = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool', underpass: 'the underpass' };
 
 export function installRogue(G) {
   const R = () => ensureRogue(S.save);
@@ -77,6 +77,7 @@ export function installRogue(G) {
   G.goWalk = async run => {
     hud(false); loading(true, 0, 'Outside…');
     if (run.walk === 'park') await ingestPack('park', AU.ctx, f => loading(true, f * 0.5));
+    if (run.walk === 'underpass') await ingestPack('underpass', AU.ctx, f => loading(true, f * 0.5));
     await ingestPack('npc', AU.ctx, f => loading(true, 0.5 + f * 0.5));
     loading(false);
     if (CARDS_FOR[run.walk]) await titleCard(CARDS_FOR[run.walk], WALK_NAME[run.walk][0].toUpperCase() + WALK_NAME[run.walk].slice(1), TOPICS[run.topic].title);

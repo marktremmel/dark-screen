@@ -23,6 +23,8 @@ import { TOPICS } from '../content/walks.js';
 import { GATE } from '../content/school.js';
 import { Mimic } from '../entities/mimic.js';
 import { walkExitChoice } from '../ui/panels.js';
+import { callPanel } from '../ui/missionPanels.js';
+import { CALLS } from '../content/calls.js';
 import { typeOne, captureKeys, LabelLayer, SpeechBox } from '../ui/typing.js';
 
 const PX = z => 2.4 * Math.sin(z / 10);               // the park path's centre line
@@ -31,6 +33,8 @@ const STYLE = {
     intro: 'You open the street door. It is not the street.\nYellow wallpaper, damp carpet, a hum in the lights.' },
   hotel: { bg: 0x120606, fog: [2, 14], wall: 'rg_hotel_wall', floor: 'rg_hotel_carpet', ceil: 'rg_white', light: 0xffb070, panel: 0xffd8a0, hemi: [0xffc8a0, 0x200808, 0.45], h: 2.9, drone: 'rg_drone_stair', doors: true,
     intro: 'You open the street door. It is not the street.\nA hotel corridor. Every door has a number, and none of them open.' },
+  underpass: { bg: 0x07090c, fog: [2, 14], wall: 'up_wall', floor: 'up_floor', ceil: 'up_ceil', light: 0xd8ecff, panel: 0xe0f0ff, hemi: [0x9ab8c0, 0x0c1012, 0.32], h: 3.0, drone: 'rg_drone_stair', props: 'underpass',
+    intro: 'You open the street door. It is not the street.\nStairs down into the underpass. Tiles, shutters, a ticket machine nobody has used in years.' },
   pool: { bg: 0x061418, fog: [2, 16], wall: 'rg_pool_white', floor: 'rg_pool_blue', ceil: 'rg_white', light: 0xbfe8ff, panel: 0xe8f8ff, hemi: [0xd0f0ff, 0x082028, 0.6], h: 3.2, drone: 'rg_drone_yellow',
     intro: 'You open the street door. It is not the street.\nWhite tiles, blue tiles, cold light. Somewhere, water drips.' },
 };
@@ -56,6 +60,38 @@ export class Walk extends Walker {
     // route length and wave positions (along the route)
     this.routeLen = []; let acc = 0; for (let i = 0; i < this.route.length; i++) { if (i) acc += this.route[i].distanceTo(this.route[i - 1]); this.routeLen.push(acc); }
     if (!this.waveAt) this.waveAt = [0.2, 0.47, 0.74].map(f => f * acc);
+    this.buildPayphone(g);
+  }
+  /** A payphone between the first two waves. It rings as you come near: a familiar voice in a hurry. */
+  buildPayphone(g) {
+    const want = (this.waveAt[0] + this.waveAt[1]) / 2; let i = this.routeLen.findIndex(l => l >= want); if (i < 1) i = 1;
+    const a = this.route[i - 1], b = this.route[i], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz) || 1;
+    const side = this.r() < 0.5 ? 1 : -1, nx = -dz / d * side, nz = dx / d * side, off = this.kind === 'park' ? 1.8 : 1.32;
+    const o = new THREE.Group(); o.position.set(b.x + nx * off, 0, b.z + nz * off); o.rotation.y = Math.atan2(-nx, -nz); g.add(o);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.62, 0.22), psxMat({ map: canvasTex(42, 62, c => {
+      c.fillStyle = '#2a4a8a'; c.fillRect(0, 0, 42, 62); c.fillStyle = '#e8e4d8'; c.fillRect(4, 4, 34, 9); c.fillStyle = '#1a2a4a'; c.font = '8px m5x7'; c.textBaseline = 'top'; c.fillText('TELEFON', 6, 4);
+      c.fillStyle = '#c8c8c8'; for (let y = 0; y < 4; y++) for (let x = 0; x < 3; x++) c.fillRect(13 + x * 6, 22 + y * 6, 4, 4); c.fillStyle = '#111'; c.fillRect(8, 48, 26, 6);
+    }) }));
+    body.position.y = 1.35; o.add(body);
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.07), psxMat({ color: 0x15161a })); hand.position.set(-0.27, 1.38, 0.05); o.add(hand);
+    if (this.kind === 'park') { const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.1, 0.12), psxMat({ color: 0x3a3e44 })); post.position.y = 0.55; o.add(post); }
+    const calls = CALLS.filter(c => this.run.topic !== 'T2' || c.id !== 'bank_pin');
+    this.payphone = { o, pos: new THREE.Vector3(o.position.x, 0, o.position.z), call: calls[Math.floor(this.r() * calls.length)], done: false, ringT: 0 };
+  }
+  async answerPhone() {
+    const P = this.payphone; if (!P || P.done || this.typing || this.wave) return;   // never during a wave (its typing owns the keys)
+    P.done = true; this.playing = false; this.G.unlock(); prompt(null); play('pickup', { vol: 0.5 });
+    const r = await callPanel(P.call, async (text, title) => {
+      this.typing = true; const t0 = performance.now();
+      const res = await typeOne({ text, title, time: timeFor(text, 6, 0.45) * this.D.typeTime });
+      this.typing = false; if (res.ok) { this.run.typedChars += text.length; this.run.typeMs += performance.now() - t0; }
+      return res;
+    });
+    const c = P.call;
+    if (r === 'callback') { this.gain(15, 3); const isNew = noteCard(this.R, 'c:' + c.id); if (isNew) this.run.cards++; this.run.lessons.push({ zone: 'walk', theme: 'T2', title: 'Called back on the number you know', text: c.lesson }); caption('You checked, and you were right to.' + (isNew ? ' New notebook card.' : ''), 'say', 4); }
+    else if (r === 'question') { this.gain(8, 1); caption('A question only they would know: the voice could not answer.', 'say', 4); }
+    else if (r === 'gave') { this.run.lessons.push({ zone: 'walk', theme: 'T2', title: 'Call back on the number you know', text: c.lesson }); if (nerve(this.R, -Math.round(10 * this.D.nerveLoss))) { this.playing = false; this.G.loseLife(this.run); return; } caption('Nerve −10. You will know the trick next time.', 'say', 4); }
+    persist(); this.updateHud(); this.playing = true; lockPointer();
   }
 
   // ---------- the park ----------
@@ -209,6 +245,7 @@ export class Walk extends Walker {
       const no = 200 + i; const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.08), new THREE.MeshLambertMaterial({ map: canvasTex(40, 16, c => { c.fillStyle = '#c9a248'; c.fillRect(0, 0, 40, 16); c.fillStyle = '#2a1e0c'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText(String(no), 6, 0); }) }));
       plate.position.copy(d.position).add(new THREE.Vector3(-nx * 0.01, 0.6, -nz * 0.01)); plate.rotation.y = d.rotation.y; g.add(plate);
     });
+    if (st.props === 'underpass') this.dressUnderpass(g, route, pts, W, H);
     // the street door behind you, and the exit at the end
     const back = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 2.05), psxMat({ map: tex('rg_flatdoor'), color: 0x9a8a78 }));
     back.position.set(0, 1.025, rects[0].z1 - 0.16); back.rotation.y = Math.PI; g.add(back);
@@ -223,6 +260,42 @@ export class Walk extends Walker {
     this.drone = st.drone; this.amb = null; this.intro = st.intro;
     // waves start a little way into segments 2, 3 and 4, so the figures come down a straight stretch
     this.waveAt = [1, 2, 3].map(i => lens.slice(0, i).reduce((a, b) => a + b, 0) + 2.5);
+  }
+
+  /** The underpass: kiosks with their shutters down, machines, benches, bins, signs, graffiti stickers on the tiles. */
+  dressUnderpass(g, route, pts, W, H) {
+    const r = this.r, col = this.col;
+    const shutter = canvasTex(64, 64, c => { c.fillStyle = '#5a5e64'; c.fillRect(0, 0, 64, 64); for (let y = 0; y < 64; y += 4) { c.fillStyle = y % 8 ? '#6a6e74' : '#44474c'; c.fillRect(0, y, 64, 2); } c.fillStyle = 'rgba(30,20,10,.35)'; c.fillRect(0, 50, 64, 14); });
+    const stickers = Object.keys(A.img).filter(k => k.startsWith('st_sticker') || k.startsWith('st_sign'));
+    const stickerMat = {};
+    const PROPS = ['up_bench_metro', 'up_bin_metro', 'up_ticket_machine', 'pm_fire_cabinet', 'shutter', 'shutter', 'up_poster_hills', 'pm_bench_hall'];
+    route.forEach((p, i) => {
+      if (i < 2 || pts.some(c => Math.hypot(c.x - p.x, c.z - p.z) < 2.4)) return;   // not by the street door, not at corners
+      const q = route[Math.min(route.length - 1, i + 1)], dx = Math.sign(q.x - p.x), dz = Math.sign(q.z - p.z);
+      for (const side of [-1, 1]) {
+        if (r() < 0.45) continue;
+        const nx = -dz * side, nz = dx * side, ry = Math.atan2(-nx, -nz), wx = p.x + nx * (W / 2), wz = p.z + nz * (W / 2);
+        const kind = PROPS[Math.floor(r() * PROPS.length)];
+        if (kind === 'shutter') {
+          const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.4), psxMat({ map: shutter })); m.position.set(wx - nx * 0.01, 1.2, wz - nz * 0.01); m.rotation.y = ry; g.add(m);
+        } else if (kind === 'up_poster_hills') {
+          const o = place(g, kind, wx - nx * 0.03, 1.1, wz - nz * 0.03, ry * 180 / Math.PI);
+        } else {
+          place(g, kind, wx - nx * 0.45, 0, wz - nz * 0.45, ry * 180 / Math.PI, { col, shrink: 0.05 });
+        }
+        // graffiti: stickers on the tiles
+        if (stickers.length && r() < 0.85) {
+          const k = stickers[Math.floor(r() * stickers.length)];
+          if (!stickerMat[k]) { const im = new Image(), t = new THREE.Texture(im), rec = { meshes: [] }; t.colorSpace = THREE.SRGBColorSpace; im.onload = () => { t.needsUpdate = true; rec.a = im.width / im.height; for (const m of rec.meshes) m.scale.x = rec.a; }; im.src = A.img[k]; rec.mat = new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.4, color: 0xb8b4ac, polygonOffset: true, polygonOffsetFactor: -2 }); stickerMat[k] = rec; }
+          const ss = 0.35 + r() * 0.35, sm = new THREE.Mesh(new THREE.PlaneGeometry(ss, ss), stickerMat[k].mat); stickerMat[k].meshes.push(sm); if (stickerMat[k].a) sm.scale.x = stickerMat[k].a; sm.position.set(wx - nx * 0.02 + dx * (r() - 0.5), 0.9 + r() * 1.2, wz - nz * 0.02 + dz * (r() - 0.5)); sm.rotation.y = ry; sm.rotation.z = (r() - 0.5) * 0.6; g.add(sm);
+        }
+      }
+      // signs hanging from the ceiling now and then
+      if (i % 7 === 3) { const k = r() < 0.5 ? 'up_departure_board' : 'up_sign_way_out'; const o = place(g, k, p.x, H - 1.55, p.z, Math.atan2(dx, dz) * 180 / Math.PI); }
+    });
+    // a line of fare gates across the second stretch: the middle one is open
+    const p2 = pts[1], [fx, fz] = [Math.sign(pts[2].x - p2.x), Math.sign(pts[2].z - p2.z)], gp = p2.clone().addScaledVector(new THREE.Vector3(fx, 0, fz), 4);
+    for (const o of [-1, 1]) place(g, 'up_fare_gate', gp.x + (-fz) * o * 1.0, 0, gp.z + fx * o * 1.0, Math.atan2(fx, fz) * 180 / Math.PI, { col, shrink: 0.05 });
   }
 
   // ---------- flow ----------
@@ -394,9 +467,13 @@ export class Walk extends Walker {
     else if (this.st.wave < 3 && this.progress() > this.waveAt[this.st.wave]) this.startWave();
     this.updateFlash(dt); this.updateArms(dt, t);
     this._h = (this._h || 0) + dt; if (this._h > 0.25) { this._h = 0; this.updateHud(); }
+    // the payphone rings while you are near and have not answered
+    const P = this.payphone;
+    if (P && !P.done) { const dp = Math.hypot(this.player.pos.x - P.pos.x, this.player.pos.z - P.pos.z); P.ringT -= dt; if (dp < 14 && P.ringT <= 0) { P.ringT = 3.6; play('phonering', { vol: 0.45, pos: [P.pos.x, 1.4, P.pos.z] }); } }
     if (!this.wave && !this.typing) {
       const p = this.player.pos;
-      if (this.st.wave >= 3 && Math.hypot(p.x - this.exitAt.x, p.z - this.exitAt.z) < 2.6) {
+      if (P && !P.done && Math.hypot(p.x - P.pos.x, p.z - P.pos.z) < 1.8) { prompt('The payphone is ringing: E to answer'); if (wasPressed('KeyE')) this.answerPhone(); }
+      else if (this.st.wave >= 3 && Math.hypot(p.x - this.exitAt.x, p.z - this.exitAt.z) < 2.6) {
         prompt(this.kind === 'park' ? 'The far gate: type tonight\'s rules to open it' : 'The EXIT door: type tonight\'s rules to open it');
         if (wasPressed('KeyE')) this.gate();
       } else if (this.st.wave < 3 && Math.hypot(p.x - this.exitAt.x, p.z - this.exitAt.z) < 2.6) prompt('Locked. Something is still out there in the dark behind you.');

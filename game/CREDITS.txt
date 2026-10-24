@@ -44,6 +44,8 @@ Lépcsőház (the stairwell mode)
   Paintings, sticker sheets and concept art: Mark Tremmel (generated for the game)
   Stickers and signs: Urban Grunge decal pack by Designsoup
   Subway car: Metro_PSX pack
+  Low Poly Subway Free by heyheythere - https://heyheythere.itch.io/low-poly-subway-free - CC BY 4.0
+  PSX Metro Kit Free by heyheythere - https://heyheythere.itch.io/psx-metro-kit-free - CC BY 4.0
   Train station sounds: field recordings by Okutasan (okutasan.itch.io)
 
 Engine
