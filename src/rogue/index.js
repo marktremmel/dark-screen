@@ -37,7 +37,9 @@ export function installRogue(G) {
     G.unlock(); hud(false); loading(true, 0, 'Lépcsőház v' + VERSION + '…');
     await ingestPack('ep1', AU.ctx, f => loading(true, f * 0.6));
     await ingestPack('ep9', AU.ctx, f => loading(true, 0.6 + f * 0.25));     // grandma's furniture for the shop
-    await ingestPack('rogue', AU.ctx, f => loading(true, 0.85 + f * 0.15));
+    await ingestPack('rogue', AU.ctx, f => loading(true, 0.85 + f * 0.1));
+    await ingestPack('gallery', AU.ctx, f => loading(true, 0.95 + f * 0.03));
+    await ingestPack('npc', AU.ctx, f => loading(true, 0.98 + f * 0.02));   // the visitor in the flat   // Mark's paintings at full size, for the flat
     loading(false);
     const r = R(); persist();
     if (!r.life.floor) { await fade(false, '', 0.01); r.life.floor = await floorPicker(r); persist(); await fade(true, '', 0.01); }

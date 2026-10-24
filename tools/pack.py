@@ -43,9 +43,10 @@ PACKS={
    'rg_y_wall':('rogue/wallpaper_backrooms_yellow.png',128),'rg_y_carpet':('rogue/carpet_backrooms_damp.png',128),'rg_y_ceil':('rogue/ceiling_tiles_acoustic.png',128),'rg_y_light':('rogue/ceiling_light_panel.png',128),
    'rg_hotel_carpet':('rogue/hotel_carpet.png',128),'rg_hotel_wall':('rogue/hotel_wall.png',128),'rg_pool_blue':('rogue/pool_blue.png',128),'rg_pool_white':('rogue/pool_white.png',128),'rg_stripe':('rogue/stripe_mustard.png',128)},
    'jpg':['gen/sm_'+n for n in 'ep3_cat ep3_cake ep5_noodles ep5_skate ep3_bench ep5_cat_fail ep4_meme ep6_school_front ep3_window ep3_rink1 ep9_courtyard ep3_selfie ep5_bedroom ep9_stairwell ep9_family_photo ep6_morning'.split()],
-   'paint':sorted(f[:-4] for f in os.listdir('assets_src/paint') if f.endswith('.jpg')) if os.path.isdir('assets_src/paint') else [],
+   'paint':['warm_light_cold_stairwell','misty_twilight_park_with_tram_glow','endless_teal_hallway_with_cat_posters','midnight_school_hallway_glow','midnight_metro_empty_platform_glow','empty_underground_passageway_2'],   # title cards only; posters come from the gallery pack
    'stickers':sorted(f[:-4] for f in os.listdir('assets_src/stickers') if f.endswith('.png')) if os.path.isdir('assets_src/stickers') else [],
    'audio':['rg_drone_stair','rg_drone_yellow','rg_signal1','rg_signal2','lightsw','knock','phonering','door_close','presence','stinger']},
+ 'gallery':{'gallery':sorted(f[:-4] for f in os.listdir('assets_src/gallery') if f.endswith('.jpg')) if os.path.isdir('assets_src/gallery') else []},
  'underpass':{'kits':{'lpsub':('kits/lpsub','up_',1024,['bench_metro','bin_metro','departure_board','fare_gate','lamp_trough_metro','sign_way_out','ticket_machine','poster_hills']),'psxmetro':('kits/psxmetro','pm_',1024,['column','fire_cabinet','bench_hall','station_name'])},
    'tex':{'up_wall':('kits/lpsub/textures/wall_metro.png',128),'up_dado':('kits/lpsub/textures/wall_metro_dado.png',128),'up_floor':('kits/lpsub/textures/floor_platform.png',128),'up_ceil':('kits/lpsub/textures/ceiling_metro.png',128),'pm_granite':('kits/psxmetro/textures/granite_grey.png',128)}},
  'metro':{'glb':['mp_metro'],'audio':['rg_train_pass','rg_station_bell'],'kits':{'subway':('kits/subway','sw_',512,['mod_ceiling_tall','mod_platform_edge','mod_platform_floor','mod_track_straight','mod_wall_tall','prop_bench_01','prop_bin_01','prop_timetable_01','prop_turnstile_01','prop_worklight_01'])}},
@@ -77,6 +78,7 @@ for name,P in PACKS.items():
             buf=io.BytesIO(); im.save(buf,'JPEG',quality=84); d['img'][os.path.basename(i)]='data:image/jpeg;base64,'+base64.b64encode(buf.getvalue()).decode()
         elif os.path.exists(f'build/{i}.jpg'): d['img'][os.path.basename(i)]='data:image/jpeg;base64,'+b64(f'build/{i}.jpg')
         else: print('  (missing picture, skipped:',i,')')
+    for n in P.get('gallery',[]): d['img']['gl_'+n]='data:image/jpeg;base64,'+b64(f'{SRC}/gallery/{n}.jpg')   # full resolution, as Mark made them
     for n in P.get('paint',[]):
         im=Image.open(f'{SRC}/paint/{n}.jpg').convert('RGB'); im.thumbnail((1024,1024),Image.LANCZOS); buf=io.BytesIO(); im.save(buf,'JPEG',quality=84)
         d['img']['pt_'+n]='data:image/jpeg;base64,'+base64.b64encode(buf.getvalue()).decode()

@@ -7,6 +7,7 @@ import { CARDS, CARD_COUNT } from '../content/cards.js';
 import { THEMES } from '../content/themes.js';
 import { buy, cosiness, startNerve, flatOf, owned } from '../logic/home.js';
 
+let stickerFolder = 'cozy';   // the open sticker folder in the shop (not saved)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const PAPER = 'background:#ece6d6;color:#1d1a14;border-radius:3px;padding:10px 12px;margin:8px 0;box-shadow:0 3px 12px rgba(0,0,0,.5);font-family:Georgia,serif;line-height:1.4';
 const CARD = 'background:#1a1822;border:1px solid #2e2a3a;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center';
@@ -29,12 +30,17 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
       head();
       el.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('primary', b.dataset.t === tab));
       if (tab === 'shop' || tab === 'stickers') {
-        const list = ITEMS.filter(it => !it.custom && !!it.sticker === (tab === 'stickers'));
+        const FOLDERS = [['cozy', 'Cosy (Mark\'s sheet)'], ['retro', 'Retro city'], ['cartoon', 'Cartoon'], ['sticker', 'Street stickers'], ['sign', 'Signs']];
+        const fold = it => FOLDERS.find(([k]) => it.id.startsWith('s_' + k))?.[0];
+        let list = ITEMS.filter(it => !it.custom && !!it.sticker === (tab === 'stickers'));
+        if (tab === 'stickers') { list = list.filter(it => fold(it) === stickerFolder); }
         body.innerHTML = `<p class="sub" style="margin-top:0">${tab === 'stickers' ? 'Stick them on any wall. Two stickers add one cosiness point.' : 'What you buy goes into the box by the door. Take it out of the box to place it. Small things (a TV, a vase, a frame) can go on top of tables and shelves. Cosiness (komfort) adds to your nerve on the stairs, up to +30.'}</p>
+          ${tab === 'stickers' ? `<div class="btns" style="margin:0 0 8px;flex-wrap:wrap">${FOLDERS.map(([k, n]) => `<button class="btn small ${stickerFolder === k ? 'primary' : ''}" data-sf="${k}">${n} (${ITEMS.filter(it => it.sticker && fold(it) === k).length})</button>`).join('')}</div>` : ''}
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${tab === 'stickers' ? 100 : 130}px,1fr));gap:8px">${list.map(it => `<div style="${CARD}">
           <img src="${thumb(it)}" style="width:${it.sticker ? 76 : 96}px;height:${it.sticker ? 76 : 96}px;object-fit:contain;image-rendering:${it.sticker ? 'auto' : 'pixelated'};border-radius:6px;background:#0c0b12">
           <b style="font-size:.85em">${esc(it.name)}</b><span class="sub" style="font-size:.72em">${esc(it.hu)} · +${it.cosy < 1 ? '½' : it.cosy} cosy${L.inv[it.id] ? ` · ${L.inv[it.id]} in the box` : ''}</span>
           <button class="btn small ${L.coins >= it.price ? 'primary' : ''}" data-buy="${it.id}" ${L.coins >= it.price ? '' : 'disabled style="opacity:.45"'}>${it.price} coins</button></div>`).join('')}</div>`;
+        body.querySelectorAll('[data-sf]').forEach(b => b.onclick = () => { stickerFolder = b.dataset.sf; draw(); });
         body.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { if (buy(L, b.dataset.buy)) { play('beep', { vol: 0.3, rate: 1.4 }); R._dirty = true; draw(); } });
       } else if (tab === 'maker') {
         mountMaker(body, R, async r => { await preparePosters(rec); L.inv['cp_' + r.id] = (L.inv['cp_' + r.id] || 0) + 1; R._dirty = true; head(); play('beep', { vol: 0.3, rate: 1.2 }); });

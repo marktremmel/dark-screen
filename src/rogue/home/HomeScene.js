@@ -17,6 +17,8 @@ import { homeComputer, boxPanel } from '../ui/homePanels.js';
 import { preparePosters } from '../ui/posterMaker.js';
 import { ledApp, ledState, ledSecure } from '../ui/ledApp.js';
 import { noteCard } from '../save/rogueSave.js';
+import { NPC } from '../../core/npc.js';
+import { sitDown } from '../entities/rig.js';
 import { floorPicker } from '../ui/panels.js';
 import { thumb } from '../ui/thumbs.js';
 
@@ -42,7 +44,8 @@ export class HomeScene extends Walker {
     this.scene.add(new THREE.HemisphereLight(0x8090c0, 0x302820, 0.2));
     this.tvLight = new THREE.PointLight(0x9a5cff, 0, 4.5, 1.5); g.add(this.tvLight);
     this.ledLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffffff, 0, 4.2, 1.4); g.add(l); return l; });   // two strips can give light
-    this.ledHack();   // made now, switched on with a TV (never add lights later)
+    this.ledHack();
+    this.makeVisitor();   // made now, switched on with a TV (never add lights later)
     // the front door, the desk and the computer, the mattress, the box: always here
     const door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 2.05), psxMat({ map: tex('rg_flatdoor'), color: 0xd8c8b0 }));
     door.position.set(0.9, 1.025, -0.012); door.rotation.y = Math.PI; g.add(door);
@@ -146,7 +149,8 @@ export class HomeScene extends Walker {
     const it = ITEM[h.id]; if (!it) return;
     const o = this.makeObj(h.id);
     o.position.set(h.x, h.y || 0, h.z); o.rotation.y = h.ry != null ? h.ry : (h.r || 0) * Math.PI / 2;
-    if (h.sc) o.scale.setScalar(h.sc);   // posters, paintings and stickers can be made bigger or smaller
+    if (h.sc) o.scale.setScalar(h.sc);
+    if (/carpet|rug/.test(it.model || '') || it.id === 'carpet' || it.id === 'gran_rug') { o.position.y += 0.012; o.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.polygonOffset = true; m.material.polygonOffsetFactor = -1; m.material.polygonOffsetUnits = -4; } }); }   // rugs flickered against the floor   // posters, paintings and stickers can be made bigger or smaller
     this.root.add(o);
     const rec = { h, o, col: null, it: null, it0: it };
     if (it.led) {   // give the strip one of the two lights, just in front of it
@@ -156,7 +160,7 @@ export class HomeScene extends Walker {
       if (it.led === 'rgb') { const st = ledState(this.R.life); if (st.since == null) st.since = (this.R.record.nights || []).length; }
     }
     if (it.kind === 'floor' && !it.walk && !(h.y > 0.05)) rec.col = this.colFor(o, true);
-    const USE = { sit: 'E sit down', lie: 'E lie down', eat: 'E eat something', tv: 'E switch the TV on or off' };
+    const USE = { sit: 'E sit down', lie: 'E lie down', eat: 'E eat something', tv: 'E switch the TV on or off', view: 'E look at it', led: 'E switch or set it' };
     rec.it = this.it.add(o, () => `${it.name}: ${it.use ? USE[it.use] + ' · Q move it' : 'E move it'}`, () => it.use ? this.useItem(rec) : this.pickUp(rec), () => !this.placing && !this.resting);
     this.placed.push(rec);
   }
@@ -164,6 +168,7 @@ export class HomeScene extends Walker {
   useItem(rec) {
     const it = rec.it0, L = this.R.life;
     if (it.use === 'tv') { this.toggleTv(rec); return; }
+    if (it.use === 'view') { this.viewPicture(it); return; }
     if (it.use === 'led') {
       if (it.led === 'white') { rec.off = !rec.off; if (rec.light) rec.light.intensity = rec.off ? 0 : 1.3; rec.o.material.color.set(rec.off ? 0x2a2a2e : 0xf4f6ff); play('click', { vol: 0.4 }); return; }
       this.ledAppOpen(); return;
@@ -175,13 +180,27 @@ export class HomeScene extends Walker {
     }
     // sit or lie: the view drops, you stay until you press E again or walk
     const b = new THREE.Box3().setFromObject(rec.o), c = b.getCenter(new THREE.Vector3());
-    this.resting = { eye: this.player.eye, x: this.player.pos.x, z: this.player.pos.z };
-    this.player.pos.set(c.x, 0, c.z); this.player.eye = it.use === 'lie' ? 0.55 : 1.05; this.player.frozen = true; this.player.sync();
+    this.resting = { eye: this.player.eye, x: this.player.pos.x, z: this.player.pos.z, idle: 0, yaw: 0, pitch: 0, c, ry: rec.o.rotation.y };
+    const P = this.player; P.pos.set(c.x, 0, c.z); P.eye = it.use === 'lie' ? 0.55 : 1.05; P.frozen = true;
+    P.lookOnly = true; P.yaw = rec.o.rotation.y + Math.PI; P.lookCenter = P.yaw; P.lookRange = it.use === 'lie' ? 1.6 : 1.25; P.pitch = it.use === 'lie' ? 0.9 : 0; P.sync();
+    this.resting.yaw = P.yaw; this.resting.pitch = P.pitch;
     if (it.use === 'lie') {
       if (!L.rested) { L.rested = true; persist(); }
       caption('You lie down for a while. Somewhere upstairs a TV murmurs. +5 nerve on the stairs tonight. (E or a step to get up)', 'say', 5);
     } else caption('You sit down. The flat is quiet. (E or a step to get up)', 'say', 3.5);
     this.refreshHud();
+  }
+  /** A picture on the wall, full screen and full resolution (the room itself is drawn at a low PSX resolution). */
+  viewPicture(it) {
+    const src = A.img[it.img]; if (!src) return;
+    this.playing = false; this.G.unlock(); prompt(null);
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(5,5,8,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer';
+    el.innerHTML = `<img src="${src}" style="max-width:94vw;max-height:84vh;box-shadow:0 10px 40px #000;border:6px solid #2a2018"><div style="color:#cbbfa8;font-size:15px">${it.name.replace(/</g, '&lt;')} · click, E or Esc to step back</div>`;
+    document.body.appendChild(el);
+    const close = () => { removeEventListener('keydown', key, true); el.remove(); this.playing = true; lockPointer(); };
+    const key = e => { if (e.code === 'Escape' || e.code === 'KeyE') { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
+    setTimeout(() => addEventListener('keydown', key, true), 150); el.onclick = close;
   }
   async ledAppOpen() {
     const L = this.R.life, s = ledState(L), was = ledSecure(s);
@@ -205,21 +224,49 @@ export class HomeScene extends Walker {
     const s = ledState(this.R.life);
     for (const r of this.leds || []) if (r.it0.led === 'rgb' && !s.hacked) { r.o.material.color.set(s.color); if (r.light) r.light.color.set(s.color); }
   }
+  /** The visitor: made with the flat (so no model loads later), parked far away until needed. */
+  makeVisitor() {
+    if (!A.models.npc_mannequin2) return;
+    const v = this.visitor = new NPC('npc_mannequin2');
+    const m = new THREE.MeshBasicMaterial({ color: 0x050506 }); v.obj.traverse(o => { if (o.isMesh) o.material = m; });
+    v.obj.scale.set(0.9, 1.1, 0.9); v.obj.position.set(0, -50, 0); this.root.add(v.obj);
+  }
+  showVisitor() {
+    const v = this.visitor, r = this.resting; if (!v) return;
+    const side = new THREE.Vector3(Math.cos(r.ry), 0, -Math.sin(r.ry));   // along the seat
+    v.pose('Idle_Loop', 0.3); sitDown(v);
+    v.obj.position.set(r.c.x + side.x * 0.75, 0.02, r.c.z + side.z * 0.75); this.visitorOn = true;
+    play('presence', { vol: 0.18 });
+  }
+  hideVisitor() { if (!this.visitor) return; this.visitor.obj.position.set(0, -50, 0); this.visitorOn = false; }
   getUp() {
     const r = this.resting; if (!r) return;
-    this.player.eye = r.eye; this.player.pos.set(r.x, 0, r.z); this.player.frozen = false; this.player.sync(); this.resting = null;
+    this.hideVisitor();
+    this.player.eye = r.eye; this.player.pos.set(r.x, 0, r.z); this.player.frozen = false; this.player.lookOnly = false; this.player.lookCenter = null; this.player.sync(); this.resting = null;
   }
   toggleTv(rec) {
-    if (rec.tvOn) { rec.tvOn = false; rec.o.remove(rec.screen); this.tvLight.intensity = 0; this.tvOn = null; play('click', { vol: 0.4 }); return; }
+    if (rec.tvOn) { rec.tvOn = false; if (rec.screen) rec.o.remove(rec.screen); if (rec.tvMesh) rec.tvMesh.material = rec.tvMat; this.tvLight.intensity = 0; this.tvOn = null; play('click', { vol: 0.4 }); return; }
     if (this.tvOn) this.toggleTv(this.tvOn);   // one TV at a time (one light, made when the flat was built)
-    const o = rec.o, rot = o.rotation.y; o.rotation.y = 0; o.updateMatrixWorld(true);
-    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3()); o.rotation.y = rot; o.updateMatrixWorld(true);
     if (!this.staticTex) { this.staticTex = canvasTex(64, 48, () => { }); this.staticTex.magFilter = THREE.LinearFilter; }
-    const scr = new THREE.Mesh(new THREE.PlaneGeometry(sz.x * 0.72, sz.y * 0.6), new THREE.MeshBasicMaterial({ map: this.staticTex, color: 0xd2b4ff }));
-    scr.position.set(c.x - o.position.x, c.y - o.position.y + sz.y * 0.04, b.max.z - o.position.z + 0.012); o.add(scr);
-    rec.screen = scr; rec.tvOn = true; this.tvOn = rec;
-    const wp = scr.getWorldPosition(new THREE.Vector3()), fw = new THREE.Vector3(Math.sin(rot), 0, Math.cos(rot));
-    this.tvLight.position.copy(wp).addScaledVector(fw, 0.5); this.tvLight.intensity = 1.8;
+    const o = rec.o, rot = o.rotation.y;
+    // the small TV: the static goes straight into the screen part of its own texture, so it fits the glass exactly
+    let mesh = null; o.traverse(m => { if (!mesh && m.isMesh && m.material && m.material.map && m.material.map.image) mesh = m; });
+    const SCREEN = { tv: [1, 91, 47, 36] }[rec.it0.id];   // x, y, w, h in the 128 px texture (found by looking at it)
+    if (mesh && SCREEN) {
+      const img = mesh.material.map.image, W = img.width, H = img.height, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const t = new THREE.CanvasTexture(cv); t.flipY = mesh.material.map.flipY; t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter;
+      const ec = document.createElement('canvas'); ec.width = W; ec.height = H; const et = new THREE.CanvasTexture(ec); et.flipY = t.flipY; et.colorSpace = THREE.SRGBColorSpace; et.magFilter = THREE.NearestFilter;
+      rec.tvMat = mesh.material; rec.tvMesh = mesh; const m2 = mesh.material.clone(); m2.onBeforeCompile = rec.tvMat.onBeforeCompile; m2.map = t; m2.emissive = new THREE.Color(0xffffff); m2.emissiveMap = et; mesh.material = m2;   // only the glass glows
+      rec.tvCanvas = { cv, g: cv.getContext('2d'), img, t, eg: ec.getContext('2d'), et, r: SCREEN.map(v => v * W / 128) };
+    } else {
+      o.rotation.y = 0; o.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3()); o.rotation.y = rot; o.updateMatrixWorld(true);
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(sz.x * 0.62, sz.y * 0.5), new THREE.MeshBasicMaterial({ map: this.staticTex, color: 0xd2b4ff }));
+      scr.position.set(c.x - o.position.x, c.y - o.position.y + sz.y * 0.06, b.max.z - o.position.z + 0.012); o.add(scr); rec.screen = scr;
+    }
+    rec.tvOn = true; this.tvOn = rec;
+    const wp = o.getWorldPosition(new THREE.Vector3()), fw = new THREE.Vector3(Math.sin(rot), 0, Math.cos(rot));
+    this.tvLight.position.copy(wp).addScaledVector(fw, 0.6); this.tvLight.position.y += 0.35; this.tvLight.intensity = 1.8;
     play('tvon', { vol: 0.4 });
   }
   pickUp(rec) {
@@ -370,13 +417,24 @@ export class HomeScene extends Walker {
         this._tv = 0.07; const c = this.staticTex.userData.g;
         const im = c.createImageData(64, 48); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = v * 0.85; im.data[i + 1] = v * 0.7; im.data[i + 2] = v; im.data[i + 3] = 255; }
         c.putImageData(im, 0, 0); c.fillStyle = 'rgba(170,90,255,.25)'; c.fillRect(0, (t * 40) % 48, 64, 5); this.staticTex.needsUpdate = true;
+        const T = this.tvOn.tvCanvas;
+        if (T) {
+          T.g.drawImage(T.img, 0, 0); T.g.imageSmoothingEnabled = false; T.g.drawImage(this.staticTex.userData.canvas, T.r[0], T.r[1], T.r[2], T.r[3]); T.t.needsUpdate = true;
+          T.eg.fillStyle = '#000'; T.eg.fillRect(0, 0, T.cv.width, T.cv.height); T.eg.imageSmoothingEnabled = false; T.eg.drawImage(this.staticTex.userData.canvas, T.r[0], T.r[1], T.r[2], T.r[3]); T.et.needsUpdate = true;
+        }
         this.tvLight.intensity = 1.5 + Math.random() * 0.6;
       }
     }
     if (!this.playing) return;
     this.player.update(dt);
     if (this.resting) {
-      if (['KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].some(k => wasPressed(k))) this.getUp();
+      if (['KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].some(k => wasPressed(k))) { this.getUp(); return; }
+      // sit still long enough and you are not alone: something sits down next to you and watches you, until you move
+      const r = this.resting, P = this.player, moved = Math.abs(P.yaw - r.yaw) + Math.abs(P.pitch - r.pitch) > 0.004;
+      r.yaw = P.yaw; r.pitch = P.pitch;
+      if (moved) { r.idle = 0; if (this.visitorOn) this.hideVisitor(); }
+      else if ((r.idle += dt) > 20 && !this.visitorOn) this.showVisitor();
+      if (this.visitorOn) { const v = this.visitor; v.faceTo(P.pos.x, P.pos.z); v.obj.rotation.y = v.facing; }
       return;
     }
     if (!this.placing && wasPressed('KeyQ')) { const rec = this.placed.find(r => r.it === this.it.current); if (rec) { this.pickUp(rec); return; } }

@@ -95,7 +95,8 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   z-fighting in the park); sharper posters; a real QR code (content/qr.js); fog and glare; the flat is lived in (sit, lie, eat,
   TV, walls, LED strips with the hack in ui/ledApp.js); poster sizing; the Metro_PSX subway car. Doc 04 has the details.
 - v0.13 (24 Oct): the underpass walk (heyheythere kits), the payphone on every walk (content/calls.js), gym glare overlay.
-- Next: design detective, T8 home jobs, monsters second pass.
+- v0.14 (24 Oct): gallery pack and picture viewer, TV static in the screen texture, look around while seated and the visitor, faster ambushing maze figure, sticker folders, Sharper picture setting.
+- Next: see doc 05 (design detective, harder typing, endless labyrinth, T8 home jobs, new places, look and feel).
 
 ## Codes
 

@@ -397,6 +397,17 @@ export class Stairwell extends Walker {
     caption('It reached you. You are back where you fell in.', 'say', 3);
     this.playing = true;
   }
+  /** Put the figure in a cell next to yours that you are not looking at (behind you, or round the side). */
+  mazeAmbush(p) {
+    const { N, C, open, key, X, Z } = this.mz, pc = this.mCell(p.x, p.z), f = this.player.forward(new THREE.Vector3());
+    const nbs = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => [pc % N + dx, Math.floor(pc / N) + dz]).filter(([x, z]) => x >= 0 && z >= 0 && x < N && z < N)
+      .map(([x, z]) => z * N + x).filter(n => open.has(key(pc, n)) && n !== this.mCell(this.yExit.x, this.yExit.z));
+    const behind = nbs.map(n => { const cx = X(n % N) + C / 2, cz = Z(Math.floor(n / N)) - C / 2, dx = cx - p.x, dz = cz - p.z, d = Math.hypot(dx, dz) || 1; return { n, cx, cz, dot: (f.x * dx + f.z * dz) / d }; })
+      .sort((a, b) => a.dot - b.dot)[0];
+    if (!behind || behind.dot > 0.2) return;
+    this.watcher.pos.set(behind.cx, 0, behind.cz); this.mazeAmbushCool = 9; this.unseenT = 0;
+    play('thump', { vol: 0.28, rate: 0.6, pos: [behind.cx, 0.2, behind.cz] });
+  }
   mazeSeen() {
     const w = this.watcher, cam = this.G.camera.position, hd = w.head(), dx = hd.x - cam.x, dz = hd.z - cam.z, d = Math.hypot(dx, dz);
     const f = this.player.forward(new THREE.Vector3());
@@ -432,9 +443,13 @@ export class Stairwell extends Walker {
       const p = this.player.pos; this.yLight.position.set(p.x, 2.3, p.z);
       if (this.wFreeze > 0) this.wFreeze -= dt;
       else if (this.watcher.active) {
-        const w = this.watcher.pos, ox = w.x, oz = w.z, far = Math.hypot(w.x - p.x, w.z - p.z) > 7;
-        this.watcher.speedMul = (far ? 1.7 : 1.15) * this.D.speed;   // far away it hurries, so looking away always costs you
-        this.watcher.update(dt, { player: this.mazeTarget(p), seen: this.mazeSeen(), trackers: 0, noise: 0, cam: this.G.camera.position });
+        const w = this.watcher.pos, ox = w.x, oz = w.z, dist = Math.hypot(w.x - p.x, w.z - p.z), far = dist > 7, seen = this.mazeSeen();
+        this.watcher.speedMul = (far ? 2.2 : dist > 2.5 ? 1.6 : 1.25) * this.D.speed;   // run past it and it is soon right behind you again
+        this.watcher.update(dt, { player: this.mazeTarget(p), seen, trackers: 0, noise: 0, cam: this.G.camera.position });
+        // out of sight for a while and far away: it is waiting for you around a corner you have not looked at yet
+        this.unseenT = seen ? 0 : (this.unseenT || 0) + dt;
+        if (far && this.unseenT > 3 && !this.mazeAmbushCool) this.mazeAmbush(p);
+        if (this.mazeAmbushCool) this.mazeAmbushCool = Math.max(0, this.mazeAmbushCool - dt);
         if (Math.hypot(w.x - ox, w.z - oz) > 0.0005) { this.stepT = (this.stepT || 0) - dt; if (this.stepT <= 0) { this.stepT = 0.62; play('thump', { vol: far ? 0.08 : 0.2, rate: 0.7, pos: [w.x, 0.2, w.z] }); } }
         if (Math.hypot(w.x - p.x, w.z - p.z) < 0.85) { this.mazeCaught(); return; }
       }

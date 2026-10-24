@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export const R = { renderer: null, canvas: null, H: 270, W: 480 };
+export const R = { renderer: null, canvas: null, H: 270, W: 480, lines: 270 };
 export const psxUniforms = { uSnap: { value: new THREE.Vector2(240, 135) } };
 
 // Lambert material with PS1-style vertex snapping (wobble).
@@ -31,12 +31,14 @@ export function initRenderer() {
 
 export function resize(cam) {
   const aspect = innerWidth / Math.max(1, innerHeight);
-  R.H = 270; R.W = Math.round(R.H * aspect);
+  R.H = R.lines; R.W = Math.round(R.H * aspect);
   R.renderer.setSize(R.W, R.H, false);
   psxUniforms.uSnap.value.set(R.W / 2, R.H / 2);
   if (R.camera) { R.camera.aspect = aspect; R.camera.updateProjectionMatrix(); }
 }
 
+/** The picture's height in pixels: 270 is the classic look, 405 a sharper one (still pixelated). */
+export function setLines(n) { if (R.lines === n) return; R.lines = n; if (R.renderer) resize(); }
 export function setBrightness(b, projector) {
   const v = b * (projector ? 1.25 : 1);
   R.canvas.style.filter = `brightness(${v.toFixed(2)})` + (projector ? ' contrast(1.08)' : '');

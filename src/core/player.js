@@ -42,9 +42,10 @@ export class Player {
   set(x, z, yawDeg = 0) { this.pos.set(x, 0, z); this.yaw = yawDeg * Math.PI / 180; this.pitch = 0; this.sync(); }
   update(dt) {
     const sens = 0.0022 * (S.settings.mouse || 1);
-    if (!this.frozen) {
+    if (!this.frozen || this.lookOnly) {   // lookOnly: sitting, you can look around but not walk
       this.yaw -= IN.mdx * sens; this.pitch -= IN.mdy * sens;
       this.pitch = Math.max(-1.35, Math.min(1.35, this.pitch));
+      if (this.lookOnly && this.lookCenter != null) { let d = this.yaw - this.lookCenter; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; d = Math.max(-this.lookRange, Math.min(this.lookRange, d)); this.yaw = this.lookCenter + d; }
     }
     IN.mdx = IN.mdy = 0;
     let fx = 0, fz = 0;

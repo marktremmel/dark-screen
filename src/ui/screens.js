@@ -1,7 +1,7 @@
 import { S, DEFAULT_SETTINGS, persist, listPlayers, lastPlayer, loadPlayer, exportCode, importCode, peekCode, epData } from '../core/state.js';
 import { rich, CREDITS, CONTENT_NOTE, LOCKS_ON } from '../text.js';
 import { play, setVolumes, resumeAudio } from '../core/audio.js';
-import { setBrightness } from '../core/render.js';
+import { setBrightness, setLines } from '../core/render.js';
 import { pxCanvas } from '../core/world.js';
 
 const ov = () => document.getElementById('overlay');
@@ -26,6 +26,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 export function applySettings() {
   setBrightness(S.settings.brightness, S.settings.projector);
+  setLines(S.settings.sharp ? 405 : 270);
   setVolumes(S.settings.master, S.settings.music);
   document.body.classList.toggle('bigtext', !!S.settings.bigText);
 }
@@ -146,6 +147,7 @@ export function settingsScreen(onClose) {
     ${sl('music', 'Music volume', '', 0, 1, 0.05)}
     ${sl('mouse', 'Mouse speed', '', 0.3, 2.5, 0.05)}
     ${tg('subs', 'Sound subtitles', 'Shows what you hear, like [footsteps in the hallway].')}
+    ${tg('sharp', 'Sharper picture', 'Draws the game at a higher resolution. Still pixelated, just finer. Turn off on slow computers.')}
     ${tg('bigText', 'Large text', '')}
     ${tg('bob', 'Head bobbing', 'Turn off if walking makes you feel dizzy.')}
     <div class="btns"><button class="btn" id="cal">Calibrate brightness</button><button class="btn primary" id="x">Done</button></div></div>`);

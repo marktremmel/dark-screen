@@ -1,5 +1,5 @@
 import { STICKERS } from './stickers.js';
-import { PAINTINGS } from './paintings.js';
+import { GALLERY } from './gallery.js';
 // The shop and the flats. DATA ONLY.
 // Furniture: model key (ep1, ep9 and hub packs), price in coins, cosiness (komfort). Cosiness raises your nerve on the stairs.
 // kind: 'floor' stands on the floor (a collider unless walk:true), 'wall' hangs on a wall (posters use a painted picture).
@@ -51,7 +51,7 @@ export const ITEMS = [
   { id: 'p_family', img: 'sm_ep9_family_photo', name: 'Old family photo', hu: 'családi fotó', price: 15, cosy: 3, kind: 'wall' },
 ];
 // Mark's paintings as framed posters (wider than tall)
-for (const [img, a, title] of PAINTINGS) ITEMS.push({ id: 'pp_' + img.slice(3), img, name: 'Painting: ' + title, hu: 'festmény', price: 25, cosy: 3, kind: 'wall', size: 0.55, aspect: a });
+for (const [img, a, title] of GALLERY) ITEMS.push({ id: 'pp_' + img.slice(3), img, name: 'Painting: ' + title, hu: 'festmény', price: 25, cosy: 3, kind: 'wall', size: 0.55, aspect: a, use: 'view' });
 // stickers: cheap, small, any wall (Urban Grunge decals, see stickers.js)
 for (const [n, a, label] of STICKERS) ITEMS.push({ id: 's_' + n, img: 'st_' + n, name: label, hu: 'matrica',
   price: 5, cosy: 0.5, kind: 'wall', sticker: true, size: Math.min(0.3, 0.42 / a), aspect: a });
@@ -59,6 +59,7 @@ for (const [n, a, label] of STICKERS) ITEMS.push({ id: 's_' + n, img: 'st_' + n,
 ITEMS.push({ id: 'led_white', name: 'LED strip (white)', hu: 'LED-szalag', price: 30, cosy: 2, kind: 'wall', led: 'white', use: 'led' },
   { id: 'led_rgb', name: 'Smart LED strip (colours, Wi-Fi)', hu: 'okos LED-szalag', price: 60, cosy: 4, kind: 'wall', led: 'rgb', use: 'led' });
 // what you can do with things once they stand in the flat (not only build it, live in it)
+for (const it of ITEMS) if (it.kind === 'wall' && !it.sticker && !it.led && !it.use) it.use = 'view';
 const USE = { sofa: 'sit', armchair: 'sit', gran_sofa: 'sit', chair: 'sit', deskchair: 'sit', bed: 'lie', bigbed: 'lie', fridge: 'eat', kitchen: 'eat', tv: 'tv', oldtv: 'tv' };
 for (const [id, use] of Object.entries(USE)) { const it = ITEMS.find(i => i.id === id); if (it) it.use = use; }
 /** Wall finishes for the flat (the Your flat tab). Changing one is free. */

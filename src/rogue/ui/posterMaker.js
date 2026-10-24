@@ -2,7 +2,7 @@
 // A poster is saved as a small recipe in the record (it survives losing a life), and drawn into an image when needed:
 // { id, base: 'pt_...'|'sm_...', top, bottom, style: 'meme'|'zine', st: [{ k: 'st_...', x, y, s }] } (x, y, s are fractions).
 import { A } from '../../core/assets.js';
-import { PAINTINGS } from '../content/paintings.js';
+import { GALLERY } from '../content/gallery.js';
 import { STICKERS } from '../content/stickers.js';
 import { ITEMS, ITEM } from '../content/furniture.js';
 
@@ -11,7 +11,7 @@ const loadImg = key => imgCache[key] || (imgCache[key] = new Promise(res => { co
 
 /** Pictures you can start from: Mark's paintings and the episode pictures. */
 export function posterBases() {
-  return [...PAINTINGS.map(p => p[0]), ...Object.keys(A.img).filter(k => k.startsWith('sm_'))];
+  return [...GALLERY.map(p => p[0]).filter(k => A.img[k]), ...Object.keys(A.img).filter(k => k.startsWith('sm_'))];
 }
 
 function caption(c, text, y, w, style, bottom) {
@@ -49,9 +49,9 @@ export async function renderPoster(r, w = 512, sel = -1) {
 export async function preparePosters(record) {
   for (const r of record.posters || []) {
     const key = 'cp_' + r.id;
-    if (!A.img[key]) { const cv = await renderPoster(r, 512); A.img[key] = cv.toDataURL('image/jpeg', 0.85); r.aspect = cv.width / cv.height; }
+    if (!A.img[key]) { const cv = await renderPoster(r, 1400); A.img[key] = cv.toDataURL('image/jpeg', 0.88); r.aspect = cv.width / cv.height; }   // full size, for the wall and the viewer
     if (!ITEM[key]) {
-      const it = { id: key, img: key, name: `Your poster${r.top ? ': "' + r.top + '"' : ''}`, hu: 'saját poszter', price: 0, cosy: 3, kind: 'wall', size: 0.55, aspect: r.aspect || 1.5, custom: true };
+      const it = { id: key, img: key, name: `Your poster${r.top ? ': "' + r.top + '"' : ''}`, hu: 'saját poszter', price: 0, cosy: 3, kind: 'wall', size: 0.55, aspect: r.aspect || 1.5, custom: true, use: 'view' };
       ITEM[key] = it; ITEMS.push(it);
     }
   }
