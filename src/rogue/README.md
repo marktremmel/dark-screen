@@ -91,7 +91,10 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   maker (`ui/posterMaker.js`, recipes in `record.posters`); save to a file (`saveToFile` in ui/screens.js, `#load=` on the title
   screen, the save code now includes the rogue save); monsters reworked after the paintings (`entities/rig.js`: attach, hideBone,
   sitDown); kit collider meshes are no longer drawn; topic T7 (kindness). Doc 04 has the details and the open list.
-- Next: payphone call-back and design detective encounters, lines for T4, T8, T12, the courtyard walk.
+- v0.12 (24 Oct): T4 and T12 lines; gentle figures on the kindness night; flicker fixes (texture filtering in core/assets.js,
+  z-fighting in the park); sharper posters; a real QR code (content/qr.js); fog and glare; the flat is lived in (sit, lie, eat,
+  TV, walls, LED strips with the hack in ui/ledApp.js); poster sizing; the Metro_PSX subway car. Doc 04 has the details.
+- Next: the underpass walk, payphone and design detective encounters, T8 home jobs.
 
 ## Codes
 

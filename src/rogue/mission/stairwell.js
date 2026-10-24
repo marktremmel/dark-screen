@@ -38,7 +38,7 @@ export class Stairwell extends Walker {
     const g = this.newScene(0x040506, 2.2, 12.5);
     this.r = rng(freshSeed());
     this.d = newDescent(this.R.life.floor, { chance: this.D.anomaly, topic: this.run.topic, back: this.D.back }); prepare(this.r, this.d);
-    this.R.life.nerveMax = startNerve(this.R.life); this.R.life.nerve = this.R.life.nerveMax;
+    this.R.life.nerveMax = startNerve(this.R.life); this.R.life.nerve = this.R.life.nerveMax; this.R.life.fed = false; this.R.life.rested = false;   // a meal and a rest count for one night
     this.mods = {};
     this.buildShaft(g);
     for (const k of KS) this.buildModule(g, k);
@@ -434,7 +434,7 @@ export class Stairwell extends Walker {
       else if (this.watcher.active) {
         const w = this.watcher.pos, ox = w.x, oz = w.z, far = Math.hypot(w.x - p.x, w.z - p.z) > 7;
         this.watcher.speedMul = (far ? 1.7 : 1.15) * this.D.speed;   // far away it hurries, so looking away always costs you
-        this.watcher.update(dt, { player: this.mazeTarget(p), seen: this.mazeSeen(), trackers: 0, noise: 0 });
+        this.watcher.update(dt, { player: this.mazeTarget(p), seen: this.mazeSeen(), trackers: 0, noise: 0, cam: this.G.camera.position });
         if (Math.hypot(w.x - ox, w.z - oz) > 0.0005) { this.stepT = (this.stepT || 0) - dt; if (this.stepT <= 0) { this.stepT = 0.62; play('thump', { vol: far ? 0.08 : 0.2, rate: 0.7, pos: [w.x, 0.2, w.z] }); } }
         if (Math.hypot(w.x - p.x, w.z - p.z) < 0.85) { this.mazeCaught(); return; }
       }

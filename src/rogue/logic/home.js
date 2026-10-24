@@ -9,7 +9,9 @@ export const flatOf = life => FLATS[(life.flat || 1) - 1];
 /** Cosiness of what is placed (things in the box don't count). */
 export function cosiness(life) { return Math.min(COSY_MAX, Math.floor((life.home || []).reduce((s, h) => s + ((ITEM[h.id] || {}).cosy || 0), 0))); }
 /** Nerve you start a night with: the base, the flat's bonus, and the cosiness. */
-export const startNerve = life => CFG.nerveStart + flatOf(ensureHome(life)).nerve + cosiness(life);
+/** Living in the flat: eating and lying down before a night each give +5 nerve for that night. */
+export const homeBonus = life => (life.fed ? 5 : 0) + (life.rested ? 5 : 0);
+export const startNerve = life => CFG.nerveStart + flatOf(ensureHome(life)).nerve + cosiness(life) + homeBonus(life);
 
 export function buy(life, id) {
   const it = ITEM[id]; ensureHome(life);

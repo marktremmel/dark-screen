@@ -93,10 +93,24 @@ export class Metro extends Walker {
     const ck2 = ck.clone(); ck2.position.z = -2.66; ck2.rotation.y = 0; g.add(ck2);
     // the train (waits in the tunnel)
     const tr = this.train = new THREE.Group();
-    const body = psxMat({ color: 0x2c5a8a }), winM = new THREE.MeshBasicMaterial({ color: 0xfff0c0 });
-    for (let i = 0; i < 2; i++) {
-      const car = new THREE.Mesh(new THREE.BoxGeometry(11.5, 3.4, 2.7), body); car.position.set(i * 12, 0.75, 0); tr.add(car);
-      for (let w = -4.5; w <= 4.5; w += 1.5) { const win = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.7), winM); win.position.set(i * 12 + w, 1.4, 1.36); tr.add(win); }
+    const src = A.models.mp_metro;
+    if (src) {
+      // a real PSX subway car (Metro_PSX pack): its body, seats, rails, doors and windows, lifted out of the sample station
+      for (let i = 0; i < 2; i++) {
+        const inner = new THREE.Group();
+        for (const ch of src.children) if (/^(subway_car|seats\d*|Railing_V\d*|Door\d*|Glass\d+)$/.test(ch.name)) inner.add(ch.clone(true));
+        inner.position.set(6.54, -0.07, -6.79);                       // the car's middle to the origin, its wheels on the ground
+        const car = new THREE.Group(); car.add(inner); car.scale.setScalar(0.68); car.rotation.y = Math.PI / 2;   // its length along the track
+        car.position.set(i * 16, -0.6, 0); tr.add(car);
+        const glow = new THREE.Mesh(new THREE.PlaneGeometry(14, 0.9), new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.35, fog: true }));   // warm light through the windows
+        glow.position.set(i * 16, 1.45, 0.6); tr.add(glow);
+      }
+    } else {
+      const body = psxMat({ color: 0x2c5a8a }), winM = new THREE.MeshBasicMaterial({ color: 0xfff0c0 });
+      for (let i = 0; i < 2; i++) {
+        const car = new THREE.Mesh(new THREE.BoxGeometry(11.5, 3.4, 2.7), body); car.position.set(i * 12, 0.75, 0); tr.add(car);
+        for (let w = -4.5; w <= 4.5; w += 1.5) { const win = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.7), winM); win.position.set(i * 12 + w, 1.4, 1.36); tr.add(win); }
+      }
     }
     tr.position.set(-40, -0.6, -7.5); g.add(tr);
   }
@@ -218,7 +232,8 @@ export class Metro extends Walker {
     if (this.flick) this.flick.intensity = Math.random() < 0.05 ? 0.2 : 1.7;
     if (s.train === 'away') {
       s.timer -= dt;
-      if (s.timer <= 0) { s.train = 'arriving'; play('rumble', { vol: 0.6 }); caption('A rush of air. The last train pulls in.', 'say', 3); }
+      if (s.timer < 12 && !s.bell) { s.bell = true; play('rg_station_bell', { vol: 0.35 }); }   // the station chime before the last train
+      if (s.timer <= 0) { s.train = 'arriving'; play('rumble', { vol: 0.6 }); play('rg_train_pass', { vol: 0.55 }); caption('A rush of air. The last train pulls in.', 'say', 3); }
     }
     this.collectorUpdate(dt);
     // too close to the Collector: it swats you away

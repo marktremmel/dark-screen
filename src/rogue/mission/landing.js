@@ -3,6 +3,7 @@
 // Local coordinates: the landing floor is y = 0, the back wall (flat doors) is z = 2.2, the lift wall is z = 0 (x < 0),
 // the left wall is x = -3.2, the right wall is x = 2.7. The scene places the group at the landing's height.
 import * as THREE from 'three';
+import { QR_ROWS } from '../content/qr.js';
 import { psxMat } from '../../core/render.js';
 import { tex } from '../../core/assets.js';
 import { texBox, canvasTex, pxText } from '../../core/world.js';
@@ -133,11 +134,13 @@ export function dressLanding(g, spec, ctx) {
   const swHit = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.05), new THREE.MeshBasicMaterial({ visible: false })); swHit.position.copy(btn.position); g.add(swHit);
   items.push({ obj: swHit, kind: 'switch' });
   if (w === 'switchQR') {
-    const qr = planeAt(g, 0.26, 0.34, new THREE.MeshBasicMaterial({ color: 0xe8e4dc, map: canvasTex(26, 34, c => {
-      c.fillStyle = '#ff3d8a'; c.fillRect(0, 0, 26, 34); c.fillStyle = '#fff'; c.fillRect(2, 2, 22, 22); c.fillStyle = '#000';
-      for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if ((x * 7 + y * 3 + x * y) % 3 === 0) c.fillRect(3 + x * 4, 3 + y * 4, 4, 4);
-      c.fillRect(3, 3, 6, 6); c.fillRect(17, 3, 6, 6); c.fillRect(3, 17, 6, 6); c.fillStyle = '#fff'; c.font = '8px m5x7'; c.textBaseline = 'top'; c.fillText('SCAN ME', 1, 25);
-    }) }), -0.44, 1.62, lz + 0.006, 0);
+    // a real, scannable QR code (it tells you to check before you open), with a printed strip under it like a sticker
+    const n = QR_ROWS.length, cell = 4, pad = 2 * cell, W = n * cell + pad * 2, H = W + 22;
+    const qr = planeAt(g, 0.24, 0.24 * H / W, new THREE.MeshBasicMaterial({ color: 0xe8e4dc, map: canvasTex(W, H, c => {
+      c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); c.fillStyle = '#000';
+      QR_ROWS.forEach((r, y) => { for (let x = 0; x < n; x++) if (r[x] === '1') c.fillRect(pad + x * cell, pad + y * cell, cell, cell); });
+      c.fillStyle = '#ff3d8a'; c.fillRect(0, W, W, 22); c.fillStyle = '#fff'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('SCAN FOR LIGHT', 8, W + 3);
+    }) }), -0.44, 1.6, lz + 0.006, 0);
     items.push({ obj: qr, kind: 'notice', data: { title: 'A sticker above the light switch', notices: [['SCAN TO TURN ON THE LIGHTS', 'New smart lighting in your building!', 'Scan the code and sign in to switch the lights on.']] } });
   }
   if (w === 'liftAd') {

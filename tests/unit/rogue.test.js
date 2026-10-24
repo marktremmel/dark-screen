@@ -174,7 +174,7 @@ import { ITEMS, ITEM, FLATS } from '../../src/rogue/content/furniture.js';
 import { POSTS } from '../../src/rogue/content/posts.js';
 import { ensureHome, cosiness, startNerve, buy, takeOut, placeItem, lift, putBack, moveUp, owned, insideFlat } from '../../src/rogue/logic/home.js';
 test('home: buy, place, cosiness, move up, keep one', () => {
-  for (const i of ITEMS) assert.ok(i.id && (i.model || i.img) && i.price > 0 && i.cosy > 0 && ['floor', 'wall'].includes(i.kind), i.id);
+  for (const i of ITEMS) assert.ok(i.id && (i.model || i.img || i.led) && i.price > 0 && i.cosy > 0 && ['floor', 'wall'].includes(i.kind), i.id);
   const R = ensureRogue({}); const L = R.life;
   assert.equal(buy(L, 'sofa'), false);                       // no money
   L.coins = 200; assert.ok(buy(L, 'sofa')); assert.equal(L.coins, 130); assert.equal(L.inv.sofa, 1);

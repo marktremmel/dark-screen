@@ -46,7 +46,7 @@ PACKS={
    'paint':sorted(f[:-4] for f in os.listdir('assets_src/paint') if f.endswith('.jpg')) if os.path.isdir('assets_src/paint') else [],
    'stickers':sorted(f[:-4] for f in os.listdir('assets_src/stickers') if f.endswith('.png')) if os.path.isdir('assets_src/stickers') else [],
    'audio':['rg_drone_stair','rg_drone_yellow','rg_signal1','rg_signal2','lightsw','knock','phonering','door_close','presence','stinger']},
- 'metro':{'kits':{'subway':('kits/subway','sw_',512,['mod_ceiling_tall','mod_platform_edge','mod_platform_floor','mod_track_straight','mod_wall_tall','prop_bench_01','prop_bin_01','prop_timetable_01','prop_turnstile_01','prop_worklight_01'])}},
+ 'metro':{'glb':['mp_metro'],'audio':['rg_train_pass','rg_station_bell'],'kits':{'subway':('kits/subway','sw_',512,['mod_ceiling_tall','mod_platform_edge','mod_platform_floor','mod_track_straight','mod_wall_tall','prop_bench_01','prop_bin_01','prop_timetable_01','prop_turnstile_01','prop_worklight_01'])}},
  'park':{'kits':{'block':('kits/block','bk_',512,['wall_panel','wall_window_panel','wall_doorway_panel','door_entrance','entrance_canopy','sign_entrance','bench_entrance','bin_container','wall_post_panel'])},'glb':['nat_commontree_1','nat_commontree_2','nat_commontree_3','nat_pine_2','nat_bush_common','nat_bush_common_flowers','nat_rock_medium_1','nat_grass_common_tall','nat_plant_7_big'],'tex':{'rg_asphalt':('kits/block/textures/asphalt.png',128)},'audio':['amb_woods','gstep1','gstep2','gstep3','gstep4']},
  'ep7':{'jpg':['gen/ep7_cctv_suspect','gen/ep7_cctv_you'],'audio':['amb_hollow','sec_latch','shutter','vent','plastic2','strain','phonebtn','typing','crton','hatch','knob','lightsw']},
 }
@@ -68,10 +68,15 @@ for name,P in PACKS.items():
         buf=io.BytesIO(); im.save(buf,'PNG',optimize=True)
         d.setdefault('kits',{})[kit]={'prefix':pre,'atlas':base64.b64encode(buf.getvalue()).decode(),'pieces':{pc:b64(f'{SRC}/{kdir}/glb/{pc}.glb') for pc in pieces}}
     for i in P.get('jpg',[]):
-        if os.path.exists(f'build/{i}.jpg'): d['img'][os.path.basename(i)]='data:image/jpeg;base64,'+b64(f'build/{i}.jpg')
+        big = i.replace('gen/sm_', 'gen/')
+        if '/sm_' in i and os.path.exists(f'build/{big}.jpg'):
+            # posters for the flat: a sharp 512 px square from the full picture (the 192 px thumbnails looked blurry on the wall)
+            im=Image.open(f'build/{big}.jpg').convert('RGB'); w,h=im.size; m=min(w,h); im=im.crop(((w-m)//2,(h-m)//2,(w-m)//2+m,(h-m)//2+m)).resize((512,512),Image.LANCZOS)
+            buf=io.BytesIO(); im.save(buf,'JPEG',quality=84); d['img'][os.path.basename(i)]='data:image/jpeg;base64,'+base64.b64encode(buf.getvalue()).decode()
+        elif os.path.exists(f'build/{i}.jpg'): d['img'][os.path.basename(i)]='data:image/jpeg;base64,'+b64(f'build/{i}.jpg')
         else: print('  (missing picture, skipped:',i,')')
     for n in P.get('paint',[]):
-        im=Image.open(f'{SRC}/paint/{n}.jpg').convert('RGB'); im.thumbnail((800,800),Image.LANCZOS); buf=io.BytesIO(); im.save(buf,'JPEG',quality=80)
+        im=Image.open(f'{SRC}/paint/{n}.jpg').convert('RGB'); im.thumbnail((1024,1024),Image.LANCZOS); buf=io.BytesIO(); im.save(buf,'JPEG',quality=84)
         d['img']['pt_'+n]='data:image/jpeg;base64,'+base64.b64encode(buf.getvalue()).decode()
     for n in P.get('stickers',[]): d['img']['st_'+n]='data:image/png;base64,'+png_b64(f'{SRC}/stickers/{n}.png',160)
     for a in P.get('audio',[]): d['audio'][a]=b64(f'{SRC}/audio/{a}.ogg')

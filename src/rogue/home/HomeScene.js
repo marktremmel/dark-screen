@@ -11,10 +11,12 @@ import { lockPointer, wasPressed } from '../../core/player.js';
 import { hud, hudParts, objective, prompt, caption, fade, checklist } from '../../core/hud.js';
 import { loop, play, music } from '../../core/audio.js';
 import { S, persist } from '../../core/state.js';
-import { ITEM } from '../content/furniture.js';
+import { ITEM , WALLS } from '../content/furniture.js';
 import { ensureHome, flatOf, cosiness, startNerve, takeOut, putBack, placeItem, lift, insideFlat } from '../logic/home.js';
 import { homeComputer, boxPanel } from '../ui/homePanels.js';
 import { preparePosters } from '../ui/posterMaker.js';
+import { ledApp, ledState, ledSecure } from '../ui/ledApp.js';
+import { noteCard } from '../save/rogueSave.js';
 import { floorPicker } from '../ui/panels.js';
 import { thumb } from '../ui/thumbs.js';
 
@@ -38,6 +40,9 @@ export class HomeScene extends Walker {
     this.buildRooms(g, F);
     this.scene.add(new THREE.AmbientLight(0x6e6a80, 0.34));
     this.scene.add(new THREE.HemisphereLight(0x8090c0, 0x302820, 0.2));
+    this.tvLight = new THREE.PointLight(0x9a5cff, 0, 4.5, 1.5); g.add(this.tvLight);
+    this.ledLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffffff, 0, 4.2, 1.4); g.add(l); return l; });   // two strips can give light
+    this.ledHack();   // made now, switched on with a TV (never add lights later)
     // the front door, the desk and the computer, the mattress, the box: always here
     const door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 2.05), psxMat({ map: tex('rg_flatdoor'), color: 0xd8c8b0 }));
     door.position.set(0.9, 1.025, -0.012); door.rotation.y = Math.PI; g.add(door);
@@ -77,7 +82,8 @@ export class HomeScene extends Walker {
     const inDoor = (vertical, line, a) => doors.some(d => vertical ? (d.x != null && Math.abs(d.x - line) < 1e-6 && a > d.z0 && a < d.z1) : (d.z != null && Math.abs(d.z - line) < 1e-6 && a > d.x0 && a < d.x1));
     const xs = rooms.flatMap(r => [r.x0, r.x1]), zs = rooms.flatMap(r => [r.z0, r.z1]);
     const bx0 = Math.min(...xs) - CELL, bx1 = Math.max(...xs) + CELL, bz0 = Math.min(...zs) - CELL, bz1 = Math.max(...zs) + CELL;
-    const seg = (x0, z0, x1, z1, low) => texBox(g, low ? null : 'rg_wallpaper', x0, 0, z0, x1, low ? 1.05 : HH, z1, { col, block, tile: 1.0, color: low ? 0x3a3e3a : 0xffffff });
+    const W = WALLS.find(w => w.id === this.R.life.wall) || WALLS[0];   // the wall finish you chose on the computer
+    const seg = (x0, z0, x1, z1, low) => texBox(g, low ? null : W.tex, x0, 0, z0, x1, low ? 1.05 : HH, z1, { col, block, tile: 1.0, color: low ? 0x3a3e3a : W.color });
     const n = v => Math.round(v / CELL) * CELL;
     // walls along x (edges between z cells)
     for (let z = n(bz0); z <= bz1 + 1e-6; z = n(z + CELL)) {
@@ -123,10 +129,14 @@ export class HomeScene extends Walker {
   }
   makeObj(id) {
     const it = ITEM[id];
+    if (it.led) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.035, 0.02), new THREE.MeshBasicMaterial({ color: it.led === 'white' ? 0xf4f6ff : ledState(this.R.life).color }));
+      m.userData.led = it.led; return m;
+    }
     if (it.kind === 'wall') {
       // posters and stickers are lit by themselves (a lit material went black in a dim corner)
       const sz = it.size || 0.62, sticker = it.sticker;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(sz * (it.aspect || 1), sz), new THREE.MeshBasicMaterial({ map: imgTex(it.img), color: 0xd0ccc4, transparent: !!sticker, alphaTest: sticker ? 0.4 : 0 }));
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(sz * (it.aspect || 1), sz), new THREE.MeshBasicMaterial({ map: imgTex(it.img), color: 0xd0ccc4, transparent: !!sticker, alphaTest: sticker ? 0.4 : 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
       if (!sticker) { const fr = new THREE.Mesh(new THREE.BoxGeometry(sz * (it.aspect || 1) + 0.08, sz + 0.08, 0.02), psxMat({ color: 0x2a2018 })); fr.position.z = -0.012; m.add(fr); }
       return m;
     }
@@ -136,14 +146,86 @@ export class HomeScene extends Walker {
     const it = ITEM[h.id]; if (!it) return;
     const o = this.makeObj(h.id);
     o.position.set(h.x, h.y || 0, h.z); o.rotation.y = h.ry != null ? h.ry : (h.r || 0) * Math.PI / 2;
+    if (h.sc) o.scale.setScalar(h.sc);   // posters, paintings and stickers can be made bigger or smaller
     this.root.add(o);
     const rec = { h, o, col: null, it: null, it0: it };
+    if (it.led) {   // give the strip one of the two lights, just in front of it
+      const l = this.ledLights.find(x => !x.userData.rec);
+      if (l) { l.userData.rec = rec; rec.light = l; const n = new THREE.Vector3(Math.sin(o.rotation.y), 0, Math.cos(o.rotation.y)); l.position.copy(o.position).addScaledVector(n, 0.35); l.color.set(it.led === 'white' ? 0xf4f6ff : ledState(this.R.life).color); l.intensity = 1.3; }
+      this.leds = (this.leds || []).concat(rec);
+      if (it.led === 'rgb') { const st = ledState(this.R.life); if (st.since == null) st.since = (this.R.record.nights || []).length; }
+    }
     if (it.kind === 'floor' && !it.walk && !(h.y > 0.05)) rec.col = this.colFor(o, true);
-    rec.it = this.it.add(o, () => `${it.name}: E to move it`, () => this.pickUp(rec), () => !this.placing);
+    const USE = { sit: 'E sit down', lie: 'E lie down', eat: 'E eat something', tv: 'E switch the TV on or off' };
+    rec.it = this.it.add(o, () => `${it.name}: ${it.use ? USE[it.use] + ' · Q move it' : 'E move it'}`, () => it.use ? this.useItem(rec) : this.pickUp(rec), () => !this.placing && !this.resting);
     this.placed.push(rec);
+  }
+  // ---------- living in the flat ----------
+  useItem(rec) {
+    const it = rec.it0, L = this.R.life;
+    if (it.use === 'tv') { this.toggleTv(rec); return; }
+    if (it.use === 'led') {
+      if (it.led === 'white') { rec.off = !rec.off; if (rec.light) rec.light.intensity = rec.off ? 0 : 1.3; rec.o.material.color.set(rec.off ? 0x2a2a2e : 0xf4f6ff); play('click', { vol: 0.4 }); return; }
+      this.ledAppOpen(); return;
+    }
+    if (it.use === 'eat') {
+      if (L.fed) { caption('You are not hungry. The fridge hums.', 'say', 2.5); return; }
+      L.fed = true; persist(); play('fridgehum', { vol: 0.3 }); play('plastic', { vol: 0.4 });
+      caption('Bread, butter, paprika. You eat standing at the counter, like everyone in this block. +5 nerve on the stairs tonight.', 'say', 5); this.refreshHud(); return;
+    }
+    // sit or lie: the view drops, you stay until you press E again or walk
+    const b = new THREE.Box3().setFromObject(rec.o), c = b.getCenter(new THREE.Vector3());
+    this.resting = { eye: this.player.eye, x: this.player.pos.x, z: this.player.pos.z };
+    this.player.pos.set(c.x, 0, c.z); this.player.eye = it.use === 'lie' ? 0.55 : 1.05; this.player.frozen = true; this.player.sync();
+    if (it.use === 'lie') {
+      if (!L.rested) { L.rested = true; persist(); }
+      caption('You lie down for a while. Somewhere upstairs a TV murmurs. +5 nerve on the stairs tonight. (E or a step to get up)', 'say', 5);
+    } else caption('You sit down. The flat is quiet. (E or a step to get up)', 'say', 3.5);
+    this.refreshHud();
+  }
+  async ledAppOpen() {
+    const L = this.R.life, s = ledState(L), was = ledSecure(s);
+    if (s.since == null) s.since = (this.R.record.nights || []).length;
+    this.playing = false; this.G.unlock(); prompt(null);
+    await ledApp(L, S.nick);
+    if (!was && ledSecure(s)) {
+      this.R.record.xp += 10; const isNew = noteCard(this.R, 'h:leds');
+      caption(s.hacked ? 'The light show stops. The strip is yours again. +10 XP' + (isNew ? ' · New notebook card.' : '') : 'Secured before anyone got in. +10 XP' + (isNew ? ' · New notebook card.' : ''), 'say', 5);
+      s.hacked = false;
+    }
+    persist(); this.applyLeds(); this.playing = true; lockPointer();
+  }
+  /** After a night out, an unsecured smart strip has been found from the internet. */
+  ledHack() {
+    const L = this.R.life, s = L.leds; if (!s || s.hacked || ledSecure(s) || s.since == null) return;
+    if (!L.home.some(h => h.id === 'led_rgb')) return;
+    if ((this.R.record.nights || []).length - s.since >= 1) { s.hacked = true; persist(); this.hackNews = true; }
+  }
+  applyLeds() {
+    const s = ledState(this.R.life);
+    for (const r of this.leds || []) if (r.it0.led === 'rgb' && !s.hacked) { r.o.material.color.set(s.color); if (r.light) r.light.color.set(s.color); }
+  }
+  getUp() {
+    const r = this.resting; if (!r) return;
+    this.player.eye = r.eye; this.player.pos.set(r.x, 0, r.z); this.player.frozen = false; this.player.sync(); this.resting = null;
+  }
+  toggleTv(rec) {
+    if (rec.tvOn) { rec.tvOn = false; rec.o.remove(rec.screen); this.tvLight.intensity = 0; this.tvOn = null; play('click', { vol: 0.4 }); return; }
+    if (this.tvOn) this.toggleTv(this.tvOn);   // one TV at a time (one light, made when the flat was built)
+    const o = rec.o, rot = o.rotation.y; o.rotation.y = 0; o.updateMatrixWorld(true);
+    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3()); o.rotation.y = rot; o.updateMatrixWorld(true);
+    if (!this.staticTex) { this.staticTex = canvasTex(64, 48, () => { }); this.staticTex.magFilter = THREE.LinearFilter; }
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(sz.x * 0.72, sz.y * 0.6), new THREE.MeshBasicMaterial({ map: this.staticTex, color: 0xd2b4ff }));
+    scr.position.set(c.x - o.position.x, c.y - o.position.y + sz.y * 0.04, b.max.z - o.position.z + 0.012); o.add(scr);
+    rec.screen = scr; rec.tvOn = true; this.tvOn = rec;
+    const wp = scr.getWorldPosition(new THREE.Vector3()), fw = new THREE.Vector3(Math.sin(rot), 0, Math.cos(rot));
+    this.tvLight.position.copy(wp).addScaledVector(fw, 0.5); this.tvLight.intensity = 1.8;
+    play('tvon', { vol: 0.4 });
   }
   pickUp(rec) {
     if (this.placing) return;
+    if (rec.tvOn) this.toggleTv(rec);
+    if (rec.light) { rec.light.intensity = 0; rec.light.userData.rec = null; } if (this.leds) this.leds = this.leds.filter(r => r !== rec);
     const L = this.R.life, i = L.home.indexOf(rec.h); if (i < 0) return;
     lift(L, i); this.root.remove(rec.o); this.it.remove(rec.it);
     if (rec.col) this.col.splice(this.col.indexOf(rec.col), 1);
@@ -167,9 +249,9 @@ export class HomeScene extends Walker {
     const ghost = this.makeObj(id);
     ghost.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.6; } });
     this.root.add(ghost);
-    this.placing = { id, item: ITEM[id], ghost, r, valid: false };
+    this.placing = { id, item: ITEM[id], ghost, r, valid: false, sc: 1 };
     play('click', { vol: 0.4 });
-    objective(`Placing: ${ITEM[id].name}. Look where you want it. E puts it down, R turns it, X puts it back in the box.`);
+    objective(ITEM[id].kind === 'wall' ? `Placing: ${ITEM[id].name}. Look at a wall. E puts it up · Z smaller · C bigger (or the mouse wheel) · X back in the box.` : `Placing: ${ITEM[id].name}. Look where you want it. E puts it down · R turns it · X back in the box. Small things go on tables too.`);
   }
   updatePlacing() {
     const P = this.placing, cam = this.G.camera, ray = new THREE.Raycaster();
@@ -209,11 +291,18 @@ export class HomeScene extends Walker {
     }
     P.valid = ok; P.ghost.visible = seen;
     P.ghost.traverse(m => { if (m.isMesh) m.material.color.set(ok ? 0x9fffb0 : 0xff7a6a); });
-    prompt(ok ? `${P.item.name}: E put it here · R turn · X back in the box` : `${P.item.name}: not here · R turn · X back in the box`);
+    const keys = P.item.kind === 'wall' ? 'Z smaller · C bigger (or the mouse wheel) · X back in the box' : 'R turn · X back in the box';
+    prompt(ok ? `${P.item.name}: E put it here · ${keys}` : `${P.item.name}: not here · ${keys}`);
     if (wasPressed('KeyR')) { P.r = (P.r + 1) % 4; play('click', { vol: 0.25, rate: 1.3 }); }
+    if (P.item.kind === 'wall') {   // size: Z smaller, C bigger, or the mouse wheel
+      const w = this.wheel || 0; this.wheel = 0;
+      if (wasPressed('KeyZ') || w > 0) P.sc = Math.max(0.4, P.sc / 1.15);
+      if (wasPressed('KeyC') || w < 0) P.sc = Math.min(3, P.sc * 1.15);
+      P.ghost.scale.setScalar(P.sc);
+    }
     if (wasPressed('KeyX')) { this.root.remove(P.ghost); putBack(this.R.life, P.id); this.placing = null; persist(); this.refreshHud(); this.setObjective(); play('box', { vol: 0.4 }); return; }
     if (wasPressed('KeyE') && ok) {
-      const h = P.item.kind === 'wall' ? { id: P.id, x: P.ghost.position.x, y: P.ghost.position.y, z: P.ghost.position.z, ry: P.ry } : { id: P.id, x: P.ghost.position.x, y: P.y || 0, z: P.ghost.position.z, r: P.r };
+      const h = P.item.kind === 'wall' ? { id: P.id, x: P.ghost.position.x, y: P.ghost.position.y, z: P.ghost.position.z, ry: P.ry, sc: Math.round(P.sc * 100) / 100 } : { id: P.id, x: P.ghost.position.x, y: P.y || 0, z: P.ghost.position.z, r: P.r };
       this.root.remove(P.ghost); this.placing = null;
       placeItem(this.R.life, h); this.spawnPlaced(h); persist();
       play('drop', { vol: 0.4 }); this.refreshHud(); this.setObjective();
@@ -223,6 +312,7 @@ export class HomeScene extends Walker {
 
   // ---------- flow ----------
   async enter() {
+    this._wh = e => { if (this.placing) this.wheel = e.deltaY; }; addEventListener('wheel', this._wh, { passive: true });
     this.playing = false; hud(false); music('mus_debrief', 0.25);
     loop('fh', 'hum', { vol: 0.05 }); this.loops.push('fh');
     this.player.set(0.9, -0.8, 0);
@@ -230,6 +320,7 @@ export class HomeScene extends Walker {
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
     this.refreshHud(); this.setObjective();
     if (!this.R.record.descents && !this.R.record.deaths) caption('Your own flat. Nothing can hurt you in here.', 'say', 4);
+    if (this.hackNews) { this.hackNews = false; setTimeout(() => caption('Your smart LED strip is flashing every colour at once, and the app will not let you change it. Someone else is in control. Open the app (E on the strip).', 'say', 7), 1200); }
     lockPointer();
   }
   setObjective() {
@@ -249,6 +340,7 @@ export class HomeScene extends Walker {
     this.playing = false; this.G.unlock(); prompt(null); play('click', { vol: 0.4 });
     const r = await homeComputer(this.R, S.nick || '', thumb);
     persist();
+    if (this.R._rebuild) { this.R._rebuild = false; this.G.goRogue(); return; }   // new walls: build the flat again
     if (r.move) {
       const { moveUp } = await import('../logic/home.js');
       if (moveUp(this.R.life)) {
@@ -265,9 +357,29 @@ export class HomeScene extends Walker {
     if (!going) { this.leaving = false; this.playing = true; lockPointer(); }
   }
   quit() { if (this.placing) { putBack(this.R.life, this.placing.id); this.placing = null; } persist(); this.playing = false; this.G.goHub(); }
+  exit() { if (this._wh) removeEventListener('wheel', this._wh); super.exit && super.exit(); }
   update(dt, t) {
+    const ls = this.R.life.leds;
+    if (ls && ls.hacked && this.leds) for (const r of this.leds) if (r.it0.led === 'rgb') {   // UNICORN PARTY MODE
+      const c = new THREE.Color().setHSL((t * 0.9 + r.h.x * 0.1) % 1, 1, 0.55); r.o.material.color.copy(c);
+      if (r.light) { r.light.color.copy(c); r.light.intensity = Math.sin(t * 13) > 0 ? 2.2 : 0.3; }
+    }
+    if (this.tvOn) {   // the TV: static and a purple glow that breathes
+      this._tv = (this._tv || 0) - dt;
+      if (this._tv <= 0) {
+        this._tv = 0.07; const c = this.staticTex.userData.g;
+        const im = c.createImageData(64, 48); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = v * 0.85; im.data[i + 1] = v * 0.7; im.data[i + 2] = v; im.data[i + 3] = 255; }
+        c.putImageData(im, 0, 0); c.fillStyle = 'rgba(170,90,255,.25)'; c.fillRect(0, (t * 40) % 48, 64, 5); this.staticTex.needsUpdate = true;
+        this.tvLight.intensity = 1.5 + Math.random() * 0.6;
+      }
+    }
     if (!this.playing) return;
     this.player.update(dt);
+    if (this.resting) {
+      if (['KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].some(k => wasPressed(k))) this.getUp();
+      return;
+    }
+    if (!this.placing && wasPressed('KeyQ')) { const rec = this.placed.find(r => r.it === this.it.current); if (rec) { this.pickUp(rec); return; } }
     if (this.placing) this.updatePlacing(); else this.interact();
   }
 }

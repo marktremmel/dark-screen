@@ -41,6 +41,10 @@ Lépcsőház (the stairwell mode)
   Liminal PSX Textures sampler by Cordatix (cordatix.itch.io)
   PSX Liminal Textures by LESED (lesed.itch.io)
   Liminal Sound Pack Essential (drones and signals)
+  Paintings, sticker sheets and concept art: Mark Tremmel (generated for the game)
+  Stickers and signs: Urban Grunge decal pack by Designsoup
+  Subway car: Metro_PSX pack
+  Train station sounds: field recordings by Okutasan (okutasan.itch.io)
 
 Engine
   three.js (MIT licence)

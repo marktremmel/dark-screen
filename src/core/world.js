@@ -53,7 +53,7 @@ export function wall(group, texName, ax, az, bx, bz, o = {}) {
 const _viewTex = {};
 function viewTex(key) {
   if (_viewTex[key]) return _viewTex[key];
-  const im = new Image(); const t = new THREE.Texture(im); t.colorSpace = THREE.SRGBColorSpace; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
+  const im = new Image(); const t = new THREE.Texture(im); t.colorSpace = THREE.SRGBColorSpace; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4;   // mipmaps: rows of tiny lit windows shimmered without them
   im.onload = () => { t.needsUpdate = true; t.userData.ar = im.width / im.height; for (const u of t.userData.users || []) u.value = im.width / im.height; };
   im.src = A.img[key]; t.userData.users = []; _viewTex[key] = t; return t;
 }

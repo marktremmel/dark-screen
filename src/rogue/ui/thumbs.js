@@ -7,6 +7,13 @@ const cache = {};
 let scene, cam, rt;
 export function thumb(item) {
   if (item.img) return A.img[item.img] || '';
+  if (item.led) {   // a glowing strip
+    if (cache[item.id]) return cache[item.id];
+    const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'); g.fillStyle = '#15131c'; g.fillRect(0, 0, 96, 96);
+    const gr = g.createLinearGradient(8, 0, 88, 0); if (item.led === 'white') { gr.addColorStop(0, '#f4f6ff'); gr.addColorStop(1, '#f4f6ff'); } else ['#ff5ab4', '#9a5cff', '#4aa8ff', '#3fe0c0', '#ffd23a'].forEach((col, i) => gr.addColorStop(i / 4, col));
+    g.shadowColor = item.led === 'white' ? '#ffffff' : '#c080ff'; g.shadowBlur = 16; g.fillStyle = gr; g.fillRect(8, 44, 80, 8);
+    return (cache[item.id] = c.toDataURL());
+  }
   if (cache[item.id]) return cache[item.id];
   if (!scene) {
     scene = new THREE.Scene(); scene.background = new THREE.Color(0x15131c);

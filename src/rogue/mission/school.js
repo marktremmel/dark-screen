@@ -233,6 +233,7 @@ export class School extends Walker {
     // the crowd follows Mark's painting "Phone-Lit Circle in the Gym": dark shapes of people, each lit from below by a phone
     const screenTex = canvasTex(24, 40, c => { c.fillStyle = '#dfe9ff'; c.fillRect(0, 0, 24, 40); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(12, 6, 3, 0, 7); c.fill(); c.fillStyle = '#7a8aa8'; c.fillRect(3, 12, 18, 22); });
     const glowTex = canvasTex(32, 32, c => { const g = c.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(190,215,255,.9)'); g.addColorStop(1, 'rgba(120,160,255,0)'); c.fillStyle = g; c.fillRect(0, 0, 32, 32); });
+    glowTex.magFilter = THREE.LinearFilter; glowTex.needsUpdate = true;   // a soft glow, not big pixels
     const bodies = ['npc_guard', 'npc_caretaker', 'npc_nagyi', 'npc_mannequin'];
     for (let i = 0; i < 10; i++) {
       const a = (50 + i * (260 / 9)) * D2R, rr = 2.3 + (i % 2) * 0.5, x = cx + Math.sin(a) * rr, z = cz + Math.cos(a) * rr;
@@ -380,7 +381,10 @@ export class School extends Walker {
     for (const c of C.crowd) {
       if (c.state === 'gone') continue;
       if (c.state === 'fade') { c.f -= dt * 0.8; c.mat.opacity = Math.max(0, c.f); c.scr.material.opacity = Math.max(0, c.f); c.gl.material.opacity = 0.4 * Math.max(0, c.f); if (c.f <= 0) { c.state = 'gone'; c.n.obj.visible = false; } c.n.update(dt); continue; }
-      const tx = d < 3.4 ? p.x : C.center.x, tz = d < 3.4 ? p.z : C.center.z; c.n.faceTo(tx, tz);
+      const onYou = d < 3.4, tx = onYou ? p.x : C.center.x, tz = onYou ? p.z : C.center.z; c.n.faceTo(tx, tz);
+      // when the phones turn from Dani to you, their lights glare in your eyes
+      const want = onYou ? 0.85 : 0.3, k = Math.min(1, dt * 3); if (c.glare == null) c.glare = 0.3; c.glare += (want - c.glare) * k;
+      c.gl.scale.setScalar(c.glare); c.gl.material.opacity = 0.25 + c.glare * 0.6;
       c.n.update(dt); c.scr.material.opacity = Math.random() < 0.04 ? 0.5 : 1;
     }
     if (Object.keys(C.done).length === 4) return;
@@ -547,6 +551,8 @@ export class School extends Walker {
     }
     if (s.zone === 2 && p.z < ROOM.z0 - 0.4) {
       s.zone = 3; if (this.lensOn) this.toggleLens();
+      // the gym is thick with dust and haze: lights become shapes, the crowd becomes silhouettes (Mark: use fog more)
+      this.scene.fog.color.set(0x0b0d14); this.scene.background.set(0x0b0d14); this.scene.fog.near = 1.2; this.scene.fog.far = this.v.gym === 'chorus' ? 10 : 12;
       this.dissolving = false;
       if (this.v.gym === 'phone') {
         this.watcher.place(7, -45, { x0: -7.5, x1: 7.5, z0: -45.5, z1: -32.6 }, LAMP); this.watcher.setSize(0.85);
@@ -623,7 +629,7 @@ export class School extends Walker {
     if (this.watcher.active) {
       if (this.dissolving) { if (this.watcher.dissolve(dt)) { this.dissolving = false; this.doors.gymc.openUp(); this.gain(0, CFG.coinsZone); caption('The door to the gym swings open on its own.', 'say', 4); } }
       else {
-        const r = this.watcher.update(dt, { player: this.player.pos, seen: this.watcherSeen(), trackers: this.st.zone === 2 ? this.trackersLeft() : 0, noise: this.noise.v });
+        const r = this.watcher.update(dt, { player: this.player.pos, seen: this.watcherSeen(), trackers: this.st.zone === 2 ? this.trackersLeft() : 0, noise: this.noise.v, cam: this.G.camera.position });
         if (r === 'caught' && !(this.st.zone === 3 && this.inLight())) { this.caught(); return; }
       }
     }

@@ -23,16 +23,17 @@ function face() {
 }
 
 export class Mimic {
-  constructor(parent, i, data, x, z, speed) {
+  constructor(parent, i, data, x, z, speed, gentle = false) {
+    this.gentle = gentle;
     this.data = data; this.id = data.id; this.speed = speed; this.state = 'walk'; this.t = 0;
     // the look follows Mark's painting "Phone-Faced Stranger in the Stairwell": an ordinary person in ordinary clothes,
     // and where the head should be, a phone held up, showing a face on a video call
     this.npc = new NPC(BODIES[i % BODIES.length], { speed });
-    this.npc.obj.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (o.material.color) o.material.color.multiplyScalar(0.55); } });
+    this.npc.obj.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (o.material.color) o.material.color.multiplyScalar(gentle ? 1.05 : 0.55); if (gentle && o.material.emissive) o.material.emissive.setHex(0x2a1e10); } });
     this.root = new THREE.Group(); this.root.add(this.npc.obj); this.root.position.set(x, 0, z); parent.add(this.root);
     const phone = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.33, 0.025), new THREE.MeshLambertMaterial({ color: 0x18181c })); phone.add(body);
-    this.screen = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.3), new THREE.MeshBasicMaterial({ map: face(), fog: false, transparent: true })); this.screen.position.z = 0.0135; phone.add(this.screen);
+    this.screen = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.3), new THREE.MeshBasicMaterial({ map: face(), fog: false, transparent: true, color: gentle ? 0xffe2b8 : 0xffffff })); this.screen.position.z = 0.0135; phone.add(this.screen);
     const neck = bone(this.npc.obj, 'Neck');
     if (neck) { attach(this.npc.obj, neck, phone, new THREE.Vector3(0, 0.17, 0.03)); hideBone(this.npc, 'Head'); }
     else { phone.position.set(0, 1.6, 0.05); this.npc.obj.add(phone); }

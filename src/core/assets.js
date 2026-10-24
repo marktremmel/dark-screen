@@ -29,7 +29,9 @@ function loadTexture(url) {
   return new Promise((res, rej) => {
     new THREE.TextureLoader().load(url, t => {
       t.colorSpace = THREE.SRGBColorSpace;
-      t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestMipmapNearestFilter;
+      // pixels stay crisp up close (Nearest), but far away and at low angles the mip levels blend smoothly:
+      // NearestMipmapNearest made floors, rugs and window grids flicker whenever the view moved (Mark, 24 Oct)
+      t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4;
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
       res(t);
     }, undefined, rej);
@@ -42,7 +44,7 @@ function psxify(root, vc = false) {
     if (!o.isMesh) return;
     const conv = m => {
       if (cache.has(m)) return cache.get(m);
-      if (m.map) { m.map.magFilter = THREE.NearestFilter; m.map.minFilter = THREE.NearestMipmapNearestFilter; }
+      if (m.map) { m.map.magFilter = THREE.NearestFilter; m.map.minFilter = THREE.LinearMipmapLinearFilter; m.map.anisotropy = 4; }
       const n = psxMat({ map: m.map || null, color: m.map ? 0xffffff : (m.color ? m.color.getHex() : 0xaaaaaa), side: THREE.DoubleSide, alphaTest: m.alphaTest > 0 ? Math.max(m.alphaTest, 0.35) : 0, skinning: !!o.isSkinnedMesh, vertexColors: vc && !!o.geometry.attributes.color });
       cache.set(m, n); return n;
     };

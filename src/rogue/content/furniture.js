@@ -55,6 +55,25 @@ for (const [img, a, title] of PAINTINGS) ITEMS.push({ id: 'pp_' + img.slice(3), 
 // stickers: cheap, small, any wall (Urban Grunge decals, see stickers.js)
 for (const [n, a, label] of STICKERS) ITEMS.push({ id: 's_' + n, img: 'st_' + n, name: label, hu: 'matrica',
   price: 5, cosy: 0.5, kind: 'wall', sticker: true, size: Math.min(0.3, 0.42 / a), aspect: a });
+// LED strips go on a wall like a poster, and light the room (two strips at most give light)
+ITEMS.push({ id: 'led_white', name: 'LED strip (white)', hu: 'LED-szalag', price: 30, cosy: 2, kind: 'wall', led: 'white', use: 'led' },
+  { id: 'led_rgb', name: 'Smart LED strip (colours, Wi-Fi)', hu: 'okos LED-szalag', price: 60, cosy: 4, kind: 'wall', led: 'rgb', use: 'led' });
+// what you can do with things once they stand in the flat (not only build it, live in it)
+const USE = { sofa: 'sit', armchair: 'sit', gran_sofa: 'sit', chair: 'sit', deskchair: 'sit', bed: 'lie', bigbed: 'lie', fridge: 'eat', kitchen: 'eat', tv: 'tv', oldtv: 'tv' };
+for (const [id, use] of Object.entries(USE)) { const it = ITEMS.find(i => i.id === id); if (it) it.use = use; }
+/** Wall finishes for the flat (the Your flat tab). Changing one is free. */
+export const WALLS = [
+  { id: 'paper', name: 'Old wallpaper', tex: 'rg_wallpaper', color: 0xffffff },
+  { id: 'white', name: 'Whitewash', tex: 'rg_white', color: 0xf2efe8 },
+  { id: 'mint', name: 'Stairwell mint', tex: 'rg_mint', color: 0xffffff },
+  { id: 'gran', name: 'Grandma\'s flowers', tex: 'sv_wallpaper', color: 0xffffff },
+  { id: 'hotel', name: 'Hotel green', tex: 'rg_hotel_wall', color: 0xffffff },
+  { id: 'mustard', name: 'Mustard stripes', tex: 'rg_stripe', color: 0xffffff },
+  { id: 'night', name: 'Painted: night blue', tex: 'rg_white', color: 0x3a4a78 },
+  { id: 'rose', name: 'Painted: dusty pink', tex: 'rg_white', color: 0xc89090 },
+  { id: 'teal', name: 'Painted: deep teal', tex: 'rg_white', color: 0x2f6a6a },
+  { id: 'ochre', name: 'Painted: ochre', tex: 'rg_white', color: 0xc8a050 },
+];
 export const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 
 /** Flats you can move into. Rooms are rectangles in the flat's own coordinates (the front door is at x 0.9, z 0). */

@@ -253,7 +253,7 @@ export const CREDITS = [
   ['Textures', 'Screaming Brain Studios Tiny Texture Pack 2 (CC0). Classic64 Asset Library by Craig Snedeker (CC0).'],
   ['Sky', 'Free Sky with Clouds Background Pixel Art Set by CraftPix.net.'],
   ['Interface', 'UI Variations (HD horror UI pack). Pixel font m5x7 by Daniel Linssen.'],
-  ['Lépcsőház', 'Stairwell textures from the PSX Soviet Block Kit by heyheythere; Liminal PSX Textures sampler by Cordatix (cordatix.itch.io); PSX Liminal Textures by LESED (lesed.itch.io); drones and signals from the Liminal Sound Pack Essential. Used under their game licences; the raw assets may not be redistributed.'],
+  ['Lépcsőház', 'Stairwell textures from the PSX Soviet Block Kit by heyheythere; Liminal PSX Textures sampler by Cordatix (cordatix.itch.io); PSX Liminal Textures by LESED (lesed.itch.io); drones and signals from the Liminal Sound Pack Essential; stickers from the Urban Grunge decal pack by Designsoup; the subway car from the Metro_PSX pack; station sounds by Okutasan (okutasan.itch.io); paintings and sticker sheets by Mark Tremmel. Used under their game licences; the raw assets may not be redistributed.'],
   ['Engine', 'three.js (MIT licence).'],
   ['Fiction', 'All apps, companies, people and messages in this game are invented. Any resemblance is a coincidence.'],
   ['Easter egg', 'The field after the finale links to "Still Alive" by Jonathan Coulton, from the game Portal (Valve, 2007), on YouTube. The song itself is not part of this game.'],

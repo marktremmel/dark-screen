@@ -2,7 +2,7 @@
 import { openScreen, closeScreen, saveToFile } from '../../ui/screens.js';
 import { mountMaker, preparePosters } from './posterMaker.js';
 import { play } from '../../core/audio.js';
-import { ITEMS, ITEM, FLATS } from '../content/furniture.js';
+import { ITEMS, ITEM, FLATS, WALLS } from '../content/furniture.js';
 import { CARDS, CARD_COUNT } from '../content/cards.js';
 import { THEMES } from '../content/themes.js';
 import { buy, cosiness, startNerve, flatOf, owned } from '../logic/home.js';
@@ -44,11 +44,14 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
           (cards.length ? cards.map(a => `<div style="${PAPER}"><b>${esc(a.title)}</b> <span style="color:#7a6a50;font-size:.85em">· ${esc(THEMES[a.theme].title)}</span><br>${esc(a.text)}</div>`).join('') : '<p class="sub">Empty for now.</p>');
       } else {
         const cur = flatOf(L), next = FLATS[cur.level];
-        body.innerHTML = `<div style="${PAPER}"><b>${esc(cur.name)}</b> (${esc(cur.hu)}) on the ${L.floor}. emelet<br>Nerve bonus from the flat: +${cur.nerve}. Cosiness: ${cosiness(L)} of 30.</div>
+        body.innerHTML = `<div style="${PAPER}"><b>${esc(cur.name)}</b> (${esc(cur.hu)}) on the ${L.floor}. emelet<br>Nerve bonus from the flat: +${cur.nerve}. Cosiness: ${cosiness(L)} of 30.${L.fed || L.rested ? ` Tonight: ${L.fed ? 'you ate (+5)' : ''}${L.fed && L.rested ? ', ' : ''}${L.rested ? 'you rested (+5)' : ''}.` : ''}</div>
+          <h3>Walls (fal)</h3><div style="display:flex;flex-wrap:wrap;gap:6px">${WALLS.map(w => `<button class="btn small ${(L.wall || 'paper') === w.id ? 'primary' : ''}" data-wall="${w.id}">${esc(w.name)}</button>`).join('')}</div>
+          <p class="sub" style="font-size:.8em">Free. The flat is repainted when you close the computer.</p>
           ${next ? `<h3>Move to a bigger flat</h3><p><b>${esc(next.name)}</b> (${esc(next.hu)}): ${next.rooms.length} rooms${next.rooms.some(r => r.balcony) ? ' with a balcony' : ''}, nerve +${next.nerve} on the stairs. Costs <b>${next.price} coins</b>.</p>
           <p class="sub">Moving puts all your furniture into boxes, and you choose your floor again (higher floors pay more and take longer). If you lose this life, the bigger flat goes too.</p>
           <button class="btn ${L.coins >= next.price ? 'primary' : ''}" id="mv" ${L.coins >= next.price ? '' : 'disabled style="opacity:.45"'}>Move (${next.price} coins)</button>` : '<p>This is the biggest flat in the block.</p>'}`;
         const mv = body.querySelector('#mv'); if (mv) mv.onclick = () => { done({ move: true }); };
+        body.querySelectorAll('[data-wall]').forEach(b => b.onclick = () => { L.wall = b.dataset.wall; R._rebuild = true; draw(); });
       }
     };
     const key = e => { if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); done({}); } };

@@ -40,7 +40,7 @@ export class Walk extends Walker {
 
   async build() {
     const park = this.kind === 'park', st = STYLE[this.kind];
-    const g = this.newScene(park ? 0x070a10 : st.bg, park ? 4 : st.fog[0], park ? 26 : st.fog[1]);
+    const g = this.newScene(park ? 0x05070b : st.bg, park ? 2.5 : st.fog[0], park ? 19 : st.fog[1]);   // the park: darker and foggier (Mark, 24 Oct)
     this.r = rng(freshSeed());
     this.D = DIFFS[this.run.diff] || DIFFS.normal;
     this.mult = floorMult(this.R.life.floor) * this.D.reward;
@@ -61,14 +61,14 @@ export class Walk extends Walker {
   // ---------- the park ----------
   buildPark(g) {
     const col = this.col, Z_END = this.zEnd = -76;
-    this.scene.add(new THREE.HemisphereLight(0x7a8ac0, 0x14180e, 0.85));
-    const moon = new THREE.DirectionalLight(0xa8b8ff, 0.45); moon.position.set(-20, 30, 10); this.scene.add(moon);
+    this.scene.add(new THREE.HemisphereLight(0x7a8ac0, 0x14180e, 0.6));
+    const moon = new THREE.DirectionalLight(0xa8b8ff, 0.32); moon.position.set(-20, 30, 10); this.scene.add(moon);
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 100), psxMat({ map: tex('grass', 40, 50), color: 0x6a7a58 }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -36); g.add(ground);
     const pm = psxMat({ map: tex('rg_asphalt', 1, 1), color: 0x9a9a9a });
     for (let z = 5; z > Z_END - 2; z -= 1.5) {
       const z2 = z - 1.6, x1 = PX(z), x2 = PX(z2), s = new THREE.Mesh(new THREE.PlaneGeometry(2.4, Math.hypot(x2 - x1, 1.6) + 0.05), pm);
-      s.rotation.x = -Math.PI / 2; s.rotation.z = Math.atan2(x2 - x1, 1.6); s.position.set((x1 + x2) / 2, 0.012, (z + z2) / 2); g.add(s);
+      s.rotation.x = -Math.PI / 2; s.rotation.z = Math.atan2(x2 - x1, 1.6); s.position.set((x1 + x2) / 2, 0.012 + (Math.round(z / 1.5) & 1) * 0.004, (z + z2) / 2); g.add(s);   // overlapping pieces at different heights: equal heights flickered (z-fighting)
     }
     // your panel block, right behind you: you have just come out of its front door
     this.buildBlock(g, 5.6);
@@ -111,7 +111,7 @@ export class Walk extends Walker {
       place(panels, name, x, y, zf, 180);
       if (name === 'bk_wall_window_panel' && this.r() < 0.3) {
         const w = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.0), new THREE.MeshBasicMaterial({ color: this.r() < 0.5 ? 0xe8b860 : 0x8fa8e0, fog: true }));
-        w.position.set(x, y + 1.6, zf + 0.12); w.rotation.y = Math.PI; g.add(w);
+        w.position.set(x, y + 1.6, zf + 0.09); w.rotation.y = Math.PI; g.add(w);   // in front of the dark box behind the facade: at the same depth they flickered
       }
     }
     texBox(g, null, -11, 0, zf + 0.12, 11, 15, zf + 9, { color: 0x15161a });
@@ -285,7 +285,7 @@ export class Walk extends Walker {
     const lanes = this.kind === 'park' ? [-2.2, 2.2, 0] : [-0.8, 0.8, 0], lat = lanes[w.lane++ % lanes.length];
     const dist = 9 + this.r() * 1.5, side = new THREE.Vector3(-d.z, 0, d.x);
     const x = p.x + d.x * dist + side.x * lat, z = p.z + d.z * dist + side.z * lat;
-    const m = new Mimic(this.root, this.mimics.length, data, x, z, CFG.mimicSpeed * this.D.speed * (1 + this.st.wave * 0.08));
+    const m = new Mimic(this.root, this.mimics.length, data, x, z, CFG.mimicSpeed * this.D.speed * (1 + this.st.wave * 0.08), this.run.topic === 'T7');   // kindness night: people who need a kind word, not monsters
     m.uid = data.id + '_' + this.mimics.length;
     this.mimics.push(m); w.active.push(m);
     w.targets.add(m.uid, data.type, dist);
@@ -322,9 +322,9 @@ export class Walk extends Walker {
         w.targets.remove(m.uid); this.labels.remove(m.uid); m.dissolve(); this.st.reached++;
         if (!S.settings.quiet) flash(0.5, 300);
         play('thump', { vol: 0.4 });
-        caption(`It got too close. The answer was "${m.data.type}". ${m.data.lesson}`, 'say', 7);
+        caption(m.gentle ? `Nobody answered, and they walk away with their head down. A kind answer was "${m.data.type}". ${m.data.lesson}` : `It got too close. The answer was "${m.data.type}". ${m.data.lesson}`, 'say', 7);
         this.run.lessons.push({ zone: 'walk', theme: this.run.topic, title: `"${m.data.type}"`, text: m.data.lesson, rule: m.data.rule });
-        if (nerve(this.R, -Math.round(CFG.mimicNerve * this.D.nerveLoss))) { this.endWave(); this.playing = false; this.G.loseLife(this.run); return; }
+        if (nerve(this.R, -Math.round(CFG.mimicNerve * this.D.nerveLoss * (m.gentle ? 0.5 : 1)))) { this.endWave(); this.playing = false; this.G.loseLife(this.run); return; }
       }
       if (t) { v.copy(m.head()).project(cam); lab.push({ m, t, x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, on: v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 }); }
     }
