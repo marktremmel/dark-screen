@@ -21,6 +21,10 @@ import { NPC } from '../../core/npc.js';
 import { sitDown } from '../entities/rig.js';
 import { floorPicker } from '../ui/panels.js';
 import { thumb } from '../ui/thumbs.js';
+import { homeJobPanel } from '../ui/missionPanels.js';
+import { HOME_JOBS } from '../content/homejobs.js';
+import { Phrase } from '../logic/typing.js';
+import { earn } from '../save/rogueSave.js';
 
 const HH = 2.65, CELL = 0.2;
 
@@ -62,12 +66,21 @@ export class HomeScene extends Walker {
     }), fog: false }));
     scr.position.set(-0.057, 0.243, 0.104); pc.add(scr);
     const glow = new THREE.PointLight(0x8fe3c9, 0.8, 3, 1.6); glow.position.set(1.0, 1.3, -4.1); g.add(glow);
+    // v0.16: your phone on the desk. A new message (a T8 home job) waits after each night out; the screen blinks.
+    const ph = new THREE.Group(); ph.position.set(1.48, 0.765, -4.5); ph.rotation.y = -0.35; g.add(ph);
+    ph.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.012, 0.155), psxMat({ color: 0x1a1a20 })));
+    this.phoneScr = new THREE.Mesh(new THREE.PlaneGeometry(0.068, 0.138), new THREE.MeshBasicMaterial({ map: canvasTex(24, 48, c => {
+      c.fillStyle = '#10141c'; c.fillRect(0, 0, 24, 48); c.fillStyle = '#8fe3c9'; c.fillRect(3, 14, 18, 7); c.fillStyle = '#e8f0ff'; c.fillRect(3, 24, 14, 3); c.fillRect(3, 29, 16, 3); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(19, 6, 3, 0, 7); c.fill();
+    }), fog: false }));
+    this.phoneScr.rotation.x = -Math.PI / 2; this.phoneScr.position.y = 0.0065; ph.add(this.phoneScr);
+    this.phone = ph;
     this.setupRig({ arms: false, flash: false, stepVol: 0.25, reach: 2.4 });
     // your things
     this.placed = [];
     L.home.forEach(h => this.spawnPlaced(h));
     const it = this.it;
     it.add(pc, 'Your computer: shop, notebook, your flat', () => this.computer());
+    it.add(this.phone, () => this.jobWaiting() ? 'Your phone: a new message' : 'Your phone: no new messages', () => this.openPhone());
     it.add(door, 'Front door: plan tonight and go out', () => this.goOut());
     it.add(mat, 'Mattress: sleep (back to Room 214)', () => this.quit());
     it.add(box, () => { const n = Object.values(L.inv).reduce((a, b) => a + b, 0); return n ? `Your things (doboz): ${n} to place` : 'The box: empty for now'; }, () => this.openBox());
@@ -372,8 +385,9 @@ export class HomeScene extends Walker {
   }
   setObjective() {
     const L = this.R.life, n = Object.values(L.inv).reduce((a, b) => a + b, 0);
-    objective(n ? `You have ${n} thing${n > 1 ? 's' : ''} in the box by the door. Place them to make the flat cosy, then go out through the front door.`
-      : 'Your flat is safe. Buy things on the computer to make it cosy. When you are ready, go out through the front door.');
+    const msg = this.phone && this.jobWaiting() ? ' Your phone on the desk is blinking: a new message.' : '';
+    objective((n ? `You have ${n} thing${n > 1 ? 's' : ''} in the box by the door. Place them to make the flat cosy, then go out through the front door.`
+      : 'Your flat is safe. Buy things on the computer to make it cosy. When you are ready, go out through the front door.') + msg);
   }
   refreshHud() {
     const L = this.R.life;
@@ -398,6 +412,26 @@ export class HomeScene extends Walker {
     }
     this.refreshHud(); this.setObjective(); this.playing = true; lockPointer();
   }
+  /** The next T8 job, if one is waiting: one new message after each night out, in order. */
+  jobWaiting() {
+    const rec = this.R.record, done = rec.jobs || [], nights = Object.values(rec.topics || {}).reduce((a, b) => a + b, 0);
+    if (nights < (rec.jobAt || 0)) return null;
+    return HOME_JOBS.find(j => !done.includes(j.id)) || null;
+  }
+  async openPhone() {
+    const job = this.jobWaiting();
+    if (!job) { caption('No new messages. Your friends are asleep, or pretending to be.', 'say', 3); return; }
+    this.playing = false; this.G.unlock(); prompt(null);
+    const r = await homeJobPanel(job, Phrase);
+    if (r.done) {
+      const rec = this.R.record; rec.jobs = [...(rec.jobs || []), job.id];
+      rec.jobAt = Object.values(rec.topics || {}).reduce((a, b) => a + b, 0) + 1;   // the next message comes after your next night out
+      earn(this.R, 10, 5); const isNew = noteCard(this.R, 'j:' + job.id); persist();
+      caption(`+10 XP, +5 coins.${isNew ? ` New notebook card: "${job.card.title}".` : ''}${r.tries > 1 ? '' : ' Right first time.'}`, 'say', 4);
+      this.refreshHud(); this.setObjective(); this._jobT = 0;
+    }
+    this.playing = true; lockPointer();
+  }
   async goOut() {
     if (this.leaving || this.placing) return; this.leaving = true; this.playing = false; prompt(null); this.G.unlock();
     const going = await this.G.startNight();   // the night menu: topic, difficulty, scores
@@ -406,6 +440,7 @@ export class HomeScene extends Walker {
   quit() { if (this.placing) { putBack(this.R.life, this.placing.id); this.placing = null; } persist(); this.playing = false; this.G.goHub(); }
   exit() { if (this._wh) removeEventListener('wheel', this._wh); super.exit && super.exit(); }
   update(dt, t) {
+    if (this.phoneScr) { if (this._jobT == null || (this._jobT -= dt) <= 0) { this._jobT = 1; this._job = !!this.jobWaiting(); } this.phoneScr.visible = this._job && Math.sin(t * 4) > -0.4; }
     const ls = this.R.life.leds;
     if (ls && ls.hacked && this.leds) for (const r of this.leds) if (r.it0.led === 'rgb') {   // UNICORN PARTY MODE
       const c = new THREE.Color().setHSL((t * 0.9 + r.h.x * 0.1) % 1, 1, 0.55); r.o.material.color.copy(c);

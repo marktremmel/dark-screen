@@ -96,7 +96,9 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
   TV, walls, LED strips with the hack in ui/ledApp.js); poster sizing; the Metro_PSX subway car. Doc 04 has the details.
 - v0.13 (24 Oct): the underpass walk (heyheythere kits), the payphone on every walk (content/calls.js), gym glare overlay.
 - v0.14 (24 Oct): gallery pack and picture viewer, TV static in the screen texture, look around while seated and the visitor, faster ambushing maze figure, sticker folders, Sharper picture setting.
-- Next: see doc 05 (design detective, harder typing, endless labyrinth, T8 home jobs, new places, look and feel).
+- v0.15 (24 Oct): the design detective arcade in the underpass (content/arcade.js, `arcadePanel`), Hard typing (`strictKey`, `hardText` in logic/typing.js), skip intro (ui/skip.js), the red bulb made obvious.
+- v0.16 (24 Oct): the endless labyrinth (`run.mode === 'labyrinth'`, built inside mission/stairwell.js: `enterEndless`, `setupRoom`, `nextRoom`; `G.goLabyrinth`; `record.best.rooms`); T8 home jobs on the phone in the flat (content/homejobs.js, `homeJobPanel`, `record.jobs` and `record.jobAt`: one new message per night out).
+- Next: see doc 05 section 0 (new shapes of night, new places, thin topics, the Tenant, look and feel, classroom).
 
 ## Codes
 

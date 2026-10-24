@@ -157,3 +157,65 @@ export function arcadePanel(TRICKS, FINE, secs = 22, rand = Math.random) {
     next();
   });
 }
+
+/**
+ * T8 home jobs (v0.16): a chat on your own phone. The chat plays in, you pick a reply; a risky reply shows what could
+ * happen next and you pick again; the safe reply is then typed out on the phone's keyboard.
+ * Resolves {done, tries, chars, ms, keys, errors} (done false if the phone was put away first).
+ */
+export function homeJobPanel(job, Phrase, rand = Math.random) {
+  return new Promise(res => {
+    const el = openScreen(`<div class="phone"><div class="bar"><span>${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2, '0')}</span><span>▮▮▮ 64%</span></div>
+      <div class="appbar">${esc(job.from)}</div><div class="msgs" id="hm"></div>
+      <div class="foot" id="hf" style="flex-direction:column;gap:8px"></div></div>`);
+    const box = el.querySelector('#hm'), foot = el.querySelector('#hf');
+    let tries = 0, closed = false, typing = null, timers = [];
+    const later = (f, ms) => timers.push(setTimeout(() => { if (!closed) f(); }, ms));
+    const bubble = (who, text, sys) => {
+      const d = document.createElement('div'); d.className = 'msg' + (sys ? ' sys' : '');
+      if (who === 'you') d.style.cssText = 'align-self:flex-end;background:#1f4a3c';
+      d.innerHTML = sys ? esc(text) : `${who !== 'you' && who !== 'them' ? `<span class="who">${esc(who)}</span>` : ''}${esc(text)}`;
+      box.appendChild(d); box.scrollTop = box.scrollHeight; setTimeout(() => { box.scrollTop = box.scrollHeight; }, 350); play('click', { vol: 0.25 });
+    };
+    const close = done => { if (closed) return; closed = true; timers.forEach(clearTimeout); removeEventListener('keydown', key, true); closeScreen(el); res({ done, tries, ...(typing ? typing.stats() : { chars: 0, ms: 0, keys: 0, errors: 0 }) }); };
+    const key = e => {
+      if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(false); return; }
+      if (!typing || e.key.length !== 1) return;
+      e.preventDefault(); e.stopImmediatePropagation(); typing.input(e.key);
+    };
+    setTimeout(() => addEventListener('keydown', key, true), 150);
+    const choose = () => {
+      const opts = job.replies.slice().sort(() => rand() - 0.5);
+      foot.innerHTML = `<div class="sub" style="font-size:.75em">Your reply (válasz):</div>` + opts.map((o, i) => `<button class="btn small" data-i="${i}" style="text-align:left;width:100%">${esc(o.text)}</button>`).join('');
+      foot.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+        const o = opts[+b.dataset.i]; tries++;
+        if (!o.safe) { foot.innerHTML = ''; bubble('sys', 'What could happen next: ' + o.next, true); later(() => { bubble('sys', 'Choose again.', true); choose(); }, 1600); return; }
+        type(o.text);
+      });
+    };
+    const type = text => {
+      const p = new Phrase(text), t0 = performance.now();
+      foot.innerHTML = `<div class="sub" style="font-size:.75em">Type it (gépeld be):</div><div id="ht" style="font:18px m5x7,monospace;letter-spacing:1px;padding:8px 10px;background:#15141c;border-radius:10px;width:100%;box-sizing:border-box"></div>`;
+      const ht = foot.querySelector('#ht');
+      const draw = () => { ht.innerHTML = `<span style="color:#8fe3c9">${esc(text.slice(0, p.pos))}</span><span style="text-decoration:underline">${esc(text.slice(p.pos, p.pos + 1))}</span><span style="color:#8a8598">${esc(text.slice(p.pos + 1))}</span>`; };
+      typing = {
+        input: ch => { const r = p.input(ch); draw(); if (r === 'miss') play('click', { vol: 0.15, rate: 0.6 }); if (r === 'done') sent(); },
+        stats: () => ({ chars: p.pos, ms: performance.now() - t0, keys: p.keys, errors: p.errors }),
+      };
+      draw();
+      const sent = () => {
+        const st = typing.stats(); typing = { input: () => {}, stats: () => st };
+        foot.innerHTML = ''; bubble('you', text);
+        job.after.forEach(([who, t], i) => later(() => bubble(who === 'you' ? 'you' : who, t), 900 + i * 1100));
+        later(() => {
+          const c = document.createElement('div'); c.className = 'msg sys'; c.style.cssText = 'max-width:100%;text-align:left';
+          c.innerHTML = `<b>Notebook card: ${esc(job.card.title)}</b><br>${esc(job.card.text)}`; box.appendChild(c); box.scrollTop = box.scrollHeight; setTimeout(() => { box.scrollTop = box.scrollHeight; }, 350);
+          foot.innerHTML = '<button class="btn primary" id="hd">Put the phone down</button>'; foot.querySelector('#hd').onclick = () => close(true);
+        }, 1000 + job.after.length * 1100);
+      };
+    };
+    foot.innerHTML = '<button class="btn small" id="hx">Not now (Esc)</button>'; foot.querySelector('#hx').onclick = () => close(false);
+    job.chat.forEach(([who, t], i) => later(() => bubble(who, t), 300 + i * 900));
+    later(choose, 400 + job.chat.length * 900);
+  });
+}

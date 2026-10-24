@@ -4,6 +4,7 @@ import { WALK_LINE } from './walks.js';
 import { POSTS } from './posts.js';
 import { CALLS } from './calls.js';
 import { TRICKS } from './arcade.js';
+import { HOME_JOBS } from './homejobs.js';
 
 export const CARDS = {
   ...Object.fromEntries(ANOMALIES.map(a => [a.id, { title: a.card.title, text: a.card.text, theme: a.theme, from: 'stairwell' }])),
@@ -12,6 +13,7 @@ export const CARDS = {
 };
 CALLS.forEach(c => { CARDS['c:' + c.id] = { title: 'Call back on the number you know', text: c.lesson, theme: 'T2', from: 'payphone' }; });
 TRICKS.forEach(t => { CARDS['d:' + t.id] = { title: 'Trick: ' + t.name.toLowerCase(), text: t.why, theme: 'T5', from: 'arcade' }; });
+HOME_JOBS.forEach(j => { CARDS['j:' + j.id] = { title: j.card.title, text: j.card.text, theme: 'T8', from: 'phone' }; });
 // cards from living in the flat
 CARDS['h:leds'] = { title: 'Smart devices need care too', text: 'Update the software, change the default password, and switch off control from the internet if you do not need it. Attackers look for devices that still say "admin".', theme: 'T3', from: 'home' };
 export const CARD_COUNT = Object.keys(CARDS).length;

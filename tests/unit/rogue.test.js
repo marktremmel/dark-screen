@@ -218,3 +218,20 @@ test('hard typing: strict phrase needs capitals and punctuation, forgives accent
   for (const ch of 'Kerj segitseget.') r.input(ch);
   assert.ok(r.done);
 });
+
+import { HOME_JOBS } from '../../src/rogue/content/homejobs.js';
+import { CARDS as ALLCARDS } from '../../src/rogue/content/cards.js';
+import { recordNight as recN, newRun as newR } from '../../src/rogue/logic/night.js';
+test('home jobs: one safe reply each, every risky reply says what happens next, cards exist', () => {
+  for (const j of HOME_JOBS) {
+    assert.equal(j.replies.filter(r => r.safe).length, 1, j.id);
+    for (const r of j.replies) if (!r.safe) assert.ok(r.next && r.next.length > 20, j.id);
+    assert.ok(ALLCARDS['j:' + j.id], j.id);
+  }
+});
+test('the labyrinth: rooms are recorded and the best is kept', () => {
+  const rec = { nights: [], best: { xp: 0, wpm: 0, stages: 0 } };
+  const run = newR('T1', 'normal', 'park'); run.mode = 'labyrinth'; run.rooms = 5; run.stages = ['labyrinth'];
+  recN(rec, run, 'labyrinth'); assert.equal(rec.best.rooms, 5); assert.equal(rec.best.stages, 0);
+  run.rooms = 3; recN(rec, run, 'labyrinth'); assert.equal(rec.best.rooms, 5); assert.equal(rec.nights[0].rooms, 3);
+});

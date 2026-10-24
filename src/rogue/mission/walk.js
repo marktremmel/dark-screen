@@ -436,7 +436,7 @@ export class Walk extends Walker {
       let y = L.y;
       for (let moved = true, n = 0; moved && n < 6; n++) { moved = false; for (const P2 of placed) if (Math.abs(P2.x - L.x) < 300 && y > P2.y - P2.h - 6 && y - h < P2.y) { y = P2.y - P2.h - 6; moved = true; } }   // labels hang above their point (bottom edge at y)
       placed.push({ x: L.x, y, h });
-      this.labels.set(L.m.uid, L.x, y, isNear ? `${L.m.data.who}: ${L.m.data.say}` : '', L.t.p, w.targets.lock === L.t, L.on);
+      this.labels.set(L.m.uid, L.x, y, isNear ? `${L.m.data.who}${/[?!.]$/.test(L.m.data.who) ? '' : ':'} ${L.m.data.say}` : '', L.t.p, w.targets.lock === L.t, L.on);
     }
     this.speech.set(lab.filter(L => !(near && L.t === near)).map(L => ({ who: L.m.data.who, say: L.m.data.say, near: false })));   // the others wait down here
     if (!w.list.length && !w.targets.list.length && w.active.every(m => m.state === 'gone')) {

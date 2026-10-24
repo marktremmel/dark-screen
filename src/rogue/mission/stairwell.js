@@ -22,7 +22,7 @@ import { dressLanding, L } from './landing.js';
 import { readPanel, rulesPanel } from '../ui/panels.js';
 import { Watcher } from '../entities/watcher.js';
 import { typeOne } from '../ui/typing.js';
-import { timeFor } from '../logic/typing.js';
+import { timeFor, hardText } from '../logic/typing.js';
 import { startNerve } from '../logic/home.js';
 import { skipWait } from '../ui/skip.js';
 
@@ -121,8 +121,8 @@ export class Stairwell extends Walker {
     this.watcher.root.visible = true; this.watcher.root.position.set(YX - 30, -20, 0);   // always in the scene (never change the light count), parked out of sight
   }
   /** Build a new maze: N x N cells of C metres, a spanning tree of openings, an exit on the far side. */
-  genMaze() {
-    const Y = this.yellow, N = 4, C = 4, h = 2.6, r = this.r;
+  genMaze(N = 4) {
+    const Y = this.yellow, C = 4, h = 2.6, r = this.r;
     while (Y.children.length) Y.remove(Y.children[0]);
     for (let i = this.col.length - 1; i >= 0; i--) if (this.col[i].maze) this.col.splice(i, 1);
     for (let i = this.block.length - 1; i >= 0; i--) if (this.block[i].userData.maze) this.block.splice(i, 1);
@@ -164,9 +164,9 @@ export class Stairwell extends Walker {
     this.mazeStart = [X(0) + C / 2, Z(0) - C / 2];
     // two old screens on stands with a line from tonight's topic: typing one makes the figure lose you for a while
     const lines = (TOPICS[this.run.topic] || TOPICS.T1).lines.slice().sort(() => r() - 0.5);
-    const cells = Object.keys(dist).map(Number).filter(c => c !== 0 && c !== far && c !== mid).sort(() => r() - 0.5).slice(0, 2);
+    const cells = Object.keys(dist).map(Number).filter(c => c !== 0 && c !== far && c !== mid).sort(() => r() - 0.5).slice(0, N >= 6 ? 3 : 2);
     cells.forEach((c, i) => {
-      const L0 = lines[i], x = X(c % N) + C / 2 + (r() < 0.5 ? -1 : 1) * 0.9, z = Z(Math.floor(c / N)) - C / 2 + (r() < 0.5 ? -1 : 1) * 0.9;
+      const L0 = lines[i % lines.length], x = X(c % N) + C / 2 + (r() < 0.5 ? -1 : 1) * 0.9, z = Z(Math.floor(c / N)) - C / 2 + (r() < 0.5 ? -1 : 1) * 0.9;
       const stand = texBox(Y, 'rg_concrete', x - 0.05, 0, z - 0.05, x + 0.05, 1.1, z + 0.05, {}); stand.userData.maze = true;
       const dk = new THREE.MeshBasicMaterial({ color: 0x15161a });
       const scr = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.06), [dk, dk, dk, dk, new THREE.MeshBasicMaterial({ map: canvasTex(124, 84, cx2 => {
@@ -201,10 +201,10 @@ export class Stairwell extends Walker {
     const r = await typeOne({ text: n.line.type, title: `${n.line.who}: "${n.line.say}" Your answer (it hides you from the figure):`, time: timeFor(n.line.type, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
     this.typing = false; this.player.frozen = false;
     if (!r.ok) { if (!r.cancelled) caption('The screen flickers. Try again.', 'say', 2); return; }
-    n.done = true; this.run.typedChars += n.line.type.length; this.run.xp += 2; earn(this.R, 2, 0); nerve(this.R, 2);
+    n.done = true; this.run.typedChars += n.line.type.length; this.run.xp += 2; earn(this.R, 2, 0); if (this.endless) this.endless.screens++; else nerve(this.R, 2);
     this.it.remove(n.it); n.mesh.material[4].color.set(0x334433);
     this.wFreeze = 9; play('rg_signal1', { vol: 0.4 });
-    caption(`"${n.line.type}". The figure has lost you: about nine seconds. Nerve +2.`, 'say', 4); this.updateHud();
+    caption(`"${n.line.type}". The figure has lost you: about nine seconds.${this.endless ? '' : ' Nerve +2.'}`, 'say', 4); this.updateHud();
   }
   // ---------- dressing ----------
   dressAll() {
@@ -268,6 +268,7 @@ export class Stairwell extends Walker {
   // ---------- flow ----------
   async enter() {
     this.playing = false; hud(false); music(null);
+    if (this.run.mode === 'labyrinth') return this.enterEndless();
     loop('rgst', 'rg_drone_stair', { vol: 0.32 }); this.loops.push('rgst');
     this.player.set(-0.95, 1.35, 0);
     const first = !this.G.testStart && !this.R.record.descents && !this.R.record.deaths && !Object.keys(this.R.record.missed).length && !this.R.record.notebook.length;
@@ -291,6 +292,7 @@ export class Stairwell extends Walker {
     else objective('Reach the ground floor (földszint). Something wrong on a landing? Go back up. All normal? Keep going down.');
   }
   updateHud() {
+    if (this.endless) return this.endlessHud();
     const c = this.d.cur, L = this.R.life;
     checklist(`Lépcsőház · ${c.kind === 'lobby' ? 'ground floor' : c.number + '. emelet'}`, [
       { name: `Nerve: ${L.nerve}${L.nerve <= 30 ? '  (shaking)' : ''}`, hu: 'idegek' },
@@ -370,10 +372,10 @@ export class Stairwell extends Walker {
     if (this.typing) return;
     this.typing = true; this.player.frozen = true; prompt(null);
     this.typeHandle = {};
-    const r = await typeOne({ text: this.mazeRule, title: this.mazeWhat || 'Type the rule to open the door', time: timeFor(this.mazeRule, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
+    const r = await typeOne({ text: this.mazeRule, title: this.mazeWhat || 'Type the rule to open the door', time: timeFor(this.mazeRule, 4, 0.35) * this.D.typeTime * (this.run.hard ? 1.15 : 1), handle: this.typeHandle, strict: !!(this.endless && this.run.hard) });
     this.typing = false; this.player.frozen = false;
-    if (r.ok) { this.run.typedChars += this.mazeRule.length; this.leaveYellow(); return; }
-    if (!r.cancelled) { caption('The door stays shut. Try again.', 'say', 2.5); if (nerve(this.R, -2)) this.death(); }
+    if (r.ok) { this.run.typedChars += this.mazeRule.length; if (this.endless) this.nextRoom(); else this.leaveYellow(); return; }
+    if (!r.cancelled) { caption('The door stays shut. Try again.', 'say', 2.5); if (!this.endless && nerve(this.R, -2)) this.death(); }
   }
   async leaveYellow() {
     if (this.busy) return; this.busy = true; this.playing = false;
@@ -391,6 +393,7 @@ export class Stairwell extends Walker {
     this.playing = true; this.busy = false; lockPointer();
   }
   async mazeCaught() {
+    if (this.endless) return this.endlessCaught();
     this.playing = false; prompt(null);
     if (!S.settings.quiet) { flash(0.8, 400); play('stinger', { vol: 0.35 }); } else play('thump', { vol: 0.4 });
     const dead = nerve(this.R, -Math.round(8 * this.D.nerveLoss));
@@ -409,7 +412,7 @@ export class Stairwell extends Walker {
     const behind = nbs.map(n => { const cx = X(n % N) + C / 2, cz = Z(Math.floor(n / N)) - C / 2, dx = cx - p.x, dz = cz - p.z, d = Math.hypot(dx, dz) || 1; return { n, cx, cz, dot: (f.x * dx + f.z * dz) / d }; })
       .sort((a, b) => a.dot - b.dot)[0];
     if (!behind || behind.dot > 0.2) return;
-    this.watcher.pos.set(behind.cx, 0, behind.cz); this.mazeAmbushCool = 9; this.unseenT = 0;
+    this.watcher.pos.set(behind.cx, 0, behind.cz); this.mazeAmbushCool = this.endless ? Math.max(4, 10 - this.endless.room) : 9; this.unseenT = 0;
     play('thump', { vol: 0.28, rate: 0.6, pos: [behind.cx, 0.2, behind.cz] });
   }
   mazeSeen() {
@@ -417,6 +420,87 @@ export class Stairwell extends Walker {
     const f = this.player.forward(new THREE.Vector3());
     const ang = Math.acos(Math.max(-1, Math.min(1, (f.x * dx + f.z * dz) / (d * Math.hypot(f.x, f.z) || 1))));
     return ang < 0.66 && this.lineOfSight(cam, hd);
+  }
+  // ---------- the endless labyrinth (v0.16) ----------
+  // A night of its own, chosen in the night menu: room after room of the yellow maze. Every EXIT asks for a line from
+  // tonight's topic and opens onto a bigger room; the figure gets a little faster each time. Three catches end it.
+  // No nerve is lost here, so it never costs a life: it is the practice ground, with a score to beat.
+  async enterEndless() {
+    loop('rgy', 'rg_drone_yellow', { vol: 0.4 }); this.loops.push('rgy');
+    this.endless = { room: 1, catches: 0, screens: 0, t0: performance.now() };
+    const best = (this.R.record.best && this.R.record.best.rooms) || 0;
+    await fade(true, `The yellow rooms. No floors, no stairs: only the next EXIT.\nEvery door asks for a line from tonight's topic. It will be waiting in every room.\n\n${best ? 'Your best: ' + best + ' rooms.' : 'How many rooms can you get through?'}`, 0.01);
+    this.setupRoom();
+    await skipWait(4.2);
+    this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
+    objective('Find the EXIT. It only moves when you are not looking. Caught three times and the labyrinth is over.');
+    this.updateHud(); lockPointer();
+    await fade(false, '', 1.0);
+    caption('Room 1. Find the EXIT.', 'say', 3);
+  }
+  /** Build the current room and put everyone in place (the screen is black while this runs). */
+  setupRoom() {
+    const e = this.endless, N = Math.min(7, 4 + Math.floor((e.room - 1) / 2));
+    if (this.yDoorIt) this.it.remove(this.yDoorIt); for (const n of this.mNotes || []) if (n.it && !n.done) this.it.remove(n.it);
+    this.genMaze(N);
+    this.inYellow = true; this.y = 0; this.player.yOff = 0;
+    const dark = e.room % 3 === 0;   // every third room the lights are mostly out: your torch matters
+    this.yLight.intensity = dark ? 0.7 : 4; this.yLight.distance = dark ? 5 : 14; this.yAmb.intensity = dark ? 0.03 : 0.4;
+    for (const p of this.mPanels) if (dark && this.r() < 0.75) p.material.color.set(0x2a2618);
+    this.player.set(this.mazeStart[0], this.mazeStart[1], 180);
+    this.watcher.place(this.mazeWatch[0], this.mazeWatch[1], this.mazeBounds); this.watcher.setSize(1);
+    const lines = TOPICS[this.run.topic].lines, L0 = lines[Math.floor(this.r() * lines.length)];
+    this.mazeRule = this.run.hard ? hardText(L0.lesson) : L0.type; this.roomLine = L0;
+    this.mazeWhat = `Room ${e.room}. ${L0.who}: "${L0.say}" Type the answer to open the EXIT:`;
+    this.yDoorIt = this.it.add(this.yDoor, 'The EXIT: type the answer to open it', () => this.mazeGate());
+    for (const n of this.mNotes) n.it = this.it.add(n.mesh, 'An old screen: type it to hide from the figure', () => this.mazeNote(n));
+    this.wFreeze = 2.5; this.scareT = 6 + this.r() * 6; this.mazeAmbushCool = 4; this.unseenT = 0;
+    this.dark = dark;
+  }
+  async nextRoom() {
+    if (this.busy) return; this.busy = true; this.playing = false;
+    const e = this.endless, xp = 4 + e.room * 2, coins = 2;
+    earn(this.R, xp, coins); this.run.xp += xp; this.run.coins += coins; e.room++;
+    const L0 = this.roomLine; if (L0) this.run.lessons.push({ zone: 'labyrinth', theme: this.run.topic, title: `"${L0.type}"`, text: L0.lesson, rule: L0.rule });
+    play('door_close', { vol: 0.5 });
+    await fade(true, `Room ${e.room - 1} done. +${xp} XP, +${coins} coins.`, 0.5);
+    this.setupRoom(); this.updateHud();
+    await wait(0.9);
+    await fade(false, '', 0.6);
+    caption(this.dark ? `Room ${e.room}. The lights are out in this one: use your torch (F).` : e.room % 2 ? `Room ${e.room}. Bigger again.` : `Room ${e.room}. It is a little faster now.`, 'say', 4);
+    this.playing = true; this.busy = false; lockPointer();
+  }
+  async endlessCaught() {
+    const e = this.endless; this.playing = false; prompt(null);
+    if (!S.settings.quiet) { flash(0.8, 400); play('stinger', { vol: 0.35 }); } else play('thump', { vol: 0.4 });
+    e.catches++;
+    await fade(true, '', 0.4);
+    if (e.catches >= 3) { this.endEndless('caught'); return; }
+    this.player.set(this.mazeStart[0], this.mazeStart[1], 180); this.watcher.place(this.mazeWatch[0], this.mazeWatch[1], this.mazeBounds);
+    this.wFreeze = 2.5; this.updateHud();
+    await fade(false, '', 0.6);
+    caption(`It reached you (${e.catches} of 3). Back to the start of this room.`, 'say', 3);
+    this.playing = true;
+  }
+  /** The labyrinth is over: caught three times, or you went home. Rooms cleared is the score. */
+  async endEndless(why) {
+    if (this.over) return; this.over = true;
+    this.playing = false; this.busy = true; this.G.unlock(); prompt(null);
+    const e = this.endless; this.run.rooms = e.room - 1; this.run.screens = e.screens; this.run.labyrinthEnd = why;
+    if (this.run.rooms > 0 && !this.run.stages.includes('labyrinth')) this.run.stages.push('labyrinth');
+    persist();
+    await fade(true, why === 'caught' ? `Caught for the third time, in room ${e.room}.` : 'You find a door that is only a door, and go home.', 0.8);
+    await wait(1.6);
+    this.G.endNight(this.run, 'labyrinth');
+  }
+  endlessHud() {
+    const e = this.endless, best = (this.R.record.best && this.R.record.best.rooms) || 0;
+    checklist(`The labyrinth · room ${e.room}`, [
+      { name: `Rooms cleared: ${e.room - 1}${best ? '  (best ' + best + ')' : ''}`, hu: 'szobák' },
+      { name: `Caught: ${e.catches} of 3`, hu: 'elkapott' },
+      { name: `Tonight: ${TOPICS[this.run.topic].title}`, hu: this.run.hard ? 'nehéz gépelés' : 'gépelés' },
+      { name: `Coins tonight: ${this.run.coins}`, hu: 'zseton' },
+    ]);
   }
   death() {
     this.playing = false; this.busy = true; prompt(null);
@@ -437,7 +521,7 @@ export class Stairwell extends Walker {
     await fade(true, '', 0.8);
     this.G.endNight(this.run, 'home');
   }
-  quit() { this.goHome(); }
+  quit() { if (this.endless) this.endEndless('home'); else this.goHome(); }
 
   update(dt, t) {
     for (const k of KS) { const b = this.mods[k].res && this.mods[k].res.blink; if (b) b.visible = Math.sin(t * 6) > 0; }
@@ -448,7 +532,7 @@ export class Stairwell extends Walker {
       if (this.wFreeze > 0) this.wFreeze -= dt;
       else if (this.watcher.active) {
         const w = this.watcher.pos, ox = w.x, oz = w.z, dist = Math.hypot(w.x - p.x, w.z - p.z), far = dist > 7, seen = this.mazeSeen();
-        this.watcher.speedMul = (far ? 2.2 : dist > 2.5 ? 1.6 : 1.25) * this.D.speed;   // run past it and it is soon right behind you again
+        this.watcher.speedMul = (far ? 2.2 : dist > 2.5 ? 1.6 : 1.25) * this.D.speed * (this.endless ? 1 + 0.07 * Math.min(10, this.endless.room - 1) : 1);   // run past it and it is soon right behind you again
         this.watcher.update(dt, { player: this.mazeTarget(p), seen, trackers: 0, noise: 0, cam: this.G.camera.position });
         // out of sight for a while and far away: it is waiting for you around a corner you have not looked at yet
         this.unseenT = seen ? 0 : (this.unseenT || 0) + dt;

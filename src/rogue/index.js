@@ -51,7 +51,9 @@ export function installRogue(G) {
     const choice = await nightMenu(r, { topic: pickTopic(rr, r.record), teacher: !!(S.save && S.save.teacher) });
     if (!choice) return false;
     if (choice.test) return G.testStage(choice);
-    G.run = newRun(choice.topic, choice.diff, pickWalk(rr, r.record), !!choice.hard); persist();
+    G.run = newRun(choice.topic, choice.diff, pickWalk(rr, r.record), !!choice.hard);
+    if (choice.mode === 'labyrinth') { G.run.mode = 'labyrinth'; persist(); await G.goLabyrinth(G.run); return true; }
+    persist();
     await G.goStairs(G.run);
     return true;
   };
@@ -64,6 +66,7 @@ export function installRogue(G) {
     G.run = newRun(t.topic, t.diff, stage === 'walk' ? a : 'park', !!o.hard); G.run.test = true; persist();
     if (stage === 'stairs') await G.goStairs(G.run);
     else if (stage === 'maze') { G.testStart = 'maze'; await G.goStairs(G.run); }
+    else if (stage === 'labyrinth') { G.run.mode = 'labyrinth'; await G.goLabyrinth(G.run); }
     else if (stage === 'walk') await G.goWalk(G.run);
     else if (stage === 'school') { G.forceSchool = { ring: a, gym: b }; G.run.stages = ['stairs', 'walk']; await G.goSchool(G.run); G.forceSchool = null; }
     else if (stage === 'metro') { G.run.stages = ['stairs', 'walk', 'school']; await G.goMetro(G.run); }
@@ -75,6 +78,14 @@ export function installRogue(G) {
     loading(false);
     if (G.testStart !== 'maze') await titleCard(CARDS_FOR.stairs, 'Lépcsőház', `Tonight: ${TOPICS[(run || G.run).topic].title}. Down to the ground floor.`);
     await G.switchScene(new Stairwell(G, R(), run || G.run));
+  };
+  /** The endless labyrinth: the yellow maze as a night of its own (built inside the stairwell scene). */
+  G.goLabyrinth = async run => {
+    hud(false); loading(true, 0, 'The yellow rooms…');
+    await ingestPack('npc', AU.ctx, f => loading(true, f));
+    loading(false);
+    await titleCard(CARDS_FOR.labyrinth, 'The labyrinth', `Tonight: ${TOPICS[run.topic].title}. As many rooms as you can.`);
+    await G.switchScene(new Stairwell(G, R(), run));
   };
   G.goWalk = async run => {
     hud(false); loading(true, 0, 'Outside…');
@@ -110,11 +121,13 @@ export function installRogue(G) {
     const seen = new Set(), lessons = run.lessons.filter(l => !seen.has(l.title) && seen.add(l.title));
     await missionDebrief({
       title: `Tonight: ${TOPICS[run.topic].title}`,
-      body: outcome === 'metro' ? `The stairwell, ${WALK_NAME[run.walk]}, the school and the last train: the whole night. Not many people make it that far.`
+      body: outcome === 'labyrinth' ? (run.rooms ? `${run.rooms} room${run.rooms > 1 ? 's' : ''} of the yellow labyrinth${run.labyrinthEnd === 'caught' ? ', until it caught you a third time' : ', and then you found your way home'}.${run.rooms >= ((r.record.best && r.record.best.rooms) || 0) ? ' Your best yet.' : ''}` : 'You did not get through a single room this time. The next one will go better.')
+        : outcome === 'metro' ? `The stairwell, ${WALK_NAME[run.walk]}, the school and the last train: the whole night. Not many people make it that far.`
         : outcome === 'school' ? 'You made it through the stairwell, ' + WALK_NAME[run.walk] + ' and the school. That was a full night.'
         : outcome === 'walk' ? `You made it down the stairwell and through ${WALK_NAME[run.walk]}, and went home with what you had.`
           : 'You turned back and went home early. What you earned is yours.',
-      stats: [`${DIFFS[run.diff].label}`, `Stairwell: caught ${run.spot}, missed ${run.miss}, wrong turn-backs ${run.fals}`, `+${run.xp} XP`, `+${run.coins} coins`,
+      stats: run.mode === 'labyrinth' ? [`${DIFFS[run.diff].label}`, `Rooms: ${run.rooms || 0} (best ${(r.record.best && r.record.best.rooms) || 0})`, `Screens typed: ${run.screens || 0}`, `+${run.xp} XP`, `+${run.coins} coins`,
+        `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`] : [`${DIFFS[run.diff].label}`, `Stairwell: caught ${run.spot}, missed ${run.miss}, wrong turn-backs ${run.fals}`, `+${run.xp} XP`, `+${run.coins} coins`,
         `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`, `Nerve left: ${r.life.nerve}`],
       lessons: lessons.slice(0, 9),
     });

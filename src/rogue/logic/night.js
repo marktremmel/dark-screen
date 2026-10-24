@@ -37,9 +37,11 @@ export const runAcc = run => run.keys ? Math.round((run.keys - run.errors) / run
 /** Write a finished night into the record (newest first, last 12 kept) and update the bests. */
 export function recordNight(record, run, outcome, date = Date.now()) {
   const n = { t: date, topic: run.topic, walk: run.walk, diff: run.diff, xp: run.xp, coins: run.coins, stages: run.stages.length, wpm: runWpm(run), acc: runAcc(run), outcome };
+  if (run.mode === 'labyrinth') { n.mode = 'labyrinth'; n.rooms = run.rooms || 0; }
   record.nights = [n, ...(record.nights || [])].slice(0, 12);
   record.topics = record.topics || {}; record.topics[run.topic] = (record.topics[run.topic] || 0) + 1;
   const b = record.best = record.best || { xp: 0, wpm: 0, stages: 0 };
-  if (n.xp > b.xp) b.xp = n.xp; if (n.wpm > b.wpm) b.wpm = n.wpm; if (n.stages > b.stages) b.stages = n.stages;
+  if (n.xp > b.xp) b.xp = n.xp; if (n.wpm > b.wpm) b.wpm = n.wpm; if (n.stages > b.stages && n.mode !== 'labyrinth') b.stages = n.stages;
+  if (n.rooms > (b.rooms || 0)) b.rooms = n.rooms;
   return n;
 }
