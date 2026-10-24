@@ -43,4 +43,11 @@ export const POSTS = [
     why: 'A teddy on a shelf gives nothing away.' },
   { id: 'chaos', img: 'gl_painterly_cat_tumbles_through_cozy_night_apartment', caption: '3am zoomies', reveals: false,
     why: 'A cat being a cat: harmless.' },
+  // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+  { id: 'green_door', img: 'gl_nocturnal_apartment_stairwell_landing', caption: 'first night in the new flat, 4th floor, the one with the green door lol', reveals: true, why: 'Your floor and your door colour let anyone find your flat.' },
+  { id: 'home_alone', img: 'gl_dusk_in_an_empty_apartment', caption: 'mum and dad away all weekend, house to myself', reveals: true, why: 'It tells everyone your home has no adults in it this weekend.' },
+  { id: 'bus_stop', img: 'gl_rainy_night_tram_stop', caption: 'my stop every morning at 7:15, the 105 is always late', reveals: true, why: 'A stop and a time say exactly where you will be every day.' },
+  { id: 'sunset', img: 'gl_impressionist_sunset_over_the_tram_estate', caption: 'this sky tho', reveals: false, why: 'A sky on its own says nothing about where you live.' },
+  { id: 'fox_drawing', img: 'gl_sleepy_ginger_cat_by_the_night_window', caption: 'finally finished my cat painting, took 3 weeks', reveals: false, why: 'A painting shows your hobby, not your location.' },
+  { id: 'rainy_day', img: 'gl_late_night_solitude_by_the_window', caption: 'rainy day, tea and a good book', reveals: false, why: 'Nothing here shows a place, a time or a routine.' },
 ];

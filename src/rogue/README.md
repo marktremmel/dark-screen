@@ -102,6 +102,7 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
 - v0.18 (24 Oct): 16 anomalies for the thin topics (`a.notice` for door notes, `a.sign` for the lift-door sign in landing.js), 6 calls, 20 posts, `CHORUSES` (two Chorus scenes, `this.CH` in school.js); ui/fx.js (shafts, glows, dust, in-picture grain via `G.afterBuild`, the route strip).
 - v0.19 (24 Oct): ui/post.js camera effects (`G.post` hook in main.js); world-space dust; `th_` shop pictures; park path as one ribbon (`pathRibbon`), PSX grass and paving; fixes: rogueNext lifts the fade, the alley's `glow` name clash.
 - v0.20 (24 Oct): the Tenant (entities/tenant.js; `run.tenant`; walk.js `tenantTick`, `tenantCaught`; stairwell `lingerT`), double rewards in endNight. Checkpoint tag lepcsohaz-v0.19-checkpoint.
+- v0.21 (24 Oct): the first content batch from doc 07 (merged by a script; ids and typed fields checked).
 - Next: see doc 05 section 0 (classroom and release, the intro cutscene).
 
 ## Codes

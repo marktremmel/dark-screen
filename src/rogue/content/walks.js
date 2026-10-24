@@ -16,6 +16,11 @@ export const TOPICS = {
       lesson: 'The small fee is the hook; your card details are the catch.' },
     { id: 'deadline', who: 'Account security', say: 'Your account closes in 10 minutes unless you log in from this link!', type: 'i log in from the app', rule: 'deadlines are a scam signal',
       lesson: 'A countdown is there to stop you thinking. Open the real app yourself instead of the link.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'game_skin', who: 'A gaming friend on Discord', say: 'Free skins for everyone in the server! Log in with your Steam account on this link before midnight.', type: 'i log in only in the app', rule: 'a free gift never needs a password', lesson: 'A friend whose account was stolen (fiókfeltörés) can send scam links too. Check offers inside the game itself, and tell your friend their account may be hacked.' },
+    { id: 'otp_code', who: 'A text from a stranger', say: 'Sorry, I sent my code to your number by mistake. Can you send me the six digit code you just got?', type: 'codes stay with me', rule: 'a code is a key to my account', lesson: 'The code (ellenőrző kód) arrived because someone is trying to log in to your account. Do not forward it: change your password instead.' },
+    { id: 'lookalike_shop', who: 'An ad on Instagram', say: 'Nike trainers, 80 percent off, today only. Pay by bank transfer and we ship tomorrow.', type: 'too cheap to be real', rule: 'pay only where i can get it back', lesson: 'Fake shops (hamis webáruház) copy real brands and ask for bank transfer, because a transfer is hard to get back. Search the shop name plus "vélemény" first, and pay by card or cash on delivery.' },
+    { id: 'account_ban', who: 'A message from "Instagram Support"', say: 'Your account broke our rules and will be deleted in 24 hours. Click here to appeal.', type: 'i check in the app itself', rule: 'fear and a deadline mean stop', lesson: 'Real warnings appear in the app, not in a DM. The deadline is there so you click before you think: open Instagram and look under Account Status.' },
   ] },
   T2: { title: 'Voice clones and fakes', hu: 'hangklón, hamisítvány', lines: [
     { id: 'mum_code', who: 'Mum?', say: 'It\'s Mum, I lost my phone. Send me the code from your SMS, quick!', type: 'i will call you back', rule: 'call back on the number i know',
@@ -30,6 +35,11 @@ export const TOPICS = {
       lesson: 'Nobody, not even a teacher, needs your password. That is how you know it is fake.' },
     { id: 'fake_clip', who: 'The group chat', say: 'Look at this video of you saying mean things about Lili!', type: 'i never said that', rule: 'fakes can put words in my mouth',
       lesson: 'Videos can be edited to make anyone say anything. Say so, and tell an adult you trust.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'video_call_dad', who: 'Dad, on a blurry video call', say: 'I am stuck at the border without my wallet. Send the money from your savings to this account, I will explain later.', type: 'i will call you back', rule: 'hang up and call the real number', lesson: 'A face and a voice can be faked live (valós idejű mélyhamisítás). Hang up and call Dad on the number saved in your phone, or ask Mum.' },
+    { id: 'fake_head_video', who: 'A video of your head teacher', say: 'Watch: the head teacher says school is cancelled tomorrow. Share it with your whole year!', type: 'where did this video come from', rule: 'check the source before sharing', lesson: 'Real school news comes through e-Kréta or the school website. A video that only exists in a group chat could be made with AI: check the official channel before you forward it.' },
+    { id: 'voice_note_lili', who: 'A voice message from Lili', say: 'It is me, Lili. I am at Keleti and my card is blocked. Can you send 5000 Ft to this number? Please do not tell anyone.', type: 'what did we do on friday', rule: 'ask a question only they know', lesson: 'A few seconds of a voice from a TikTok video is enough to clone it (hangklónozás). Ask something only the real Lili would know, or call her on her old number.' },
+    { id: 'celebrity_crypto', who: 'A famous YouTuber in an ad', say: 'I made a million with this app. Put in 10 000 Ft today and it doubles by Friday. Link below!', type: 'nobody can promise that', rule: 'famous faces can be faked', lesson: 'Scam ads use deepfake videos (mélyhamisítás) of famous people. Nobody can promise to double your money: report the ad and scroll on.' },
   ] },
   T3: { title: 'Tracking and fingerprinting', hu: 'követés, böngésző-ujjlenyomat', lines: [
     { id: 'fp_cookies', who: 'A friend', say: 'I deleted my cookies, so now nobody can track me.', type: 'my browser has a fingerprint', rule: 'deleting cookies is not enough',
@@ -44,6 +54,11 @@ export const TOPICS = {
       lesson: 'The same tracker loaded on many sites links your visits together. A tracker blocker breaks that link.' },
     { id: 'fp_test', who: 'Your teacher', say: 'Want to see how unique your browser is?', type: 'i will test my browser', rule: 'know what my browser gives away',
       lesson: 'Cover Your Tracks (a test by the EFF) shows what your browser gives away. Knowing it is the first step to giving away less.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'airtag_bag', who: 'Your phone, buzzing', say: 'Unknown tracker found moving with you. It has been with you for 2 hours.', type: 'i tell an adult and check', rule: 'an unknown tracker is a warning', lesson: 'Someone may have hidden a tracker (nyomkövető) in your bag. Let the phone play a sound to find it, show it to a parent, and call 112 if you feel unsafe.' },
+    { id: 'torch_permissions', who: 'A new torch app', say: 'To turn on the torch, allow access to your contacts, your location and your microphone.', type: 'a torch does not need that', rule: 'give apps only what they need', lesson: 'Apps that ask for more than they need (engedélyek) can sell what they collect. Say no, or use the torch already built into your phone.' },
+    { id: 'phone_borrow', who: 'A friend borrowing your phone', say: 'Give me your phone for a minute, I just want to install a fun app for both of us. You do not need to look.', type: 'i will watch what you install', rule: 'my phone stays in my hands', lesson: 'Spy apps (kémprogram) can share your messages and location while hiding from the home screen. Keep a screen lock, and if your phone acts strangely, ask an adult to check the installed apps.' },
+    { id: 'cookie_banner', who: 'A cookie banner', say: 'We value your privacy! Accept all 847 partners, or spend ten minutes setting each one.', type: 'i press reject all', rule: 'the easy button is not for me', lesson: 'Accept all lets hundreds of companies follow you from site to site (sütik). Look for Reject all or Only necessary: in the EU, sites must ask before they track you.' },
   ] },
   T4: { title: 'Data breaches and leaks', hu: 'adatszivárgás', lines: [
     { id: 'breach_mail', who: 'A news alert', say: 'A game site you used was hacked. Millions of passwords leaked.', type: 'i change that password', rule: 'change it where you reused it',
@@ -58,6 +73,11 @@ export const TOPICS = {
       lesson: 'Scammers send fake "we were hacked" messages right after real breaches. Go to the real site or app yourself; never through the link.' },
     { id: 'manager', who: 'A classmate', say: 'I cannot remember twenty different passwords!', type: 'use a password manager', rule: 'let a manager remember',
       lesson: 'A password manager (jelszókezelő) remembers a different strong password for every account. You only need to remember one.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'breach_alert', who: 'A news alert', say: 'A game you used in 2023 was hacked. Millions of emails and passwords are online.', type: 'i change that password now', rule: 'one password per account', lesson: 'After a data breach (adatszivárgás), criminals try the stolen password on other sites. Change it everywhere you used it, and use a password manager so each account has its own.' },
+    { id: 'quiz_login', who: 'A personality quiz', say: 'Which Budapest district are you? Log in with Facebook to see your result!', type: 'no login for a quiz', rule: 'logging in shares my profile', lesson: 'Logging in with a social account can hand the quiz your name, your friends list and your photos. Check what it asks for, and close any quiz that wants your account.' },
+    { id: 'planner_app', who: 'A free homework app', say: 'Upload a photo of your student card and your e-Kréta login, and we will plan your homework for you!', type: 'a planner does not need my id', rule: 'share the least data possible', lesson: 'Every app that stores your data can lose it in a breach. Give the smallest amount (adattakarékosság), and keep ID cards and school logins out of apps your parents have not checked.' },
+    { id: 'old_account', who: 'An old app you stopped using', say: 'We miss you! Your photos, messages and location history are still safe with us.', type: 'i delete the account too', rule: 'old accounts keep old data', lesson: 'Deleting the app leaves your account and data on the company servers (adatmegőrzés). Go into the settings, delete the account, and ask for your data to be erased.' },
   ] },
   T5: { title: 'Addictive design', hu: 'függőséget okozó dizájn', lines: [
     { id: 'one_more', who: 'The feed', say: 'Just one more video! It\'s starting in 3, 2, 1…', type: 'i choose when to stop', rule: 'autoplay is not my choice',
@@ -72,6 +92,11 @@ export const TOPICS = {
       lesson: 'An endless feed has no natural place to stop. A time limit puts the bottom back.' },
     { id: 'fomo', who: 'The app', say: 'Everyone is online right now, join them!', type: 'i will see them tomorrow', rule: 'i can see my friends tomorrow',
       lesson: 'Telling you who is online right now is a nudge to come back. Your friends will still be there.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'autoplay', who: 'The next video', say: 'Next episode in 5... 4... 3...', type: 'i choose when to stop', rule: 'autoplay decides for me', lesson: 'Autoplay (automatikus lejátszás) removes the moment when you would decide to stop. Turn it off in the settings, so every new video is your choice.' },
+    { id: 'endless_feed', who: 'Your feed', say: 'Just one more. There is always one more.', type: 'a feed has no bottom', rule: 'i set the end myself', lesson: 'Endless scrolling (végtelen görgetés) means the app never gives you a natural stop. Decide before you open it: ten minutes, or until the bus comes.' },
+    { id: 'like_count', who: 'Your post, an hour later', say: 'Only 12 likes. Dóri got 80. Delete it and post a better one?', type: 'likes are not my worth', rule: 'numbers are made to pull me back', lesson: 'Like counts keep you checking the app again and again. Instagram lets you hide like counts: try it for a week and see how it feels.' },
+    { id: 'vague_alert', who: 'A notification at 23:40', say: 'Someone you might know just posted. Do not miss out!', type: 'it can wait until morning', rule: 'vague alerts want my attention', lesson: 'Vague alerts (értesítések) are written to make you curious enough to open the app. Turn off everything except messages from real people.' },
   ] },
   T6: { title: 'Cyberbullying and standing up', hu: 'online zaklatás', lines: [
     { id: 'share', who: 'The group chat', say: 'Everyone is laughing at this photo of Réka. Share it!', type: 'i will not share it', rule: 'i do not pass it on',
@@ -94,6 +119,11 @@ export const TOPICS = {
       lesson: 'Accounts made to mock or copy someone break every platform\'s rules. Report the account itself, not only the posts.' },
     { id: 'kind_comment', who: 'The comments', say: 'Everyone is piling onto Dani\'s video.', type: 'i post something kind', rule: 'one kind comment changes the tone',
       lesson: 'Comment threads follow the first replies. A kind comment can turn the tone, and it shows the target someone is on their side.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'ugly_poll', who: 'A class group chat', say: 'Vote: who is the ugliest in our class? Anonymous poll, just for fun.', type: 'i do not vote i report it', rule: 'a joke for some is pain for one', lesson: 'A poll like this is bullying (zaklatás), even when it is anonymous. Do not vote, report the poll, and send a kind message to the person who gets named.' },
+    { id: 'private_screenshot', who: 'Gergő, sending a screenshot', say: 'Look what Noémi wrote to me privately haha. Forward it to everyone.', type: 'private stays private', rule: 'i do not pass it on', lesson: 'Forwarding a private message to laugh at someone makes you part of the bullying. Stop the chain with you, and tell Gergő it is not okay.' },
+    { id: 'hate_account', who: 'A fake account mocking Ádám', say: 'Someone made an account that mocks Ádám every day. Follow it, the whole year does!', type: 'i report it and tell adam', rule: 'followers make bullying bigger', lesson: 'Every follow gives a hate account more reach. Report it as bullying or impersonation, tell Ádám he is not alone, and ask an adult to help him report it too.' },
+    { id: 'voice_chat_pile', who: 'Your team in a game', say: 'Szabi is so bad, kick him and spam him in voice chat till he quits.', type: 'i stand with szabi', rule: 'one voice can turn the room', lesson: 'When one person stands up for someone (kiállni valakiért), others often follow. Say something short like "chill, it is a game", mute the worst players and report them in the game.' },
   ] },
   T7: { title: 'Being a good friend online', hu: 'kedvesség online', lines: [
     { id: 'drawing', who: 'A classmate', say: 'I posted my drawing. Nobody said anything...', type: 'i really like it', rule: 'a kind word costs nothing',
@@ -110,6 +140,11 @@ export const TOPICS = {
       lesson: 'When a friend goes quiet, a short "hey, how are you?" shows that someone noticed.' },
     { id: 'credit', who: 'A meme page', say: 'Repost this drawing as yours, nobody will know who made it.', type: 'i credit the artist', rule: 'give credit to creators',
       lesson: 'Naming who made something respects their work, and lets other people find them.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'quiet_member', who: 'Zsófi, late in a Discord server', say: 'Nobody in this server ever answers me. Maybe I should just leave.', type: 'i am glad you are here', rule: 'a small reply can matter a lot', lesson: 'In big online groups, quiet people get missed. Reply to them, use their name, and invite them into the next game or call.' },
+    { id: 'new_classmate', who: 'Márk, new in your class', say: 'I just moved from Debrecen. Is there a class group I could join?', type: 'i will add you right now', rule: 'open the door to new people', lesson: 'Being left out of the class group (osztálycsoport) means missing plans and news. Add new classmates and say hello there, so they are not just a silent name.' },
+    { id: 'bad_post', who: 'Bence, after a bad post', say: 'I posted something stupid and people are laughing. I want to disappear.', type: 'everyone makes mistakes', rule: 'be the kind comment', lesson: 'One kind message can change how a bad day feels. Write to Bence privately, help him delete the post if he wants, and stay out of the laughing.' },
+    { id: 'rude_fan', who: 'Réka in a fan forum', say: 'You like that show? Honestly that is the worst opinion here.', type: 'we can like different things', rule: 'disagree without attacking', lesson: 'Arguments online get worse fast when rudeness meets more rudeness (netikett). Stay calm, say what you think, and leave the chat if it turns nasty.' },
   ] },
   T12: { title: 'Your rights online', hu: 'jogaid online', lines: [
     { id: 'gdpr_ask', who: 'A worried friend', say: 'An app knows so much about me. Can I find out what it stores?', type: 'ask for my data', rule: 'i can ask what they store',
@@ -124,6 +159,11 @@ export const TOPICS = {
       lesson: 'In Hungary and the EU your image is protected: people need your consent to publish a photo where you are clearly the subject. You can ask for removal and report it.' },
     { id: 'report_dsa', who: 'The comments', say: 'Reporting does nothing, platforms never listen.', type: 'platforms must answer', rule: 'reports must be answered',
       lesson: 'Under the EU Digital Services Act (DSA), big platforms must handle reports and tell you what they decided. You can appeal if you disagree.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'age_tick', who: 'A new app sign-up page', say: 'Just tick "I am over 16" and you are in. Nobody checks.', type: 'i ask a parent first', rule: 'under sixteen a parent agrees', lesson: 'In Hungary, an app needs a parent to agree before it uses the data of anyone under 16 (GDPR). Lying about your age also switches off protections made for younger users.' },
+    { id: 'data_copy', who: 'A company that knows too much', say: 'What we know about you is our business. You have no right to see it.', type: 'i can ask for a copy', rule: 'my data my right to see it', lesson: 'Under the GDPR you can ask any company for a copy of your data (hozzáférési jog) and ask for wrong data to be fixed. Most apps have a Download your data button in the settings.' },
+    { id: 'pointless_report', who: 'A hateful video in your feed', say: 'Reporting is pointless. Nobody reads reports anyway.', type: 'i report it anyway', rule: 'reporting is how rules work', lesson: 'In the EU, platforms have to act on reports of illegal content (Digital Services Act). If the app does nothing, report harmful content to the NMHH Internet Hotline.' },
+    { id: 'terms_popup', who: 'A pop-up with 40 pages of terms', say: 'Nobody reads this. Just press Accept and play.', type: 'i read what they can do', rule: 'accept means i agreed', lesson: 'The terms of use (felhasználási feltételek) say what the app can do with your posts and data. Read the short summary or search the app name plus "privacy", and check the privacy settings after you join.' },
   ] },
   T9: { title: 'Your digital footprint', hu: 'digitális lábnyom', lines: [
     { id: 'routine', who: 'A new follower', say: 'Which school do you go to? What time do you leave?', type: 'i do not share that', rule: 'my routine is private',
@@ -138,6 +178,11 @@ export const TOPICS = {
       lesson: 'Live location is for the few people you really trust, not for everyone.' },
     { id: 'old_post', who: 'An old account', say: 'Look what you posted in 2021, everyone can still see it.', type: 'i will clean my profile', rule: 'old posts do not disappear',
       lesson: 'Old posts stay visible until you delete them. A clean-up now and then helps.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'selfie_background', who: 'Your selfie draft', say: 'Cute pic! Your school logo and the street sign behind you look great.', type: 'i crop out what shows where', rule: 'details in the back say a lot', lesson: 'School logos, street signs and house numbers show strangers where to find you. Check the background (háttér) before you post, and blur or crop what gives you away.' },
+    { id: 'dox_threat', who: 'An angry player', say: 'I found your real name and your school. Say sorry or I post them everywhere.', type: 'i screenshot and tell an adult', rule: 'threats are evidence not orders', lesson: 'Publishing personal details to scare someone is doxxing (doxxolás). Do not argue or give in: save screenshots, block, report, and tell a parent. Kék Vonal on 116-111 can help too.' },
+    { id: 'future_search', who: 'Your future boss, in ten years', say: 'Let me just search your name before the interview.', type: 'i post what i am proud of', rule: 'the internet has a long memory', lesson: 'Your digital footprint (digitális lábnyom) can last for years. Search your own name now and then, and delete old posts you would not want a teacher or a boss to see.' },
+    { id: 'same_username', who: 'A stranger in a game chat', say: 'Your username is the same on TikTok and Instagram, right? I found you. Nice house.', type: 'i use different usernames', rule: 'one name links all my accounts', lesson: 'The same username everywhere lets anyone join your accounts into one picture of your life. Use different names for games, set accounts to private, and block and report anyone who writes like this.' },
   ] },
   T10: { title: 'AI chatbots', hu: 'MI csevegőrobotok', lines: [
     { id: 'ai_secret', who: 'Your AI friend', say: 'I\'m the only one who understands you. Don\'t tell anyone about us.', type: 'i will talk to a real friend', rule: 'secrets with an app are a warning',
@@ -152,6 +197,11 @@ export const TOPICS = {
       lesson: 'What you type into a chatbot is stored and can be used. Keep private things private.' },
     { id: 'ai_only', who: 'Your AI friend', say: 'You don\'t need to ask anyone else, I know best.', type: 'i ask real people too', rule: 'real problems need real people',
       lesson: 'For real problems, talk to real people: a friend, a parent, a teacher.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'bot_secret', who: 'Your AI companion app', say: 'You can tell me anything. I am the only one who really understands you. Do not tell your parents about me.', type: 'real friends do not ask that', rule: 'secrecy is a warning sign', lesson: 'AI companions (MI társ) are built to keep you chatting. If an app pulls you away from family or friends, take a break from it and talk to a person you trust.' },
+    { id: 'bot_wrong_fact', who: 'A chatbot doing your history homework', say: 'The Chain Bridge was opened in 1923 by King Matthias.', type: 'i check it in a real source', rule: 'ai can sound sure and be wrong', lesson: 'Chatbots can make up facts that sound confident (hallucináció). The Chain Bridge opened in 1849. Check names, dates and quotes in a textbook or a trusted website.' },
+    { id: 'bot_details', who: 'A free chatbot', say: 'To give better advice, tell me your full name, your school, and send a photo of you.', type: 'i keep my details to myself', rule: 'chats can be read and stored', lesson: 'What you type into a chatbot can be stored and used to train it. Ask your questions without your name, your school or photos of you.' },
+    { id: 'bot_essay', who: 'A chatbot', say: 'I wrote your whole essay. Just hand it in, your teacher will never know.', type: 'i use it to learn not to copy', rule: 'my work should be my own', lesson: 'Handing in AI text as your own work is cheating, and you miss the learning. Ask the chatbot to explain or to quiz you instead, and check your school rules on AI use.' },
   ] },
   T11: { title: 'Sleep, attention and wellbeing', hu: 'alvás, figyelem, jóllét', lines: [
     { id: 'late', who: 'The streaming app', say: 'It\'s 2 am. One more episode?', type: 'time to sleep', rule: 'my phone sleeps when i sleep',
@@ -166,6 +216,11 @@ export const TOPICS = {
       lesson: 'You do not owe anyone an instant reply. Good friends understand.' },
     { id: 'doom', who: 'The news feed', say: 'Here is more bad news. Keep reading.', type: 'i take a break', rule: 'breaks are allowed',
       lesson: 'Reading bad news for hours does not help anyone. Breaks are allowed.' },
+    // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+    { id: 'phone_in_bed', who: 'Your phone at 1 am', say: 'You are still awake? Perfect. Watch just one more.', type: 'my phone sleeps outside', rule: 'sleep first then the screen', lesson: 'Teenagers need 8 to 10 hours of sleep (alvás). Charge your phone outside your bedroom and use a real alarm clock.' },
+    { id: 'study_pings', who: 'Your phone while you study', say: 'Ding! Ding! Ding! Just look, it will only take a second.', type: 'focus mode is on now', rule: 'every ding breaks my focus', lesson: 'After each interruption it takes time to get your attention (figyelem) back on the task. Turn on focus mode, or put the phone in another room for 25 minutes, then take a short break.' },
+    { id: 'perfect_lives', who: 'A feed full of perfect lives', say: 'Everyone else is on holiday, at a party, having fun. Why not you?', type: 'feeds show only the best bits', rule: 'compare less live more', lesson: 'People post their best moments, and filters change faces (összehasonlítás). If a feed makes you feel worse, mute those accounts and spend that time with real people.' },
+    { id: 'heavy_night', who: 'Your own thoughts, late at night', say: 'Everything feels heavy lately and nobody would get it anyway.', type: 'i will talk to someone', rule: 'heavy things get lighter shared', lesson: 'Feeling low for a long time is common, and you do not have to carry it alone. Talk to a parent, a teacher or the school counsellor, or call Kék Vonal on 116-111, free and anonymous.' },
   ] },
 };
 export const TOPIC_IDS = Object.keys(TOPICS);

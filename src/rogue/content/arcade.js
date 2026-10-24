@@ -14,6 +14,13 @@ export const TRICKS = [
   { id: 'daily', ui: 'DAY 6 OF 7: COME BACK TOMORROW FOR THE BIG PRIZE', name: 'Daily login reward', why: 'The big prize is always one more day away. It trains you to open the game every day.' },
   { id: 'preticked', ui: '☑ SEND ME OFFERS AND SHARE MY DATA', name: 'Pre-ticked box', why: 'Someone ticked it for you, hoping you will not notice. A fair choice starts unticked.' },
   { id: 'hiddencost', ui: 'FREE TRIAL · then 7,99 €/week', name: 'Hidden cost', why: 'The price is there, but small and pale. "Free" in big letters, the weekly charge in tiny ones.' },
+  // v0.21: written with the doc 07 prompt (24 Oct 2026), checked and added by Claude
+  { id: 'disguised_ad', ui: 'TAP HERE TO CONTINUE', name: 'Disguised ad', why: 'The button looks like part of the game, but it opens an ad. Look for the small "Ad" label before you tap.' },
+  { id: 'hard_to_cancel', ui: 'TO CANCEL, CALL US MON-FRI 9-10', name: 'Hard to cancel', why: 'Signing up took one tap, leaving takes a phone call. Easy in and hard out is built to keep you paying.' },
+  { id: 'nagging', ui: 'ENJOYING THE GAME? RATE 5 STARS!', name: 'Nagging pop-ups', why: 'The same pop-up keeps coming back until you give in. Each time you close it, it wears down your patience a little more.' },
+  { id: 'trial_to_paid', ui: 'FREE 3-DAY TRIAL, THEN 4990 FT/WEEK', name: 'Trial that turns paid', why: 'Free trials switch to paid by themselves if you forget to cancel. Write down the end date, or skip the trial.' },
+  { id: 'fake_social_proof', ui: '9 482 PLAYERS BOUGHT THIS TODAY', name: 'Fake social proof', why: 'Big numbers make buying feel normal, and nobody can check them. What others buy is not a reason for you to buy.' },
+  { id: 'hidden_close', ui: 'CLAIM YOUR BONUS!', name: 'Hidden close button', why: 'The claim button is huge and bright, the real close button is a tiny grey x in a corner. Look for the way out before you tap anything.' },
 ];
 /** Honest parts of the screen: clicking them is a mistake (there is nothing wrong with them). */
 export const FINE = [
