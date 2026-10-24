@@ -16,16 +16,18 @@ import { loop, play, music } from '../../core/audio.js';
 import { S, persist } from '../../core/state.js';
 import { CFG, floorMult } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
-import { Targets, timeFor } from '../logic/typing.js';
+import { Targets, timeFor, hardText } from '../logic/typing.js';
 import { DIFFS, runWpm } from '../logic/night.js';
 import { earn, nerve, noteCard } from '../save/rogueSave.js';
 import { TOPICS } from '../content/walks.js';
 import { GATE } from '../content/school.js';
 import { Mimic } from '../entities/mimic.js';
 import { walkExitChoice } from '../ui/panels.js';
-import { callPanel } from '../ui/missionPanels.js';
+import { callPanel, arcadePanel } from '../ui/missionPanels.js';
+import { TRICKS, FINE } from '../content/arcade.js';
 import { CALLS } from '../content/calls.js';
 import { typeOne, captureKeys, LabelLayer, SpeechBox } from '../ui/typing.js';
+import { skipWait } from '../ui/skip.js';
 
 const PX = z => 2.4 * Math.sin(z / 10);               // the park path's centre line
 const STYLE = {
@@ -77,6 +79,18 @@ export class Walk extends Walker {
     if (this.kind === 'park') { const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.1, 0.12), psxMat({ color: 0x3a3e44 })); post.position.y = 0.55; o.add(post); }
     const calls = CALLS.filter(c => this.run.topic !== 'T2' || c.id !== 'bank_pin');
     this.payphone = { o, pos: new THREE.Vector3(o.position.x, 0, o.position.z), call: calls[Math.floor(this.r() * calls.length)], done: false, ringT: 0 };
+  }
+  async playArcade() {
+    const Ar = this.arcade; if (!Ar || Ar.done || this.wave || this.typing) return;
+    Ar.done = true; this.playing = false; this.G.unlock(); prompt(null); play('beep', { vol: 0.4, rate: 0.8 });
+    const r = await arcadePanel(TRICKS, FINE, 22 * this.D.typeTime, this.r);
+    let cards = 0; for (const id of r.found) if (noteCard(this.R, 'd:' + id)) cards++;
+    this.run.cards += cards;
+    const lost = Math.min(this.R.life.coins, r.missed.length);   // every trick you missed got you while you played
+    this.R.life.coins -= lost; this.gain(r.found.length * 4, 0);
+    for (const id of r.missed) { const t = TRICKS.find(x => x.id === id); this.run.lessons.push({ zone: 'walk', theme: 'T5', title: 'Trick: ' + t.name.toLowerCase(), text: t.why }); }
+    caption(`Design detective: ${r.found.length} of 9 tricks spotted${r.mistakes ? `, ${r.mistakes} honest part${r.mistakes > 1 ? 's' : ''} clicked` : ''}.${lost ? ` The ones you missed cost you ${lost} coin${lost > 1 ? 's' : ''} while you played.` : ''}${cards ? ` ${cards} new notebook card${cards > 1 ? 's' : ''}.` : ''}`, 'say', 6);
+    Ar.scr.material.color.set(0x555555); persist(); this.updateHud(); this.playing = true; lockPointer();
   }
   async answerPhone() {
     const P = this.payphone; if (!P || P.done || this.typing || this.wave) return;   // never during a wave (its typing owns the keys)
@@ -268,9 +282,12 @@ export class Walk extends Walker {
     const shutter = canvasTex(64, 64, c => { c.fillStyle = '#5a5e64'; c.fillRect(0, 0, 64, 64); for (let y = 0; y < 64; y += 4) { c.fillStyle = y % 8 ? '#6a6e74' : '#44474c'; c.fillRect(0, y, 64, 2); } c.fillStyle = 'rgba(30,20,10,.35)'; c.fillRect(0, 50, 64, 14); });
     const stickers = Object.keys(A.img).filter(k => k.startsWith('st_sticker') || k.startsWith('st_sign'));
     const stickerMat = {};
-    const PROPS = ['up_bench_metro', 'up_bin_metro', 'up_ticket_machine', 'pm_fire_cabinet', 'shutter', 'shutter', 'up_poster_hills', 'pm_bench_hall'];
+    const PROPS = ['up_bench_metro', 'up_bin_metro', 'up_ticket_machine', 'pm_fire_cabinet', 'shutter', 'shutter', 'up_poster_hills', 'pm_bench_hall', 'vending', 'vending2'];
+    const FRONT_X = { vending: 1, vending2: 1, arcade: 1 };   // these models face +x: turn them a quarter more
+    // where the arcade cabinet goes: about 60% along, away from corners (the props leave that spot free)
+    let ai = Math.floor(route.length * 0.6); while (ai < route.length - 2 && pts.some(c => Math.hypot(c.x - route[ai].x, c.z - route[ai].z) < 2.6)) ai++;
     route.forEach((p, i) => {
-      if (i < 2 || pts.some(c => Math.hypot(c.x - p.x, c.z - p.z) < 2.4)) return;   // not by the street door, not at corners
+      if (i < 2 || Math.abs(i - ai) <= 1 || pts.some(c => Math.hypot(c.x - p.x, c.z - p.z) < 2.4)) return;   // not by the street door, not at corners, not at the arcade
       const q = route[Math.min(route.length - 1, i + 1)], dx = Math.sign(q.x - p.x), dz = Math.sign(q.z - p.z);
       for (const side of [-1, 1]) {
         if (r() < 0.45) continue;
@@ -281,7 +298,7 @@ export class Walk extends Walker {
         } else if (kind === 'up_poster_hills') {
           const o = place(g, kind, wx - nx * 0.03, 1.1, wz - nz * 0.03, ry * 180 / Math.PI);
         } else {
-          place(g, kind, wx - nx * 0.45, 0, wz - nz * 0.45, ry * 180 / Math.PI, { col, shrink: 0.05 });
+          const deep = FRONT_X[kind] ? 0.7 : 0.45; place(g, kind, wx - nx * deep, 0, wz - nz * deep, ry * 180 / Math.PI - (FRONT_X[kind] ? 90 : 0), { col, shrink: 0.05 });
         }
         // graffiti: stickers on the tiles
         if (stickers.length && r() < 0.85) {
@@ -293,6 +310,15 @@ export class Walk extends Walker {
       // signs hanging from the ceiling now and then
       if (i % 7 === 3) { const k = r() < 0.5 ? 'up_departure_board' : 'up_sign_way_out'; const o = place(g, k, p.x, H - 1.55, p.z, Math.atan2(dx, dz) * 180 / Math.PI); }
     });
+    // the arcade cabinet: LOOT LEGENDS, a free game full of tricks (the design detective), on a wall of the third stretch
+    { const i = ai, a = route[i - 1], b = route[i], dx = Math.sign(b.x - a.x), dz = Math.sign(b.z - a.z), side = r() < 0.5 ? 1 : -1;
+      const nx = -dz * side, nz = dx * side, ry = Math.atan2(-nx, -nz), x = b.x + nx * (W / 2 - 0.55), z = b.z + nz * (W / 2 - 0.55);
+      const cab = place(g, 'arcade', x, 0, z, ry * 180 / Math.PI - 90, { col, shrink: 0.05 });
+      const body = new THREE.MeshLambertMaterial({ color: 0x2a1640 }); cab.traverse(m => { if (m.isMesh) m.material = body; });
+      const scrT = canvasTex(64, 48, c => { const gr = c.createLinearGradient(0, 0, 0, 48); gr.addColorStop(0, '#3a0a5a'); gr.addColorStop(1, '#0a0418'); c.fillStyle = gr; c.fillRect(0, 0, 64, 48); c.fillStyle = '#ff7ad9'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('LOOT', 18, 6); c.fillText('LEGENDS', 8, 20); c.fillStyle = '#ffd23a'; c.fillText('PLAY FREE!', 4, 33); });
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.38), new THREE.MeshBasicMaterial({ map: scrT, fog: true })); scr.position.set(x - nx * 0.47, 1.32, z - nz * 0.47); scr.rotation.y = ry; scr.rotation.x = 0; g.add(scr);
+      const mq = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.14), new THREE.MeshBasicMaterial({ color: 0xff5ac8, fog: true })); mq.position.set(x - nx * 0.42, 1.72, z - nz * 0.42); mq.rotation.y = ry; g.add(mq);
+      this.arcade = { pos: new THREE.Vector3(x - nx * 0.9, 0, z - nz * 0.9), done: false, scr }; }
     // a line of fare gates across the second stretch: the middle one is open
     const p2 = pts[1], [fx, fz] = [Math.sign(pts[2].x - p2.x), Math.sign(pts[2].z - p2.z)], gp = p2.clone().addScaledVector(new THREE.Vector3(fx, 0, fz), 4);
     for (const o of [-1, 1]) place(g, 'up_fare_gate', gp.x + (-fz) * o * 1.0, 0, gp.z + fx * o * 1.0, Math.atan2(fx, fz) * 180 / Math.PI, { col, shrink: 0.05 });
@@ -306,7 +332,7 @@ export class Walk extends Walker {
     this.player.set(...this.spawn); this.cullChunks();
     const T = TOPICS[this.run.topic];
     await fade(true, this.intro + `\n\nTonight's topic: ${T.title}.`, 0.01);
-    await wait(3.4);
+    await skipWait(3.4);
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
     this.setObjective(); this.updateHud(); lockPointer();
     await fade(false, '', 1.0);
@@ -358,10 +384,10 @@ export class Walk extends Walker {
     const lanes = this.kind === 'park' ? [-2.2, 2.2, 0] : [-0.8, 0.8, 0], lat = lanes[w.lane++ % lanes.length];
     const dist = 9 + this.r() * 1.5, side = new THREE.Vector3(-d.z, 0, d.x);
     const x = p.x + d.x * dist + side.x * lat, z = p.z + d.z * dist + side.z * lat;
-    const m = new Mimic(this.root, this.mimics.length, data, x, z, CFG.mimicSpeed * this.D.speed * (1 + this.st.wave * 0.08), this.run.topic === 'T7');   // kindness night: people who need a kind word, not monsters
+    const m = new Mimic(this.root, this.mimics.length, data, x, z, CFG.mimicSpeed * this.D.speed * (1 + this.st.wave * 0.08) * (this.run.hard ? 0.5 : 1), this.run.topic === 'T7');   // kindness night: people who need a kind word, not monsters
     m.uid = data.id + '_' + this.mimics.length;
     this.mimics.push(m); w.active.push(m);
-    w.targets.add(m.uid, data.type, dist);
+    w.targets.add(m.uid, this.run.hard ? hardText(data.lesson) : data.type, dist, !!this.run.hard);   // hard typing: the whole sentence, capitals and punctuation
     play('presence', { vol: 0.25, pos: [x, 1.5, z] });
   }
   typeKey(ch) {
@@ -373,7 +399,7 @@ export class Walk extends Walker {
     play('click', { vol: 0.1, rate: 1.4 });
     if (r.result === 'done') {
       const m = w.active.find(x => x.uid === r.id); if (!m) return;
-      this.st.done++; this.run.typedChars += m.data.type.length;
+      this.st.done++; this.run.typedChars += (this.run.hard ? hardText(m.data.lesson) : m.data.type).length;
       m.dissolve(); this.labels.remove(m.uid); play('rg_signal1', { vol: 0.4 });
       this.gain(CFG.xpMimic, 0);
       if (noteCard(this.R, 'w:' + m.data.id)) { this.run.cards++; setTimeout(() => caption(`New notebook card: "${m.data.type}"`, 'say', 3), 1200); }
@@ -429,12 +455,13 @@ export class Walk extends Walker {
     if (this.typing) return;
     this.typing = true; this.player.frozen = true; prompt(null);
     const rules = [...new Set(this.run.lessons.filter(l => l.zone === 'walk').map(l => l.rule))];
-    const lines = (rules.length ? rules : TOPICS[this.run.topic].lines.map(l => l.rule)).sort(() => this.r() - 0.5).slice(0, GATE.lines);
+    let lines = (rules.length ? rules : TOPICS[this.run.topic].lines.map(l => l.rule)).sort(() => this.r() - 0.5).slice(0, GATE.lines);
+    if (this.run.hard) lines = TOPICS[this.run.topic].lines.slice().sort(() => this.r() - 0.5).slice(0, 2).map(l => hardText(l.lesson));   // two long sentences instead of three rules
     caption('A voice from behind the door: "Say tonight\'s rules back to me, and I\'ll open up."', 'say', 4);
     for (let i = 0; i < lines.length; i++) {
       for (;;) {
         this.typeHandle = {}; const t0 = performance.now();
-        const r = await typeOne({ text: lines[i], title: `Type tonight's rule (${i + 1} of ${lines.length})`, time: timeFor(lines[i], GATE.base, GATE.perChar) * this.D.typeTime, handle: this.typeHandle });
+        const r = await typeOne({ text: lines[i], title: `Type tonight's rule (${i + 1} of ${lines.length})`, time: timeFor(lines[i], GATE.base, GATE.perChar) * this.D.typeTime * (this.run.hard ? 1.15 : 1), handle: this.typeHandle, strict: !!this.run.hard });
         if (r.ok) { this.run.typedChars += lines[i].length; this.run.typeMs += performance.now() - t0; this.run.keys += Math.round(lines[i].length / Math.max(0.01, r.accuracy)); this.run.errors += Math.round(lines[i].length / Math.max(0.01, r.accuracy)) - lines[i].length; play('beep', { vol: 0.3, rate: 1.3 }); break; }
         if (r.cancelled) { this.typing = false; this.player.frozen = false; return; }
         caption('"Too slow. Again."', 'say', 2.5);
@@ -472,7 +499,9 @@ export class Walk extends Walker {
     if (P && !P.done) { const dp = Math.hypot(this.player.pos.x - P.pos.x, this.player.pos.z - P.pos.z); P.ringT -= dt; if (dp < 14 && P.ringT <= 0) { P.ringT = 3.6; play('phonering', { vol: 0.45, pos: [P.pos.x, 1.4, P.pos.z] }); } }
     if (!this.wave && !this.typing) {
       const p = this.player.pos;
+      const Ar = this.arcade;
       if (P && !P.done && Math.hypot(p.x - P.pos.x, p.z - P.pos.z) < 1.8) { prompt('The payphone is ringing: E to answer'); if (wasPressed('KeyE')) this.answerPhone(); }
+      else if (Ar && !Ar.done && Math.hypot(p.x - Ar.pos.x, p.z - Ar.pos.z) < 1.6) { prompt('An arcade cabinet: LOOT LEGENDS, free to play. E to play (spot the tricks)'); if (wasPressed('KeyE')) this.playArcade(); }
       else if (this.st.wave >= 3 && Math.hypot(p.x - this.exitAt.x, p.z - this.exitAt.z) < 2.6) {
         prompt(this.kind === 'park' ? 'The far gate: type tonight\'s rules to open it' : 'The EXIT door: type tonight\'s rules to open it');
         if (wasPressed('KeyE')) this.gate();

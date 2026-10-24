@@ -18,6 +18,7 @@ import { earn, nerve, noteCard } from '../save/rogueSave.js';
 import { POSTS } from '../content/posts.js';
 import { NPC } from '../../core/npc.js';
 import { bone, attach, hideBone } from '../entities/rig.js';
+import { skipWait } from '../ui/skip.js';
 
 const X1 = 24, EDGE = -5.6;
 
@@ -143,7 +144,7 @@ export class Metro extends Walker {
     this.trainIt = this.it.add(this.train, 'Board the last train', () => this.board(), () => this.st.train === 'in');
     this.player.set(1.2, -1.6, -90);
     await fade(true, 'The metro. The last train is due.\nAll over the platform, your own old posts are glowing.\nSomething tall is collecting them.', 0.01);
-    await wait(3.8);
+    await skipWait(3.8);
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
     this.setObjective(); this.updateHud(); lockPointer();
     await fade(false, '', 1.0);

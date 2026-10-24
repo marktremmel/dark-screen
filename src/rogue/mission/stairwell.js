@@ -24,6 +24,7 @@ import { Watcher } from '../entities/watcher.js';
 import { typeOne } from '../ui/typing.js';
 import { timeFor } from '../logic/typing.js';
 import { startNerve } from '../logic/home.js';
+import { skipWait } from '../ui/skip.js';
 
 const H = CFG.floorH, HALF = H / 2, RUN = 3.0, STEPS = 8;
 const KS = [-2, -1, 0, 1, 2];
@@ -219,7 +220,10 @@ export class Stairwell extends Walker {
       const res = dressLanding(m.dg, specs[k], { nick, floor: d.floor, live: k === 0, calm: this.run.diff === 'calm' });
       m.res = res;
       if (k !== 0) res.lampColor = 0xffd9a0;   // only the landing you stand on may show a red bulb: the next one's light must not leak up or down the stairwell
-      const l0 = m.lamps[0]; l0.bm.color.set(res.lampColor); if (l0.light) l0.light.color.set(res.lampColor);  // only the landing bulb; the half-landing bulbs stay normal
+      const red = res.lampColor !== 0xffd9a0;
+      res.midColor = red ? 0xff7a5a : 0xffd9a0;   // v0.15: the red bulb also stains the half-landing light, so the whole landing reads red (Mark did not notice it in v0.14)
+      const l0 = m.lamps[0]; l0.bm.color.set(res.lampColor); l0.base = red ? 6 : 4.2; if (l0.light) { l0.light.color.set(res.lampColor); l0.light.distance = red ? 10 : 7.5; }
+      const l1 = m.lamps[1]; if (l1) { l1.bm.color.set(res.midColor); if (l1.light) l1.light.color.set(res.midColor); }
       if (k === 0) for (const item of res.items) this.items.push(this.it.add(item.obj, () => this.label(item), () => this.use(item)));
     }
     this.gate.up.off = d.cur.kind !== 'start';
@@ -255,7 +259,7 @@ export class Stairwell extends Walker {
 
   applyLights() {
     for (const k of KS) this.mods[k].lamps.forEach((l, i) => {
-      const c = i === 0 && this.mods[k].res ? this.mods[k].res.lampColor : 0xffd9a0;
+      const r = this.mods[k].res, c = !r ? 0xffd9a0 : i === 0 ? r.lampColor : (r.midColor || 0xffd9a0);
       if (!this.lightsOn) l.bm.color.setRGB(0.1, 0.09, 0.08); else l.bm.color.set(c);
       if (l.light) l.light.intensity = this.lightsOn ? l.base : 0;
     });
@@ -268,7 +272,7 @@ export class Stairwell extends Walker {
     this.player.set(-0.95, 1.35, 0);
     const first = !this.G.testStart && !this.R.record.descents && !this.R.record.deaths && !Object.keys(this.R.record.missed).length && !this.R.record.notebook.length;
     await fade(true, first ? 'You lock your door. The stairwell light is ticking.\n\nRead the house rules next to your door before you go down.' : 'You lock your door. The stairwell light is ticking.', 0.01);
-    await wait(first ? 3.2 : 1.6);
+    await skipWait(first ? 3.2 : 1.6);
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
     this.setObjective(); this.updateHud();
     await fade(false, '', 1.0);

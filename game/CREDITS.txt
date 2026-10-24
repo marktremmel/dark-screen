@@ -47,6 +47,8 @@ Lépcsőház (the stairwell mode)
   Low Poly Subway Free by heyheythere - https://heyheythere.itch.io/low-poly-subway-free - CC BY 4.0
   PSX Metro Kit Free by heyheythere - https://heyheythere.itch.io/psx-metro-kit-free - CC BY 4.0
   Train station sounds: field recordings by Okutasan (okutasan.itch.io)
+  Arcade cabinet, vending machine, PSX vending machine: free low-poly models from Mark's asset library
+  (authors to be confirmed before the itch.io release)
 
 Engine
   three.js (MIT licence)

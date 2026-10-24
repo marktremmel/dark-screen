@@ -115,13 +115,15 @@ export function missionChoice(R) {
 export function nightMenu(R, o) {
   return new Promise(res => {
     const rec = R.record, best = rec.best || { xp: 0, wpm: 0, stages: 0 }, nights = rec.nights || [];
-    let diff = (R.options && R.options.diff) || 'normal', topic = o.topic;
+    let diff = (R.options && R.options.diff) || 'normal', topic = o.topic, hard = !!(R.options && R.options.hard);
     const WALK = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool', underpass: 'the underpass' };
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Tonight</h2>
       <div style="${PAPER};margin:6px 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S TOPIC</span><br><b id="tt"></b> <span id="th" style="color:#7a6a50"></span>
         <br><span style="font-size:.85em">The stairwell, the walk and the cards tonight are mostly about this.</span></div>
       <h3 style="margin-top:0">Difficulty (nehézség)</h3>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="dd">${Object.values(DIFFS).map(d => `<button class="btn" data-d="${d.id}" style="text-align:left"><b>${d.label}</b> <span class="sub">(${d.hu})</span><br><span class="sub" style="font-size:.8em">${esc(d.desc)}</span></button>`).join('')}</div>
+      <h3>Typing (gépelés)</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn" data-h="0" style="text-align:left"><b>Normal</b><br><span class="sub" style="font-size:.8em">Short replies. Capitals and punctuation do not matter.</span></button><button class="btn" data-h="1" style="text-align:left"><b>Hard</b><br><span class="sub" style="font-size:.8em">Whole sentences. Capitals, commas and full stops count. The figures walk slower.</span></button></div>
       <h3>Your scores</h3>
       <div><span class="stat">Best night: ${best.xp} XP</span><span class="stat">Best typing: ${best.wpm} wpm</span><span class="stat">Most stages in a night: ${best.stages}</span><span class="stat">Nights out: ${nights.length >= 12 ? '12+' : nights.length}</span><span class="stat">Cards: ${rec.notebook.length}/${CARD_COUNT}</span><span class="stat">Lives lost: ${rec.deaths}</span></div>
       ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.outcome === 'death' ? 'lost the life' : n.outcome === 'metro' ? 'the whole night' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
@@ -129,12 +131,14 @@ export function nightMenu(R, o) {
     const draw = () => {
       el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')';
       el.querySelectorAll('[data-d]').forEach(b => { b.classList.toggle('primary', b.dataset.d === diff); });
+      el.querySelectorAll('[data-h]').forEach(b => { b.classList.toggle('primary', (b.dataset.h === '1') === hard); });
     };
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
+    el.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { hard = b.dataset.h === '1'; draw(); });
     el.querySelector('#sh').onclick = () => { const ids = Object.keys(TOPICS).filter(t => t !== topic); topic = ids[Math.floor(Math.random() * ids.length)]; draw(); };
-    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; res({ diff, topic }); };
+    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard }); };
     el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
-    const tm = el.querySelector('#tm'); if (tm) tm.onclick = () => { closeScreen(el); R.options.diff = diff; res({ diff, topic, test: true }); };
+    const tm = el.querySelector('#tm'); if (tm) tm.onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, test: true }); };
     draw();
   });
 }

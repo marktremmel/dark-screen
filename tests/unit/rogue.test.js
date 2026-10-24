@@ -204,3 +204,17 @@ test('descent: a wrong call costs a few floors when back is set', () => {
   const d2 = newDescent(3, { back: 2 }); prepare(r, d2); d2.cur = { kind: 'normal', number: 2, anomaly: null }; d2.progress = 1;
   advance(r, d2, resolve(d2, 'up')); assert.equal(d2.cur.kind, 'start');
 });
+
+import { Phrase as HPhrase, hardText } from '../../src/rogue/logic/typing.js';
+test('hard typing: strict phrase needs capitals and punctuation, forgives accents and curly quotes', () => {
+  assert.equal(hardText('Never share a code (kód). Even with a friend.'), 'Never share a code.');
+  const p = new HPhrase("Don't click.", true);
+  for (const ch of "don") p.input(ch);
+  assert.equal(p.pos, 0);                       // lower-case d is a miss
+  const q = new HPhrase("Don't click.", true);
+  for (const ch of "Don’t click.") q.input(ch);
+  assert.ok(q.done); assert.equal(q.errors, 0);
+  const r = new HPhrase('Kérj segítséget.', true);
+  for (const ch of 'Kerj segitseget.') r.input(ch);
+  assert.ok(r.done);
+});

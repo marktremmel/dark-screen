@@ -51,7 +51,7 @@ export function installRogue(G) {
     const choice = await nightMenu(r, { topic: pickTopic(rr, r.record), teacher: !!(S.save && S.save.teacher) });
     if (!choice) return false;
     if (choice.test) return G.testStage(choice);
-    G.run = newRun(choice.topic, choice.diff, pickWalk(rr, r.record)); persist();
+    G.run = newRun(choice.topic, choice.diff, pickWalk(rr, r.record), !!choice.hard); persist();
     await G.goStairs(G.run);
     return true;
   };
@@ -61,7 +61,7 @@ export function installRogue(G) {
     if (!t) return false;
     const [stage, a, b] = t.stage.split(':');
     if (stage === 'coins') { r.life.coins += 500; persist(); return false; }
-    G.run = newRun(t.topic, t.diff, stage === 'walk' ? a : 'park'); G.run.test = true; persist();
+    G.run = newRun(t.topic, t.diff, stage === 'walk' ? a : 'park', !!o.hard); G.run.test = true; persist();
     if (stage === 'stairs') await G.goStairs(G.run);
     else if (stage === 'maze') { G.testStart = 'maze'; await G.goStairs(G.run); }
     else if (stage === 'walk') await G.goWalk(G.run);

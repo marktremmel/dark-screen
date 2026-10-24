@@ -1,0 +1,56 @@
+<!doctype html><html><body>
+<script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+// spec: {name, file, tex, rx, ry, axis:'y'|'max', size, texSize}
+function loadImg(url){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});}
+async function shrinkTex(url,size){
+  const img=await loadImg(url); const c=document.createElement('canvas');
+  const s=Math.min(size,img.width); c.width=s;c.height=Math.min(size,img.height)*(s/Math.min(size,img.width));
+  c.width=s; c.height=Math.round(img.height*s/img.width);
+  const g=c.getContext('2d'); g.imageSmoothingEnabled=true; g.drawImage(img,0,0,c.width,c.height);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.flipY=true; t.userData.mimeType='image/png'; return t;
+}
+window.convert=async(spec)=>{
+  const base='../assets_src/models/';
+  let obj;
+  if(spec.file.endsWith('.glb')){ const g=await new GLTFLoader().loadAsync(base+spec.file); obj=g.scene; }
+  else obj=await new FBXLoader().loadAsync(base+spec.file);
+  const T= spec.tex? await shrinkTex(base+spec.tex, spec.texSize||128):null;
+  const info={meshes:0,tris:0};
+  const promises=[];
+  obj.traverse(c=>{ if(c.isMesh){ info.meshes++; info.tris+=(c.geometry.index?c.geometry.index.count:c.geometry.attributes.position.count)/3;
+     const mats=Array.isArray(c.material)?c.material:[c.material];
+     const nm=mats.map(m=>{ let map=T; if(!map&&m.map&&m.map.image){ map=m.map; }
+        const n=new THREE.MeshStandardMaterial({map, color: map?0xffffff:(m.color?m.color.getHex():0xaaaaaa), roughness:1, metalness:0, side:THREE.DoubleSide}); n.name=m.name; return n;});
+     c.material= nm.length===1?nm[0]:nm;
+     if(c.isSkinnedMesh) info.skinned=true;
+  }});
+  // downscale embedded GLB textures
+  if(spec.file.endsWith('.glb')){
+    const seen=new Map();
+    obj.traverse(c=>{ if(c.isMesh){ const ms=Array.isArray(c.material)?c.material:[c.material]; ms.forEach(m=>{ if(m.map&&m.map.image){ const im=m.map.image; if(!seen.has(im)){ const cv=document.createElement('canvas'); const s=Math.min(spec.texSize||128,im.width); cv.width=s; cv.height=Math.round(im.height*s/im.width); cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; t.flipY=false; t.userData.mimeType='image/png'; seen.set(im,t);} m.map=seen.get(im);} }); }});
+  }
+  const wrap=new THREE.Group(); wrap.add(obj);
+  if(spec.rx) obj.rotation.x=spec.rx*Math.PI/180;
+  if(spec.ry) wrap.rotation.y=spec.ry*Math.PI/180;
+  wrap.updateMatrixWorld(true);
+  let b=new THREE.Box3().setFromObject(obj); let s=b.getSize(new THREE.Vector3());
+  const ref= spec.axis==='max'?Math.max(s.x,s.y,s.z): spec.axis==='x'?s.x: spec.axis==='z'?s.z: s.y;
+  const k= spec.size? spec.size/ref : 1;
+  wrap.scale.setScalar(k); wrap.updateMatrixWorld(true);
+  b=new THREE.Box3().setFromObject(wrap); const ctr=b.getCenter(new THREE.Vector3());
+  const outer=new THREE.Group(); outer.add(wrap);
+  wrap.position.set(-ctr.x,-b.min.y,-ctr.z); outer.updateMatrixWorld(true);
+  const b2=new THREE.Box3().setFromObject(outer); const s2=b2.getSize(new THREE.Vector3());
+  info.size=[s2.x,s2.y,s2.z].map(v=>+v.toFixed(3));
+  const glb=await new GLTFExporter().parseAsync(outer,{binary:true,animations:[]});
+  const u8=new Uint8Array(glb); let bin=''; for(let i=0;i<u8.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+  info.bytes=u8.length; info.b64=btoa(bin);
+  return info;
+};
+window.READY=1;
+</script></body></html>

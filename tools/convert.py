@@ -1,8 +1,11 @@
 import subprocess, time, json, os, base64, sys
 from playwright.sync_api import sync_playwright
-os.chdir(os.path.join(os.path.dirname(__file__), '..'))
+os.chdir('/home/claude/sotet')
 HP=-90  # House Props + some interior FBX are Z-up
 S=[
+ ('arcade','ArcadeCab.fbx',None,0,'y',1.8,256),
+ ('vending','VendingMachine.glb',None,0,'y',1.9,256),
+ ('vending2','PSX_Vending_Machine.fbx','PSX_Vending_Texture.jpg',0,'y',1.9,256),
  # name, file, tex, rx, axis, size, texSize
  ('sofa','Sofa_PSX.fbx','Sofa_PSX.jpg',HP,'y',0.85,128),
  ('armchair','SingleSofa_PSX.fbx','SingleSofa_PSX.jpg',HP,'y',0.85,128),

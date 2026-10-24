@@ -25,6 +25,7 @@ import { DIFFS, newRun } from '../logic/night.js';
 import { schoolExitChoice } from '../ui/panels.js';
 import { typeOne } from '../ui/typing.js';
 import { timeFor } from '../logic/typing.js';
+import { skipWait } from '../ui/skip.js';
 
 const D2R = Math.PI / 180;
 const RING = { x0: -8, x1: 8, z0: -16, z1: 0, ix0: -5, ix1: 5, iz0: -13, iz1: -3, cz: -8 };
@@ -515,7 +516,7 @@ export class School extends Walker {
     loop('rgh', 'hum', { vol: 0.06 }); this.loops.push('rgh');
     this.player.set(0, 2.6, 0);
     await fade(true, 'Across the courtyard, the school is dark.\nThe front door is open. It should not be.', 0.01);
-    await wait(3.2);
+    await skipWait(3.2);
     this.playing = true; hud(true); hudParts({ checklist: true, status: false, eye: false, batt: false });
     this.setObjective(); this.updateHud(); lockPointer();
     await fade(false, '', 1.0);

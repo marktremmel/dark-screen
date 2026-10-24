@@ -119,3 +119,41 @@ export function callPanel(call, typeFn) {
     });
   });
 }
+
+/** The design detective arcade: three screens of a tricky free game; click every trick before the timer runs out.
+ *  Resolves { found: [ids], missed: [ids], mistakes }. */
+export function arcadePanel(TRICKS, FINE, secs = 22, rand = Math.random) {
+  return new Promise(res => {
+    const pool = [...TRICKS].sort(() => rand() - 0.5), out = { found: [], missed: [], mistakes: 0 };
+    const el = openScreen(`<div class="panel" style="width:min(720px,96vw);max-height:96vh;overflow:auto;background:#0b0816;border:3px solid #5a2a8a;box-shadow:0 0 40px rgba(160,80,255,.35)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;color:#ff7ad9;letter-spacing:3px;text-shadow:0 0 12px #ff3ab0">LOOT LEGENDS</h2><span class="sub" id="arcRd"></span></div>
+      <p class="sub" style="margin:4px 0 8px">Design detective (sötét minták): click every trick on this screen before the time runs out. Leave the honest parts alone.</p>
+      <div style="height:6px;background:#221a33;border-radius:3px;margin-bottom:10px"><i id="arcBar" style="display:block;height:100%;width:100%;background:#ff7ad9;border-radius:3px"></i></div>
+      <div id="arcScr"></div><div id="arcMsg" class="sub" style="min-height:1.4em;margin-top:6px"></div></div>`, 'solid');
+    const scr = el.querySelector('#arcScr'), bar = el.querySelector('#arcBar'), msg = el.querySelector('#arcMsg');
+    let round = 0, timer = null;
+    const COLORS = ['#ffcf3a', '#3ad1ff', '#ff5a6a', '#7dff8a', '#c08aff', '#ff9a3a'];
+    const next = () => {
+      if (round === 3) { closeScreen(el); res(out); return; }
+      const tricks = pool.slice(round * 3, round * 3 + 3), fine = [...FINE].sort(() => rand() - 0.5).slice(0, 3);
+      const items = [...tricks.map(t => ({ ...t, trick: true })), ...fine].sort(() => rand() - 0.5);
+      round++; el.querySelector('#arcRd').textContent = `Screen ${round} of 3`;
+      scr.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:radial-gradient(#2a1050,#0b0816);padding:12px;border-radius:12px">${items.map((it, i) => `<button class="btn" data-i="${i}" style="min-height:58px;font-weight:700;letter-spacing:1px;background:#140c24;border:2px solid ${COLORS[i % COLORS.length]};color:${COLORS[i % COLORS.length]};text-align:center">${esc(it.ui)}</button>`).join('')}</div>`;
+      const left = new Set(tricks.map(t => t.id)); let t0 = performance.now(), done = false;
+      const finish = () => {
+        if (done) return; done = true; clearInterval(timer);
+        for (const t of tricks) (left.has(t.id) ? out.missed : out.found).push(t.id);
+        scr.innerHTML = `<div style="display:grid;gap:6px">${tricks.map(t => `<div style="background:#16101f;border-left:3px solid ${left.has(t.id) ? '#ff5a6a' : '#7dff8a'};padding:6px 10px;border-radius:6px"><b>${left.has(t.id) ? 'Missed' : 'Found'}: ${esc(t.name)}</b> <span class="sub">("${esc(t.ui)}")</span><br><span style="font-size:.9em">${esc(t.why)}</span></div>`).join('')}</div>
+          <div class="btns"><button class="btn primary" id="arcNx">${round === 3 ? 'Done' : 'Next screen'}</button></div>`;
+        msg.textContent = ''; el.querySelector('#arcNx').onclick = next;
+      };
+      scr.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+        const it = items[+b.dataset.i]; if (done || b.disabled) return;
+        if (it.trick) { left.delete(it.id); b.disabled = true; b.style.background = '#123a1a'; b.style.borderColor = '#7dff8a'; b.style.color = '#c8ffd0'; b.textContent = '✓ ' + it.name; play('beep', { vol: 0.3, rate: 1.4 }); if (!left.size) setTimeout(finish, 500); }
+        else { out.mistakes++; b.style.borderColor = '#666'; b.style.color = '#888'; msg.textContent = `"${it.ui}" is just part of the game. Nothing wrong with it.`; play('denied', { vol: 0.3 }); }
+      });
+      timer = setInterval(() => { const f = 1 - (performance.now() - t0) / (secs * 1000); bar.style.width = Math.max(0, f * 100) + '%'; if (f <= 0) finish(); }, 100);
+    };
+    next();
+  });
+}

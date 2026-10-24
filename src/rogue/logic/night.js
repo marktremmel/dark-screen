@@ -28,8 +28,8 @@ export function pickWalk(r, record) {
   return pool[Math.floor(r() * pool.length)];
 }
 
-export function newRun(topic, diff, walk) {
-  return { topic, diff, walk, xp: 0, coins: 0, spot: 0, miss: 0, fals: 0, stages: [], lessons: [], typedChars: 0, typeMs: 0, keys: 0, errors: 0, cards: 0 };
+export function newRun(topic, diff, walk, hard = false) {
+  return { topic, diff, walk, hard, xp: 0, coins: 0, spot: 0, miss: 0, fals: 0, stages: [], lessons: [], typedChars: 0, typeMs: 0, keys: 0, errors: 0, cards: 0 };
 }
 export const runWpm = run => run.typeMs > 0 ? Math.min(250, Math.round(run.typedChars / 5 / (run.typeMs / 60000))) : 0;
 export const runAcc = run => run.keys ? Math.round((run.keys - run.errors) / run.keys * 100) : 100;

@@ -41,7 +41,7 @@ export function captureKeys(onChar, onEsc) {
 export function typeOne(o) {
   ensureCss();
   return new Promise(res => {
-    const p = new Phrase(o.text), el = document.createElement('div'); el.className = 'tyb';
+    const p = new Phrase(o.text, !!o.strict), el = document.createElement('div'); el.className = 'tyb';
     el.innerHTML = `<div class="t">${esc(o.title || 'Type it')}</div><div class="p"></div><div class="bar"><i></i></div>`;
     document.body.appendChild(el);
     const pe = el.querySelector('.p'), bar = el.querySelector('.bar i'), t0 = performance.now();
