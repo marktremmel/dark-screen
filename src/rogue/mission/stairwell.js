@@ -317,6 +317,7 @@ export class Stairwell extends Walker {
   }
 
   arrive(dir, lv) {
+    this.lingerT = 0; this.tenantWarned = false;   // v0.20: the Tenant on the stairs only comes for people who linger
     // shift the world so the landing you reached is module 0 again
     this.y -= lv * H; this.player.yOff = this.y; this.player.sync();
     const d = this.d, from = d.cur, out = resolve(d, dir), R = this.R;
@@ -555,6 +556,17 @@ export class Stairwell extends Walker {
     }
     if (!this.inYellow) {
       const p = this.player.pos;
+      // v0.20 hard mode: the Tenant comes down the stairs for anyone who stays too long on one landing
+      if (this.run.tenant && !this.busy) {
+        this.lingerT = (this.lingerT || 0) + dt;
+        if (this.lingerT > 45 && !this.tenantWarned) { this.tenantWarned = true; play('thump', { vol: 0.35, rate: 0.5, pos: [p.x, p.y + 4, p.z] }); setTimeout(() => play('thump', { vol: 0.4, rate: 0.5, pos: [p.x, p.y + 3, p.z] }), 700); caption('(slow, heavy steps on the flight above you. Something is coming down. Decide.)', 'sfx', 5); }
+        if (this.lingerT > 60) {
+          this.lingerT = 0; this.tenantWarned = false; this.lightsOn = false; this.lightT = 0; this.applyLights(); flash(0.6, 500); play('stinger', { vol: 0.3 });
+          const dead = nerve(this.R, -Math.round(15 * this.D.nerveLoss)); this.updateHud();
+          if (dead) { this.death(); return; }
+          caption(`The light dies. Something tall passes you in the dark, close enough to feel, and goes on down. Nerve −${Math.round(15 * this.D.nerveLoss)}.`, 'say', 6);
+        }
+      }
       // v0.17 small events: the block is lived in. Never an anomaly, never a clue: only the sounds of other people's night.
       this.evT = (this.evT == null ? 25 + this.r() * 20 : this.evT) - dt;
       if (this.evT <= 0 && !this.busy) {

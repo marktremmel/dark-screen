@@ -116,7 +116,7 @@ export function missionChoice(R) {
 export function nightMenu(R, o) {
   return new Promise(res => {
     const rec = R.record, best = rec.best || { xp: 0, wpm: 0, stages: 0 }, nights = rec.nights || [];
-    let diff = (R.options && R.options.diff) || 'normal', topic = o.topic, hard = !!(R.options && R.options.hard), shape = o.shape || 'usual';
+    let diff = (R.options && R.options.diff) || 'normal', topic = o.topic, hard = !!(R.options && R.options.hard), shape = o.shape || 'usual', tenant = !!(R.options && R.options.tenant);
     const run0 = { walk: o.walk, walk2: o.walk2 };
     const WALK = WALK_NAME;
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Tonight</h2>
@@ -128,6 +128,8 @@ export function nightMenu(R, o) {
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="dd">${Object.values(DIFFS).map(d => `<button class="btn" data-d="${d.id}" style="text-align:left"><b>${d.label}</b> <span class="sub">(${d.hu})</span><br><span class="sub" style="font-size:.8em">${esc(d.desc)}</span></button>`).join('')}</div>
       <h3>Typing (gépelés)</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn" data-h="0" style="text-align:left"><b>Normal</b><br><span class="sub" style="font-size:.8em">Short replies. Capitals and punctuation do not matter.</span></button><button class="btn" data-h="1" style="text-align:left"><b>Hard</b><br><span class="sub" style="font-size:.8em">Whole sentences. Capitals, commas and full stops count. The figures walk slower.</span></button></div>
+      <h3>The Tenant (a lakó)</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn" data-tn="0" style="text-align:left"><b>Off</b><br><span class="sub" style="font-size:.8em">The night as usual.</span></button><button class="btn" data-tn="1" style="text-align:left"><b>On: hard mode</b><br><span class="sub" style="font-size:.8em">A tall figure roams your walks and comes down the stairs. It hears you run and sees your torch. Double XP and coins if you get home.</span></button></div>
       <h3>Your scores</h3>
       <div><span class="stat">Best night: ${best.xp} XP</span><span class="stat">Best typing: ${best.wpm} wpm</span><span class="stat">Most stages in a night: ${best.stages}</span>${best.rooms ? `<span class="stat">Labyrinth: ${best.rooms} rooms</span>` : ''}<span class="stat">Nights out: ${nights.length >= 12 ? '12+' : nights.length}</span><span class="stat">Cards: ${rec.notebook.length}/${CARD_COUNT}</span><span class="stat">Lives lost: ${rec.deaths}</span></div>
       ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${n.mode === 'labyrinth' ? 'the labyrinth' : esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.mode === 'labyrinth' ? n.rooms + ' rooms' : n.outcome === 'full' ? 'the whole night' + (n.shape && SHAPES[n.shape] ? ' (' + SHAPES[n.shape].name.toLowerCase() + ')' : '') : n.outcome === 'death' ? 'lost the life' : n.outcome === 'metro' ? 'the whole night' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
@@ -136,6 +138,7 @@ export function nightMenu(R, o) {
       el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')';
       el.querySelectorAll('[data-d]').forEach(b => { b.classList.toggle('primary', b.dataset.d === diff); });
       el.querySelectorAll('[data-h]').forEach(b => { b.classList.toggle('primary', (b.dataset.h === '1') === hard); });
+      el.querySelectorAll('[data-tn]').forEach(b => { b.classList.toggle('primary', (b.dataset.tn === '1') === tenant); });
       const S0 = SHAPES[shape]; el.querySelector('#rt').textContent = S0.name; el.querySelector('#rh').textContent = '(' + S0.hu + ')';
       el.querySelector('#rd').textContent = fillDesc(run0, S0.desc);
       el.querySelector('#rc').innerHTML = S0.route.map(st => `<span style="background:#2b2636;color:#e8dcc4;border-radius:6px;padding:2px 7px;font-size:.78em">${esc(stageName(run0, st))}</span>`).join('<span style="color:#7a6a50">→</span>');
@@ -143,11 +146,12 @@ export function nightMenu(R, o) {
     el.querySelector('#sr').onclick = () => { const ids = SHAPE_IDS.filter(x => x !== shape); shape = ids[Math.floor(Math.random() * ids.length)]; draw(); };
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
     el.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { hard = b.dataset.h === '1'; draw(); });
+    el.querySelectorAll('[data-tn]').forEach(b => b.onclick = () => { tenant = b.dataset.tn === '1'; draw(); });
     el.querySelector('#sh').onclick = () => { const ids = Object.keys(TOPICS).filter(t => t !== topic); topic = ids[Math.floor(Math.random() * ids.length)]; draw(); };
-    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, shape }); };
+    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; R.options.tenant = tenant; res({ diff, topic, hard, shape, tenant }); };
     el.querySelector('#lb').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, mode: 'labyrinth' }); };
     el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
-    const tm = el.querySelector('#tm'); if (tm) tm.onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, test: true }); };
+    const tm = el.querySelector('#tm'); if (tm) tm.onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; R.options.tenant = tenant; res({ diff, topic, hard, tenant, test: true }); };
     draw();
   });
 }

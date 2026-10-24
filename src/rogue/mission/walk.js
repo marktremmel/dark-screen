@@ -32,6 +32,7 @@ import { titleCard } from '../ui/titleCard.js';
 import { CARDS_FOR } from '../content/paintings.js';
 import { STREETS, buildStreet } from './streets.js';
 import { shaft, glow, makeDust } from '../ui/fx.js';
+import { Tenant } from '../entities/tenant.js';
 
 const PX = z => 2.4 * Math.sin(z / 10);               // the park path's centre line
 /** A path as one strip of triangles along a centre line x = fx(z): no overlapping pieces, so nothing can flicker. */
@@ -84,6 +85,7 @@ export class Walk extends Walker {
     this.routeLen = []; let acc = 0; for (let i = 0; i < this.route.length; i++) { if (i) acc += this.route[i].distanceTo(this.route[i - 1]); this.routeLen.push(acc); }
     if (!this.waveAt) this.waveAt = [0.2, 0.47, 0.74].map(f => f * acc);
     this.buildPayphone(g);
+    if (this.run.tenant) this.tenant = new Tenant(g, this.route, this.routeLen, this.r);   // v0.20: hard mode's Tenant
   }
   /** A payphone between the first two waves. It rings as you come near: a familiar voice in a hurry. */
   buildPayphone(g) {
@@ -370,6 +372,7 @@ export class Walk extends Walker {
       { name: `Answered: ${s.done} · reached you: ${s.reached}`, hu: 'válaszok' },
       { name: `Typing: ${runWpm(this.run)} wpm`, hu: 'gépelés' },
       { name: `Coins tonight: ${this.run.coins}`, hu: 'zseton' },
+      ...(this.tenant ? [{ name: `The Tenant: ${this.tenant.dist(this.player.pos) < 12 ? (this.tenant.state === 'hunt' ? 'it heard you!' : 'close') : 'somewhere'}`, hu: 'lakó', cls: this.tenant.dist(this.player.pos) < 12 ? 'got' : '' }] : []),
     ]);
   }
   gain(xp, coins) { xp = Math.round(xp * this.mult); coins = Math.round(coins * this.mult); earn(this.R, xp, coins); this.run.xp += xp; this.run.coins += coins; persist(); }
@@ -497,6 +500,37 @@ export class Walk extends Walker {
     this.playing = false; this.G.unlock(); prompt(null);
     this.G.rogueNext(this.run, this.stage);   // v0.17: the route decides what comes next (and asks: go on, or home)
   }
+  /** v0.20 the Tenant: what happens when it appears, hears you, loses you, brushes past, or catches you. */
+  async tenantTick(dt) {
+    const T = this.tenant, p = this.player;
+    const ev = T.update(dt, { player: p.pos, running: p.running, moving: p.moving, torch: this.flashOn && this.flash.intensity > 0.5, paused: !!this.wave || this.typing || !this.playing });
+    this.tenantCapT = Math.max(0, (this.tenantCapT || 0) - dt);
+    const h = T.npc.obj.position;
+    if (ev === 'appear') {
+      if (!this.run.tenantMet) {
+        this.run.tenantMet = true; this.playing = false; this.G.unlock(); prompt(null);
+        play('presence', { vol: 0.5 });
+        await titleCard(CARDS_FOR.tenantGlimpse, 'The Tenant (a Lakó)', 'It cannot see well. It hears you run, and it sees your torch. Walk. When it is close, switch the torch off (F) and stand still.', 5);
+        this.playing = true; lockPointer();
+      } else { play('presence', { vol: 0.35, pos: [h.x, 1.5, h.z] }); caption('(slow, heavy steps somewhere behind you)', 'sfx', 3); }
+    } else if (ev === 'heard' && !this.tenantCapT) { this.tenantCapT = 6; play('stinger', { vol: 0.18 }); caption(p.running ? 'It heard you run.' : this.flashOn ? 'It saw your torch.' : 'It heard you.', 'say', 2.5); }
+    else if (ev === 'lost') caption('It has lost you. Stay still, stay dark.', 'say', 3);
+    else if (ev === 'brush') caption('(it walks right past you in the dark)', 'sfx', 3);
+    else if (ev === 'caught') this.tenantCaught();
+    if (T.state !== 'away') { this.tenantStepT = (this.tenantStepT || 0) - dt; if (this.tenantStepT <= 0) { this.tenantStepT = T.state === 'hunt' ? 0.45 : 0.8; play('thump', { vol: T.state === 'hunt' ? 0.3 : 0.16, rate: 0.55, pos: [h.x, 0.2, h.z] }); } }
+  }
+  async tenantCaught() {
+    this.playing = false; prompt(null); this.G.unlock();
+    flash(1, 700); play('stinger', { vol: 0.5 });
+    const lost = Math.min(this.R.life.coins, this.run.coins); this.R.life.coins -= lost; this.run.coins = 0;
+    const dead = nerve(this.R, -Math.round(40 * this.D.nerveLoss)); persist();
+    await fade(true, '', 0.5);
+    if (dead) { this.G.loseLife(this.run); return; }
+    this.player.set(...this.spawn); await wait(0.8);
+    await fade(false, '', 0.8);
+    caption(`It caught you. You come to where you came in, shaking. Nerve −${Math.round(40 * this.D.nerveLoss)}${lost ? `, and the ${lost} coins you found tonight are gone` : ''}.`, 'say', 6);
+    this.updateHud(); this.playing = true; lockPointer();
+  }
   /** v0.17 small events: the place is alive between the waves. Sounds, a light that goes out, a window, a buzz. */
   smallEvent() {
     const p = this.player.pos, f = this.player.forward(new THREE.Vector3()), behind = [p.x - f.x * 6, 0.2, p.z - f.z * 6], side = [p.x + f.z * 5, 1, p.z - f.x * 5];
@@ -529,6 +563,7 @@ export class Walk extends Walker {
     if (this.wave) this.updateWave(dt);
     else if (this.st.wave < 3 && this.progress() > this.waveAt[this.st.wave]) this.startWave();
     if (!this.wave && !this.typing && (this.eventT -= dt) <= 0) { this.eventT = 20 + this.r() * 18; this.smallEvent(); }
+    if (this.tenant) this.tenantTick(dt);
     this.updateFlash(dt); this.updateArms(dt, t);
     this._h = (this._h || 0) + dt; if (this._h > 0.25) { this._h = 0; this.updateHud(); }
     // the payphone rings while you are near and have not answered

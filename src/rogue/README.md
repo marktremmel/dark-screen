@@ -101,7 +101,8 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
 - v0.17 (24 Oct): routes for a night (logic/routes.js, `G.rogueNext`, `nextChoice` in ui/panels.js; `run.route`, `run.shape`, `run.walk2`, `run.cur`); three outdoor walks (mission/streets.js: courtyard, alley, bus; pack `street`); small events (`smallEvent` in walk.js, `evT` in stairwell.js); rain; round-6 paintings as title cards.
 - v0.18 (24 Oct): 16 anomalies for the thin topics (`a.notice` for door notes, `a.sign` for the lift-door sign in landing.js), 6 calls, 20 posts, `CHORUSES` (two Chorus scenes, `this.CH` in school.js); ui/fx.js (shafts, glows, dust, in-picture grain via `G.afterBuild`, the route strip).
 - v0.19 (24 Oct): ui/post.js camera effects (`G.post` hook in main.js); world-space dust; `th_` shop pictures; park path as one ribbon (`pathRibbon`), PSX grass and paving; fixes: rogueNext lifts the fade, the alley's `glow` name clash.
-- Next: see doc 05 section 0 (the Tenant, classroom, the intro cutscene).
+- v0.20 (24 Oct): the Tenant (entities/tenant.js; `run.tenant`; walk.js `tenantTick`, `tenantCaught`; stairwell `lingerT`), double rewards in endNight. Checkpoint tag lepcsohaz-v0.19-checkpoint.
+- Next: see doc 05 section 0 (classroom and release, the intro cutscene).
 
 ## Codes
 

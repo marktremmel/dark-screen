@@ -60,7 +60,7 @@ export function installRogue(G) {
     if (!choice) return false;
     if (choice.test) return G.testStage(choice);
     const sh = SHAPES[choice.shape] || SHAPES.usual;
-    G.run = newRun(choice.topic, choice.diff, walk, !!choice.hard, sh.id, sh.route.slice(), walk2); G.run.cur = 'stairs';
+    G.run = newRun(choice.topic, choice.diff, walk, !!choice.hard, sh.id, sh.route.slice(), walk2, !!choice.tenant); G.run.cur = 'stairs';
     if (choice.mode === 'labyrinth') { G.run.mode = 'labyrinth'; persist(); await G.goLabyrinth(G.run); return true; }
     persist();
     await G.goStairs(G.run);
@@ -72,7 +72,7 @@ export function installRogue(G) {
     if (!t) return false;
     const [stage, a, b] = t.stage.split(':');
     if (stage === 'coins') { r.life.coins += 500; persist(); return false; }
-    G.run = newRun(t.topic, t.diff, stage === 'walk' ? a : 'park', !!o.hard); G.run.test = true; persist();
+    G.run = newRun(t.topic, t.diff, stage === 'walk' ? a : 'park', !!o.hard, 'usual', null, null, !!o.tenant); G.run.test = true; persist();
     if (stage === 'stairs') await G.goStairs(G.run);
     else if (stage === 'maze') { G.testStart = 'maze'; await G.goStairs(G.run); }
     else if (stage === 'labyrinth') { G.run.mode = 'labyrinth'; await G.goLabyrinth(G.run); }
@@ -145,6 +145,8 @@ export function installRogue(G) {
     if (!run || (!run.stages.length && !run.xp && outcome === 'home')) { G.run = null; return G.goRogue(); }   // you never really left
     let bonus = 0;
     if (outcome === 'full' && run.shape === 'long') { bonus = Math.round(run.xp * 0.2); earn(r, bonus, 0); run.xp += bonus; }   // the long night pays 20% more
+    let tb = null;
+    if (run.tenant && run.stages.length && run.mode !== 'labyrinth') { tb = { xp: run.xp, coins: run.coins }; earn(r, tb.xp, tb.coins); run.xp += tb.xp; run.coins += tb.coins; }   // v0.20: home alive with the Tenant out: double
     recordNight(r.record, run, outcome); persist();
     await fade(false, '', 0.01);
     if (outcome !== 'home' || run.stages.length) await titleCard(CARDS_FOR.morning, 'Morning', 'You made it home. The first tram is running.', 2.2);   // v0.17: Mark's dawn painting before the debrief
@@ -153,8 +155,8 @@ export function installRogue(G) {
       title: `Tonight: ${TOPICS[run.topic].title}`,
       body: outcome === 'labyrinth' ? (run.rooms ? `${run.rooms} room${run.rooms > 1 ? 's' : ''} of the yellow labyrinth${run.labyrinthEnd === 'caught' ? ', until it caught you a third time' : ', and then you found your way home'}.${run.rooms >= ((r.record.best && r.record.best.rooms) || 0) ? ' Your best yet.' : ''}` : 'You did not get through a single room this time. The next one will go better.')
         : !run.stages.length ? 'You turned back and went home early. What you earned is yours.'
-        : outcome === 'full' ? `${SHAPES[run.shape] ? SHAPES[run.shape].name : 'The night'}, all of it: ${andList(run.stages.map(st => stageName(run, st)))}.${bonus ? ` Finishing the long night: +${bonus} XP.` : ''} Not many people make it that far.`
-        : `You made it through ${andList(run.stages.map(st => stageName(run, st)))}, and went home with what you had.`,
+        : outcome === 'full' ? `${SHAPES[run.shape] ? SHAPES[run.shape].name : 'The night'}, all of it: ${andList(run.stages.map(st => stageName(run, st)))}.${bonus ? ` Finishing the long night: +${bonus} XP.` : ''} Not many people make it that far.${tb ? ` With the Tenant out: everything doubled.` : ''}`
+        : `You made it through ${andList(run.stages.map(st => stageName(run, st)))}, and went home with what you had.${tb ? ' With the Tenant out, it all counts double.' : ''}`,
       stats: run.mode === 'labyrinth' ? [`${DIFFS[run.diff].label}`, `Rooms: ${run.rooms || 0} (best ${(r.record.best && r.record.best.rooms) || 0})`, `Screens typed: ${run.screens || 0}`, `+${run.xp} XP`, `+${run.coins} coins`,
         `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`] : [`${DIFFS[run.diff].label}`, `${(SHAPES[run.shape] || SHAPES.usual).name}`, `Stairwell: caught ${run.spot}, missed ${run.miss}, wrong turn-backs ${run.fals}`, `+${run.xp} XP`, `+${run.coins} coins`,
         `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`, `Nerve left: ${r.life.nerve}`],

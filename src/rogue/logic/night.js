@@ -28,8 +28,8 @@ export function pickWalk(r, record) {
   return pool[Math.floor(r() * pool.length)];
 }
 
-export function newRun(topic, diff, walk, hard = false, shape = 'usual', route = null, walk2 = null) {
-  return { topic, diff, walk, hard, shape, route: route || ['stairs', 'walk', 'school', 'metro'], walk2, xp: 0, coins: 0, spot: 0, miss: 0, fals: 0, stages: [], lessons: [], typedChars: 0, typeMs: 0, keys: 0, errors: 0, cards: 0 };
+export function newRun(topic, diff, walk, hard = false, shape = 'usual', route = null, walk2 = null, tenant = false) {
+  return { topic, diff, walk, hard, shape, tenant, route: route || ['stairs', 'walk', 'school', 'metro'], walk2, xp: 0, coins: 0, spot: 0, miss: 0, fals: 0, stages: [], lessons: [], typedChars: 0, typeMs: 0, keys: 0, errors: 0, cards: 0 };
 }
 export const runWpm = run => run.typeMs > 0 ? Math.min(250, Math.round(run.typedChars / 5 / (run.typeMs / 60000))) : 0;
 export const runAcc = run => run.keys ? Math.round((run.keys - run.errors) / run.keys * 100) : 100;
@@ -39,6 +39,7 @@ export function recordNight(record, run, outcome, date = Date.now()) {
   const n = { t: date, topic: run.topic, walk: run.walk, diff: run.diff, xp: run.xp, coins: run.coins, stages: run.stages.length, wpm: runWpm(run), acc: runAcc(run), outcome };
   if (run.mode === 'labyrinth') { n.mode = 'labyrinth'; n.rooms = run.rooms || 0; }
   else n.shape = run.shape || 'usual';
+  if (run.tenant) n.tenant = true;
   record.nights = [n, ...(record.nights || [])].slice(0, 12);
   record.topics = record.topics || {}; record.topics[run.topic] = (record.topics[run.topic] || 0) + 1;
   const b = record.best = record.best || { xp: 0, wpm: 0, stages: 0 };
