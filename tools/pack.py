@@ -2,7 +2,9 @@
 import base64, json, os, io
 from PIL import Image
 os.chdir('/home/claude/sotet')
-OUT='game/data'; os.makedirs(OUT,exist_ok=True)
+OUT=os.environ.get('PACK_OUT','game/data'); os.makedirs(OUT,exist_ok=True)
+PUBLIC=os.environ.get('PUBLIC')=='1'   # the itch.io build: leave out classroom-only assets (the Ikarus model)
+PUBLIC_DROP={'ikarus'}
 SRC='assets_src'
 def b64(path): return base64.b64encode(open(path,'rb').read()).decode()
 def png_b64(path,maxs=128,nearest=False):
@@ -59,6 +61,7 @@ import sys
 ONLY=sys.argv[1:]
 total=0
 for name,P in PACKS.items():
+    if PUBLIC and 'glb' in P: P=dict(P, glb=[g for g in P['glb'] if g not in PUBLIC_DROP])
     if ONLY and name not in ONLY: continue
     d={'glb':{},'tex':{},'img':{},'audio':{}}
     for g in P.get('glb',[]): d['glb'][g]=b64(f'build/glb/{g}.glb')

@@ -121,7 +121,8 @@ export function nightMenu(R, o) {
     const WALK = WALK_NAME;
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Tonight</h2>
       <div style="${PAPER};margin:6px 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S TOPIC</span><br><b id="tt"></b> <span id="th" style="color:#7a6a50"></span>
-        <br><span style="font-size:.85em">The stairwell, the walk and the cards tonight are mostly about this.</span></div>
+        <br><span style="font-size:.85em">The stairwell, the walk and the cards tonight are mostly about this.</span>
+        <br><label style="font-size:.8em;color:#7a6a50">Your teacher asked for a topic? <select id="tsel" style="font-size:1em">${Object.entries(TOPICS).map(([id, t]) => `<option value="${id}">${esc(t.title)}</option>`).join('')}</select></label></div>
       <div style="${PAPER};margin:0 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S ROUTE (útvonal)</span><br><b id="rt"></b> <span id="rh" style="color:#7a6a50"></span>
         <br><span id="rd" style="font-size:.85em"></span><div id="rc" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"></div></div>
       <h3 style="margin-top:0">Difficulty (nehézség)</h3>
@@ -135,7 +136,7 @@ export function nightMenu(R, o) {
       ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${n.mode === 'labyrinth' ? 'the labyrinth' : esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.mode === 'labyrinth' ? n.rooms + ' rooms' : n.outcome === 'full' ? 'the whole night' + (n.shape && SHAPES[n.shape] ? ' (' + SHAPES[n.shape].name.toLowerCase() + ')' : '') : n.outcome === 'death' ? 'lost the life' : n.outcome === 'metro' ? 'the whole night' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
       <div class="btns"><button class="btn primary" id="go" autofocus>Go out</button><button class="btn" id="lb" title="The yellow rooms as a night of their own: room after room, no lives lost, a score to beat">The labyrinth${best.rooms ? ' (best ' + best.rooms + ')' : ''}</button><button class="btn" id="sh">Another topic</button><button class="btn" id="sr">Another route</button><button class="btn" id="x">Stay in</button>${o.teacher ? '<button class="btn" id="tm" style="margin-left:auto">Test a stage (teacher)</button>' : ''}</div></div>`);
     const draw = () => {
-      el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')';
+      el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')'; el.querySelector('#tsel').value = topic;
       el.querySelectorAll('[data-d]').forEach(b => { b.classList.toggle('primary', b.dataset.d === diff); });
       el.querySelectorAll('[data-h]').forEach(b => { b.classList.toggle('primary', (b.dataset.h === '1') === hard); });
       el.querySelectorAll('[data-tn]').forEach(b => { b.classList.toggle('primary', (b.dataset.tn === '1') === tenant); });
@@ -147,6 +148,7 @@ export function nightMenu(R, o) {
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
     el.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { hard = b.dataset.h === '1'; draw(); });
     el.querySelectorAll('[data-tn]').forEach(b => b.onclick = () => { tenant = b.dataset.tn === '1'; draw(); });
+    el.querySelector('#tsel').onchange = e => { topic = e.target.value; draw(); };   // v0.22: choose the lesson's topic
     el.querySelector('#sh').onclick = () => { const ids = Object.keys(TOPICS).filter(t => t !== topic); topic = ids[Math.floor(Math.random() * ids.length)]; draw(); };
     el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; R.options.tenant = tenant; res({ diff, topic, hard, shape, tenant }); };
     el.querySelector('#lb').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, mode: 'labyrinth' }); };

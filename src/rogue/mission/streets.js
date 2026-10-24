@@ -66,6 +66,36 @@ function blueBus(o) {
   return o;
 }
 
+/** A BKV-blue city bus made of boxes and painted canvases (v0.22): the public build's stand-in for the Ikarus model. Runs along z. */
+let busTex = null;
+function boxBus(g, x, z, rot) {
+  if (!busTex) {
+    const side = canvasTex(256, 64, c => {
+      c.fillStyle = '#1d4f9e'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#163f80'; c.fillRect(0, 50, 256, 14);
+      c.fillStyle = '#e8ecef'; c.fillRect(0, 7, 256, 3);                                   // a pale line under the roof
+      for (let i = 0; i < 9; i++) { c.fillStyle = '#121a26'; c.fillRect(8 + i * 27, 13, 23, 19); c.fillStyle = 'rgba(120,150,190,.25)'; c.fillRect(9 + i * 27, 14, 8, 17); }
+      for (const dx of [30, 120, 210]) { c.fillStyle = '#0e1622'; c.fillRect(dx, 13, 18, 45); c.fillStyle = '#2a3a50'; c.fillRect(dx + 8, 13, 2, 45); }   // the doors
+      c.fillStyle = '#c8ced6'; c.font = '8px m5x7'; c.fillText('BKV', 160, 46);
+    });
+    const front = canvasTex(64, 64, c => {
+      c.fillStyle = '#1d4f9e'; c.fillRect(0, 0, 64, 64); c.fillStyle = '#121a26'; c.fillRect(4, 14, 56, 26);
+      c.fillStyle = '#000'; c.fillRect(8, 3, 48, 9); c.fillStyle = '#ffa020'; c.font = '8px m5x7'; c.textBaseline = 'top'; c.fillText('173 KELETI', 10, 3);
+      c.fillStyle = '#fff6d0'; c.fillRect(6, 50, 9, 5); c.fillRect(49, 50, 9, 5); c.fillStyle = '#c8ced6'; c.fillRect(20, 52, 24, 3);
+    });
+    const back = canvasTex(64, 64, c => { c.fillStyle = '#1d4f9e'; c.fillRect(0, 0, 64, 64); c.fillStyle = '#121a26'; c.fillRect(8, 14, 48, 18); c.fillStyle = '#c0201a'; c.fillRect(6, 48, 8, 6); c.fillRect(50, 48, 8, 6); });
+    const roof = psxMat({ color: 0xd8dde2 });
+    busTex = { side: psxMat({ map: side }), front: psxMat({ map: front }), back: psxMat({ map: back }), roof, under: psxMat({ color: 0x15181c }), wheel: psxMat({ color: 0x101012 }) };
+  }
+  const o = new THREE.Group(); o.position.set(x, 0, z); o.rotation.y = rot * Math.PI / 180; g.add(o);
+  const L = 11, Wd = 2.5, H = 2.9, T = busTex;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(Wd, H - 0.35, L), [T.side, T.side, T.roof, T.under, T.front, T.back]);
+  body.position.y = 0.35 + (H - 0.35) / 2; o.add(body);
+  for (const wz of [-L / 2 + 2.2, L / 2 - 2.6]) for (const wx of [-Wd / 2 + 0.05, Wd / 2 - 0.05]) {
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.3, 12), T.wheel); w.rotation.z = Math.PI / 2; w.position.set(wx, 0.5, wz); o.add(w);
+  }
+  return o;
+}
+
 export function buildStreet(W, g, kind) {
   const S = STREETS[kind], col = W.col, r = W.r, L = S.len, hw = S.hw, Z_END = W.zEnd = -L;
   W.scene.add(new THREE.HemisphereLight(...S.hemi));
@@ -190,7 +220,8 @@ export function buildStreet(W, g, kind) {
     const kt = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 0.4), new THREE.MeshBasicMaterial({ map: canvasTex(96, 14, c => { c.fillStyle = '#1a3a7a'; c.fillRect(0, 0, 96, 14); c.fillStyle = '#e8eef8'; c.font = '16px m5x7'; c.textBaseline = 'top'; c.fillText('JEGYPÉNZTÁR', 10, -2); }), fog: true })); kt.position.set(5.48, 2.3, -6); kt.rotation.y = -Math.PI / 2; g.add(kt);
     place(g, 'bd_snack', 7.8, 0, -10, -90, { col, shrink: 0.05 });
     // the buses: two parked dark, and the night bus at the end with its lights on (the way out)
-    const bus = (x, z, rot) => { const o = blueBus(place(g, 'ikarus', x, 0, z, rot)); o.scale.multiplyScalar(1.23); return o; };   // the model is 8.9 m without its shadow disc: an Ikarus 260 is 11 m
+    // the Ikarus model is classroom-only (from a commercial game); the public build has no 'ikarus' in its pack and gets boxBus()
+    const bus = (x, z, rot) => { if (!A.models.ikarus) return boxBus(g, x, z, rot); const o = blueBus(place(g, 'ikarus', x, 0, z, rot)); o.scale.multiplyScalar(1.23); return o; };   // the model is 8.9 m without its shadow disc: an Ikarus 260 is 11 m
     bus(5.6, -24, 0); bus(5.6, -38, 0); bus(-10.5, -30, 0);   // the model runs along z
     const nb = bus(3.2, Z_END + 7, 180);
     col.push({ x0: 4.2, x1: 7, z0: -30, z1: -18 }, { x0: 4.2, x1: 7, z0: -44, z1: -32 }, { x0: 1.9, x1: 4.5, z0: Z_END + 1, z1: Z_END + 13 });

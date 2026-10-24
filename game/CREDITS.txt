@@ -47,12 +47,12 @@ Lépcsőház (the stairwell mode)
   Low Poly Subway Free by heyheythere - https://heyheythere.itch.io/low-poly-subway-free - CC BY 4.0
   PSX Metro Kit Free by heyheythere - https://heyheythere.itch.io/psx-metro-kit-free - CC BY 4.0
   Train station sounds: field recordings by Okutasan (okutasan.itch.io)
-  Arcade cabinet, vending machine, PSX vending machine: free low-poly models from Mark's asset library
-  (authors to be confirmed before the itch.io release)
+  PSX Soviet Block Kit Free by heyheythere - https://heyheythere.itch.io/psx-soviet-block-kit-free - CC BY 4.0
   PSX Bus Depot Free Sampler by ATR0CITY (canopy, benches, departure board, ticket counter, doors, snack machine)
-  Playground and park kiosk: free models from Mark's asset library (authors to be confirmed before release)
-  Ikarus bus: low-poly model from the game Everlasting Summer, recoloured to BKV blue. CLASSROOM BUILD ONLY:
-  it must be replaced before the game is published (see Lépcsőház doc 04)
+  Grass and paving: PSX Texture Vol. 1
+  Arcade cabinet, vending machines, playground and park kiosk: free low-poly models
+  Ikarus bus (classroom build only): low-poly model from the game Everlasting Summer, recoloured to BKV blue.
+  The public build uses a bus made in code instead.
   Rain sound: generated noise
 
 Engine

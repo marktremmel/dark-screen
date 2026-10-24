@@ -1,5 +1,15 @@
 # Sötét Képernyő: changelog
 
+## v1.3 (Lépcsőház)
+
+### Lépcsőház (Stairwell), 13+
+- A new door in Room 214 opens a second, replayable game: a flat in a Budapest panel block and a night out every time, with a topic, a route and the places on it.
+- The stairwell (spot what is different on a landing), eight walk places where figures say what manipulators say and you type the safe reply, the school, the last metro, and a message waiting on the phone at home.
+- Twelve topics, five routes, 214 notebook cards, a flat to furnish with paintings, stickers and posters, the endless Labyrinth, and the Tenant as a hard mode.
+- Camera effects: motion blur, depth of field, chromatic aberration, vignette and film grain, with sliders for depth of field and motion blur.
+- The Teacher Board reads Lépcsőház saves: nights, cards, best scores and the last nights per student.
+- The public build has a bus made in code at the bus station.
+
 ## v1.2 (13 October 2026)
 
 ### Episode 2: Mindig figyel (Always listening)

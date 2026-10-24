@@ -502,7 +502,7 @@ export class Stairwell extends Walker {
     checklist(`The labyrinth · room ${e.room}`, [
       { name: `Rooms cleared: ${e.room - 1}${best ? '  (best ' + best + ')' : ''}`, hu: 'szobák' },
       { name: `Caught: ${e.catches} of 3`, hu: 'elkapott' },
-      { name: `Tonight: ${TOPICS[this.run.topic].title}`, hu: this.run.hard ? 'nehéz gépelés' : 'gépelés' },
+      { name: `Tonight: ${TOPICS[this.run.topic].title}`, hu: this.run.hard ? 'téma · nehéz gépelés' : 'téma' },
       { name: `Coins tonight: ${this.run.coins}`, hu: 'zseton' },
     ]);
   }

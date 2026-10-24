@@ -68,13 +68,14 @@ export function postRender(renderer, scene, camera, dt) {
   const q = camera.quaternion; let turn = 0;
   if (lastQ) turn = 2 * Math.acos(Math.min(1, Math.abs(lastQ.dot(q)))) / Math.max(dt, 1 / 120);
   lastQ = (lastQ || new THREE.Quaternion()).copy(q);
-  blur += (Math.min(0.6, turn * 0.09) - blur) * Math.min(1, dt * 12);
+  const bs = S.settings.blur == null ? 1 : S.settings.blur;   // v0.22: strength sliders in Settings (0 to 2, 1 is the v0.19 look)
+  blur += (Math.min(0.85, turn * 0.09 * bs) - blur) * Math.min(1, dt * 12);
   renderer.setRenderTarget(rtScene); renderer.render(scene, camera);
   quad.material = blendMat; blendMat.uniforms.tCur.value = rtScene.texture; blendMat.uniforms.tPrev.value = accB.texture; blendMat.uniforms.uK.value = blur;
   renderer.setRenderTarget(accA); renderer.render(quadScene, quadCam);
   quad.material = finalMat; const U = finalMat.uniforms;
   U.tCol.value = accA.texture; U.tDepth.value = rtScene.depthTexture; U.uNear.value = camera.near; U.uFar.value = camera.far; U.uRes.value.set(w, h); U.uT.value = (performance.now() / 1000) % 100;
-  U.uGrain.value = S.settings.grain === false ? 0 : 0.03;
+  U.uGrain.value = S.settings.grain === false ? 0 : 0.03; U.uDof.value = S.settings.dof == null ? 1 : S.settings.dof;
   renderer.setRenderTarget(null); renderer.render(quadScene, quadCam);
   const t = accA; accA = accB; accB = t;
   return true;

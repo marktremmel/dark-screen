@@ -149,6 +149,8 @@ export function settingsScreen(onClose) {
     ${tg('subs', 'Sound subtitles', 'Shows what you hear, like [footsteps in the hallway].')}
     ${tg('sharp', 'Sharper picture', 'Draws the game at a higher resolution. Still pixelated, just finer. Turn off on slow computers.')}
     ${tg('post', 'Camera effects', 'Lépcsőház only: a little motion blur when you turn, the background softens when something is close, darker corners. Turn off on slow computers.')}
+    ${sl('dof', 'Depth of field', 'How much the background softens when something is close in front of you. 0 turns it off.', 0, 2, 0.1)}
+    ${sl('blur', 'Motion blur', 'How much the picture smears while you turn. 0 turns it off.', 0, 2, 0.1)}
     ${tg('grain', 'Film grain', 'A very faint grain on top of the camera effects.')}
     ${tg('bigText', 'Large text', '')}
     ${tg('bob', 'Head bobbing', 'Turn off if walking makes you feel dizzy.')}

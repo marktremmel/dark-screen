@@ -1,4 +1,4 @@
-SÖTÉT KÉPERNYŐ (Dark Screen) v1.2 - a digital culture horror anthology
+SÖTÉT KÉPERNYŐ (Dark Screen) v1.3 - a digital culture horror anthology
 ====================================================================
 
 HOW TO START
@@ -48,6 +48,19 @@ Play order (the lab has nine computers):
   in the page when the game is played from the web, in a new tab when
   index.html is opened from a folder).
 - Characters "speak" with made-up voice sounds; the subtitles carry the words.
+
+LÉPCSŐHÁZ (Stairwell), 13+, new in v1.3
+The door next to the computers in Room 214 opens a second, replayable
+game. The first time it asks for a code (in the Teacher Pack; the
+teacher key also opens it). Every night out has a topic, a route and a
+few places: the stairwell (turn back if a landing is different), a
+walk where you type safe replies, the school, the last metro, and a
+message waiting on the phone at home. Answers become notebook cards,
+coins furnish the flat. The Labyrinth is an endless high-score mode.
+The Lépcsőház guide is in the Teacher Pack.
+Settings for it: Calm difficulty, Hard typing, the Tenant (hard mode),
+camera effects with sliders for depth of field and motion blur
+(switch them off on slow computers).
 
 LOCKED EPISODES (lesson codes)
 Episode 1 is always open. Every later episode is locked until the
