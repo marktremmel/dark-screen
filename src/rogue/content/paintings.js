@@ -18,8 +18,21 @@ export const PAINTINGS = [
   ["pt_red_eyed_shadow_in_the_hallway", 1.5, "The Watcher"],
   ["pt_surreal_stairwell_at_night", 1.5, "The open door"],
   ["pt_warm_light_cold_stairwell", 1.5, "Going out"],
+  // round 6 (24 Oct, v0.17)
+  ["pt_eerie_labyrinth_of_empty_rooms", 1.5, "The yellow rooms"],
+  ["pt_abandoned_pool_hall_at_night", 1.5, "The empty pool"],
+  ["pt_endless_maze_the_flashlight_wanderer", 1.5, "The labyrinth"],
+  ["pt_rainy_midnight_bus_terminal_1", 1.777, "The bus station"],
+  ["pt_misty_dawn_over_the_urban_courtyard", 1.2, "Morning"],
+  ["pt_neon_arcade_in_the_rainy_underpass", 1.5, "The arcade"],
+  ["pt_midnight_study_by_the_window", 1.5, "A message at midnight"],
+  ["pt_ominous_feet_beneath_the_door", 1.2, "Someone outside"],
+  ["pt_ominous_stairwell_descent", 1.2, "The Tenant"],
 ];
 /** Title cards: which painting opens which stage. */
 export const CARDS_FOR = { stairs: 'pt_warm_light_cold_stairwell', park: 'pt_misty_twilight_park_with_tram_glow', hotel: 'pt_endless_teal_hallway_with_cat_posters', underpass: 'pt_empty_underground_passageway_2',
   school: 'pt_midnight_school_hallway_glow', metro: 'pt_midnight_metro_empty_platform_glow',
-  labyrinth: 'pt_ominous_figure_in_the_eerie_hallway' };   // until card_labyrinth (doc 06) is painted
+  backrooms: 'pt_eerie_labyrinth_of_empty_rooms', pool: 'pt_abandoned_pool_hall_at_night', labyrinth: 'pt_endless_maze_the_flashlight_wanderer',
+  bus: 'pt_rainy_midnight_bus_terminal_1', courtyard: 'pt_foggy_brutalist_playground_at_night', alley: 'pt_rainy_noir_alley_at_night',
+  morning: 'pt_misty_dawn_over_the_urban_courtyard', arcade: 'pt_neon_arcade_in_the_rainy_underpass', phone: 'pt_midnight_study_by_the_window',
+  tenant: 'pt_ominous_feet_beneath_the_door', tenantGlimpse: 'pt_ominous_stairwell_descent' };

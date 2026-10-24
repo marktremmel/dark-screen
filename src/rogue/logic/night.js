@@ -1,5 +1,5 @@
 // One night out (a run): difficulty, tonight's topic, the scores. PURE.
-// A night goes: stairwell -> a walk on tonight's topic (park, backrooms, hotel or pool) -> choice: the school or home.
+// A night goes along a route (logic/routes.js): stairwell, a walk on tonight's topic (eight places), the school, the metro...
 import { TOPIC_IDS } from '../content/walks.js';
 
 export const DIFFS = {
@@ -11,7 +11,7 @@ export const DIFFS = {
     anomaly: 0.55, back: Infinity, nerveLoss: 1.4, speed: 1.25, typeTime: 0.8, light: 20, reward: 1.5 },
 };
 
-export const WALKS = ['park', 'backrooms', 'hotel', 'pool', 'underpass'];
+export const WALKS = ['park', 'backrooms', 'hotel', 'pool', 'underpass', 'courtyard', 'alley', 'bus'];   // v0.17: three new outdoor places
 
 /** Pick tonight's topic: themes you have met least come first, never the same as last night. */
 export function pickTopic(r, record) {
@@ -28,8 +28,8 @@ export function pickWalk(r, record) {
   return pool[Math.floor(r() * pool.length)];
 }
 
-export function newRun(topic, diff, walk, hard = false) {
-  return { topic, diff, walk, hard, xp: 0, coins: 0, spot: 0, miss: 0, fals: 0, stages: [], lessons: [], typedChars: 0, typeMs: 0, keys: 0, errors: 0, cards: 0 };
+export function newRun(topic, diff, walk, hard = false, shape = 'usual', route = null, walk2 = null) {
+  return { topic, diff, walk, hard, shape, route: route || ['stairs', 'walk', 'school', 'metro'], walk2, xp: 0, coins: 0, spot: 0, miss: 0, fals: 0, stages: [], lessons: [], typedChars: 0, typeMs: 0, keys: 0, errors: 0, cards: 0 };
 }
 export const runWpm = run => run.typeMs > 0 ? Math.min(250, Math.round(run.typedChars / 5 / (run.typeMs / 60000))) : 0;
 export const runAcc = run => run.keys ? Math.round((run.keys - run.errors) / run.keys * 100) : 100;
@@ -38,6 +38,7 @@ export const runAcc = run => run.keys ? Math.round((run.keys - run.errors) / run
 export function recordNight(record, run, outcome, date = Date.now()) {
   const n = { t: date, topic: run.topic, walk: run.walk, diff: run.diff, xp: run.xp, coins: run.coins, stages: run.stages.length, wpm: runWpm(run), acc: runAcc(run), outcome };
   if (run.mode === 'labyrinth') { n.mode = 'labyrinth'; n.rooms = run.rooms || 0; }
+  else n.shape = run.shape || 'usual';
   record.nights = [n, ...(record.nights || [])].slice(0, 12);
   record.topics = record.topics || {}; record.topics[run.topic] = (record.topics[run.topic] || 0) + 1;
   const b = record.best = record.best || { xp: 0, wpm: 0, stages: 0 };

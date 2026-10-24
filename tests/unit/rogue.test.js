@@ -235,3 +235,14 @@ test('the labyrinth: rooms are recorded and the best is kept', () => {
   recN(rec, run, 'labyrinth'); assert.equal(rec.best.rooms, 5); assert.equal(rec.best.stages, 0);
   run.rooms = 3; recN(rec, run, 'labyrinth'); assert.equal(rec.best.rooms, 5); assert.equal(rec.nights[0].rooms, 3);
 });
+
+import { SHAPES, SHAPE_IDS, pickShape, pickWalk2, nextStage, andList } from '../../src/rogue/logic/routes.js';
+test('routes: every shape starts on the stairs, next stage follows the route, shapes do not repeat', () => {
+  for (const id of SHAPE_IDS) assert.equal(SHAPES[id].route[0], 'stairs');
+  const run = { route: SHAPES.train.route };
+  assert.equal(nextStage(run, 'stairs'), 'walk'); assert.equal(nextStage(run, 'walk'), 'metro'); assert.equal(nextStage(run, 'metro'), 'school'); assert.equal(nextStage(run, 'school'), null);
+  assert.equal(nextStage({ route: SHAPES.shortcut.route }, 'stairs'), 'metro');
+  const r = rng(7); for (let i = 0; i < 50; i++) { const s = pickShape(r, { nights: [{ shape: 'usual' }] }); assert.notEqual(s, 'usual'); }
+  for (let i = 0; i < 20; i++) assert.notEqual(pickWalk2(r, ['park', 'pool', 'hotel'], 'pool'), 'pool');
+  assert.equal(andList(['a', 'b', 'c']), 'a, b and c');
+});

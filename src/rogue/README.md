@@ -98,7 +98,8 @@ Engine additions this mode needed (safe for the episodes): `Player.yOff` (floor 
 - v0.14 (24 Oct): gallery pack and picture viewer, TV static in the screen texture, look around while seated and the visitor, faster ambushing maze figure, sticker folders, Sharper picture setting.
 - v0.15 (24 Oct): the design detective arcade in the underpass (content/arcade.js, `arcadePanel`), Hard typing (`strictKey`, `hardText` in logic/typing.js), skip intro (ui/skip.js), the red bulb made obvious.
 - v0.16 (24 Oct): the endless labyrinth (`run.mode === 'labyrinth'`, built inside mission/stairwell.js: `enterEndless`, `setupRoom`, `nextRoom`; `G.goLabyrinth`; `record.best.rooms`); T8 home jobs on the phone in the flat (content/homejobs.js, `homeJobPanel`, `record.jobs` and `record.jobAt`: one new message per night out).
-- Next: see doc 05 section 0 (new shapes of night, new places, thin topics, the Tenant, look and feel, classroom).
+- v0.17 (24 Oct): routes for a night (logic/routes.js, `G.rogueNext`, `nextChoice` in ui/panels.js; `run.route`, `run.shape`, `run.walk2`, `run.cur`); three outdoor walks (mission/streets.js: courtyard, alley, bus; pack `street`); small events (`smallEvent` in walk.js, `evT` in stairwell.js); rain; round-6 paintings as title cards.
+- Next: see doc 05 section 0 (the Tenant, thin topics, look and feel, classroom, the intro cutscene).
 
 ## Codes
 

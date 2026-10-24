@@ -5,11 +5,12 @@ import { ingestPack } from '../core/assets.js';
 import { AU } from '../core/audio.js';
 import { hud, loading, fade } from '../core/hud.js';
 import { S, persist } from '../core/state.js';
-import { ensureRogue, die } from './save/rogueSave.js';
+import { ensureRogue, die, earn } from './save/rogueSave.js';
 import { rng, freshSeed } from './logic/rng.js';
-import { newRun, pickTopic, pickWalk, recordNight, runWpm, runAcc, DIFFS } from './logic/night.js';
+import { newRun, pickTopic, pickWalk, recordNight, runWpm, runAcc, DIFFS, WALKS } from './logic/night.js';
+import { SHAPES, pickShape, pickWalk2, nextStage, walkOf, stageName, andList, WALK_NAME } from './logic/routes.js';
 import { TOPICS } from './content/walks.js';
-import { floorPicker, nightMenu, deathPanel, testPanel } from './ui/panels.js';
+import { floorPicker, nightMenu, deathPanel, testPanel, nextChoice } from './ui/panels.js';
 import { keepPanel } from './ui/homePanels.js';
 import { thumb } from './ui/thumbs.js';
 import { ITEM } from './content/furniture.js';
@@ -23,7 +24,6 @@ import { VERSION } from './config.js';
 import { titleCard } from './ui/titleCard.js';
 import { CARDS_FOR } from './content/paintings.js';
 
-const WALK_NAME = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool', underpass: 'the underpass' };
 
 export function installRogue(G) {
   const R = () => ensureRogue(S.save);
@@ -48,10 +48,12 @@ export function installRogue(G) {
   /** From the front door: the night menu, then the stairwell. Resolves false if you stay in. */
   G.startNight = async () => {
     const r = R(), rr = rng(freshSeed());
-    const choice = await nightMenu(r, { topic: pickTopic(rr, r.record), teacher: !!(S.save && S.save.teacher) });
+    const walk = pickWalk(rr, r.record), walk2 = pickWalk2(rr, WALKS, walk);   // v0.17: tonight's route is picked here and shown on the menu
+    const choice = await nightMenu(r, { topic: pickTopic(rr, r.record), shape: pickShape(rr, r.record), walk, walk2, teacher: !!(S.save && S.save.teacher) });
     if (!choice) return false;
     if (choice.test) return G.testStage(choice);
-    G.run = newRun(choice.topic, choice.diff, pickWalk(rr, r.record), !!choice.hard);
+    const sh = SHAPES[choice.shape] || SHAPES.usual;
+    G.run = newRun(choice.topic, choice.diff, walk, !!choice.hard, sh.id, sh.route.slice(), walk2);
     if (choice.mode === 'labyrinth') { G.run.mode = 'labyrinth'; persist(); await G.goLabyrinth(G.run); return true; }
     persist();
     await G.goStairs(G.run);
@@ -87,13 +89,30 @@ export function installRogue(G) {
     await titleCard(CARDS_FOR.labyrinth, 'The labyrinth', `Tonight: ${TOPICS[run.topic].title}. As many rooms as you can.`);
     await G.switchScene(new Stairwell(G, R(), run));
   };
+  /** v0.17: after a stage, the route decides what comes next. Between stages (not after the stairs) you may go home. */
+  G.rogueNext = async (run, from) => {
+    const nx = nextStage(run, from);
+    if (!nx) { await fade(true, '', 0.6); return G.endNight(run, 'full'); }
+    if (from !== 'stairs') {
+      G.unlock(); const c = await nextChoice(run, nx);
+      await fade(true, '', 0.6);
+      if (c === 'home') return G.endNight(run, from);
+    }
+    run.cur = nx; persist();
+    if (nx === 'walk' || nx === 'walk2') return G.goWalk(run);
+    if (nx === 'school') return G.goSchool(run);
+    if (nx === 'metro') return G.goMetro(run);
+  };
   G.goWalk = async run => {
     hud(false); loading(true, 0, 'Outside…');
-    if (run.walk === 'park') await ingestPack('park', AU.ctx, f => loading(true, f * 0.5));
-    if (run.walk === 'underpass') await ingestPack('underpass', AU.ctx, f => loading(true, f * 0.5));
+    const place = walkOf(run, run.cur === 'walk2' ? 'walk2' : 'walk');
+    const street = ['courtyard', 'alley', 'bus'].includes(place);
+    if (place === 'park' || street) await ingestPack('park', AU.ctx, f => loading(true, f * 0.3));
+    if (street) await ingestPack('street', AU.ctx, f => loading(true, 0.3 + f * 0.2));
+    if (place === 'underpass') await ingestPack('underpass', AU.ctx, f => loading(true, f * 0.5));
     await ingestPack('npc', AU.ctx, f => loading(true, 0.5 + f * 0.5));
     loading(false);
-    if (CARDS_FOR[run.walk]) await titleCard(CARDS_FOR[run.walk], WALK_NAME[run.walk][0].toUpperCase() + WALK_NAME[run.walk].slice(1), TOPICS[run.topic].title);
+    if (CARDS_FOR[place]) await titleCard(CARDS_FOR[place], WALK_NAME[place][0].toUpperCase() + WALK_NAME[place].slice(1), run.cur === 'walk2' ? 'The way home. ' + TOPICS[run.topic].title : TOPICS[run.topic].title);
     await G.switchScene(new Walk(G, R(), run));
   };
   G.goSchool = async run => {
@@ -116,18 +135,20 @@ export function installRogue(G) {
   G.endNight = async (run, outcome) => {
     const r = R(); G.unlock(); hud(false);
     if (!run || (!run.stages.length && !run.xp && outcome === 'home')) { G.run = null; return G.goRogue(); }   // you never really left
+    let bonus = 0;
+    if (outcome === 'full' && run.shape === 'long') { bonus = Math.round(run.xp * 0.2); earn(r, bonus, 0); run.xp += bonus; }   // the long night pays 20% more
     recordNight(r.record, run, outcome); persist();
     await fade(false, '', 0.01);
+    if (outcome !== 'home' || run.stages.length) await titleCard(CARDS_FOR.morning, 'Morning', 'You made it home. The first tram is running.', 2.2);   // v0.17: Mark's dawn painting before the debrief
     const seen = new Set(), lessons = run.lessons.filter(l => !seen.has(l.title) && seen.add(l.title));
     await missionDebrief({
       title: `Tonight: ${TOPICS[run.topic].title}`,
       body: outcome === 'labyrinth' ? (run.rooms ? `${run.rooms} room${run.rooms > 1 ? 's' : ''} of the yellow labyrinth${run.labyrinthEnd === 'caught' ? ', until it caught you a third time' : ', and then you found your way home'}.${run.rooms >= ((r.record.best && r.record.best.rooms) || 0) ? ' Your best yet.' : ''}` : 'You did not get through a single room this time. The next one will go better.')
-        : outcome === 'metro' ? `The stairwell, ${WALK_NAME[run.walk]}, the school and the last train: the whole night. Not many people make it that far.`
-        : outcome === 'school' ? 'You made it through the stairwell, ' + WALK_NAME[run.walk] + ' and the school. That was a full night.'
-        : outcome === 'walk' ? `You made it down the stairwell and through ${WALK_NAME[run.walk]}, and went home with what you had.`
-          : 'You turned back and went home early. What you earned is yours.',
+        : !run.stages.length ? 'You turned back and went home early. What you earned is yours.'
+        : outcome === 'full' ? `${SHAPES[run.shape] ? SHAPES[run.shape].name : 'The night'}, all of it: ${andList(run.stages.map(st => stageName(run, st)))}.${bonus ? ` Finishing the long night: +${bonus} XP.` : ''} Not many people make it that far.`
+        : `You made it through ${andList(run.stages.map(st => stageName(run, st)))}, and went home with what you had.`,
       stats: run.mode === 'labyrinth' ? [`${DIFFS[run.diff].label}`, `Rooms: ${run.rooms || 0} (best ${(r.record.best && r.record.best.rooms) || 0})`, `Screens typed: ${run.screens || 0}`, `+${run.xp} XP`, `+${run.coins} coins`,
-        `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`] : [`${DIFFS[run.diff].label}`, `Stairwell: caught ${run.spot}, missed ${run.miss}, wrong turn-backs ${run.fals}`, `+${run.xp} XP`, `+${run.coins} coins`,
+        `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`] : [`${DIFFS[run.diff].label}`, `${(SHAPES[run.shape] || SHAPES.usual).name}`, `Stairwell: caught ${run.spot}, missed ${run.miss}, wrong turn-backs ${run.fals}`, `+${run.xp} XP`, `+${run.coins} coins`,
         `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`, `Nerve left: ${r.life.nerve}`],
       lessons: lessons.slice(0, 9),
     });

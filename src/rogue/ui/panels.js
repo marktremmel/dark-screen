@@ -6,6 +6,7 @@ import { CARDS, CARD_COUNT } from '../content/cards.js';
 import { TOPICS } from '../content/walks.js';
 import { DIFFS } from '../logic/night.js';
 import { THEMES } from '../content/themes.js';
+import { WALK_NAME, SHAPES, SHAPE_IDS, fillDesc, stageName } from '../logic/routes.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const PAPER = 'background:#ece6d6;color:#1d1a14;border-radius:3px;padding:14px 16px;margin:10px 0;box-shadow:0 3px 12px rgba(0,0,0,.5);font-family:Georgia,serif;line-height:1.45';
@@ -115,28 +116,35 @@ export function missionChoice(R) {
 export function nightMenu(R, o) {
   return new Promise(res => {
     const rec = R.record, best = rec.best || { xp: 0, wpm: 0, stages: 0 }, nights = rec.nights || [];
-    let diff = (R.options && R.options.diff) || 'normal', topic = o.topic, hard = !!(R.options && R.options.hard);
-    const WALK = { park: 'the park', backrooms: 'the yellow rooms', hotel: 'the hotel corridor', pool: 'the empty pool', underpass: 'the underpass' };
+    let diff = (R.options && R.options.diff) || 'normal', topic = o.topic, hard = !!(R.options && R.options.hard), shape = o.shape || 'usual';
+    const run0 = { walk: o.walk, walk2: o.walk2 };
+    const WALK = WALK_NAME;
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Tonight</h2>
       <div style="${PAPER};margin:6px 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S TOPIC</span><br><b id="tt"></b> <span id="th" style="color:#7a6a50"></span>
         <br><span style="font-size:.85em">The stairwell, the walk and the cards tonight are mostly about this.</span></div>
+      <div style="${PAPER};margin:0 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S ROUTE (útvonal)</span><br><b id="rt"></b> <span id="rh" style="color:#7a6a50"></span>
+        <br><span id="rd" style="font-size:.85em"></span><div id="rc" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"></div></div>
       <h3 style="margin-top:0">Difficulty (nehézség)</h3>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="dd">${Object.values(DIFFS).map(d => `<button class="btn" data-d="${d.id}" style="text-align:left"><b>${d.label}</b> <span class="sub">(${d.hu})</span><br><span class="sub" style="font-size:.8em">${esc(d.desc)}</span></button>`).join('')}</div>
       <h3>Typing (gépelés)</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn" data-h="0" style="text-align:left"><b>Normal</b><br><span class="sub" style="font-size:.8em">Short replies. Capitals and punctuation do not matter.</span></button><button class="btn" data-h="1" style="text-align:left"><b>Hard</b><br><span class="sub" style="font-size:.8em">Whole sentences. Capitals, commas and full stops count. The figures walk slower.</span></button></div>
       <h3>Your scores</h3>
       <div><span class="stat">Best night: ${best.xp} XP</span><span class="stat">Best typing: ${best.wpm} wpm</span><span class="stat">Most stages in a night: ${best.stages}</span>${best.rooms ? `<span class="stat">Labyrinth: ${best.rooms} rooms</span>` : ''}<span class="stat">Nights out: ${nights.length >= 12 ? '12+' : nights.length}</span><span class="stat">Cards: ${rec.notebook.length}/${CARD_COUNT}</span><span class="stat">Lives lost: ${rec.deaths}</span></div>
-      ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${n.mode === 'labyrinth' ? 'the labyrinth' : esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.mode === 'labyrinth' ? n.rooms + ' rooms' : n.outcome === 'death' ? 'lost the life' : n.outcome === 'metro' ? 'the whole night' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
-      <div class="btns"><button class="btn primary" id="go" autofocus>Go out</button><button class="btn" id="lb" title="The yellow rooms as a night of their own: room after room, no lives lost, a score to beat">The labyrinth${best.rooms ? ' (best ' + best.rooms + ')' : ''}</button><button class="btn" id="sh">Another topic</button><button class="btn" id="x">Stay in</button>${o.teacher ? '<button class="btn" id="tm" style="margin-left:auto">Test a stage (teacher)</button>' : ''}</div></div>`);
+      ${nights.length ? `<table style="width:100%;margin-top:8px;font-size:.82em;border-collapse:collapse">${nights.slice(0, 5).map(n => `<tr style="border-top:1px solid #2a2636"><td>${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td class="sub">${n.mode === 'labyrinth' ? 'the labyrinth' : esc(WALK[n.walk] || '')}</td><td class="sub">${esc((DIFFS[n.diff] || {}).label || '')}</td><td>${n.xp} XP</td><td>${n.wpm} wpm</td><td class="sub">${n.mode === 'labyrinth' ? n.rooms + ' rooms' : n.outcome === 'full' ? 'the whole night' + (n.shape && SHAPES[n.shape] ? ' (' + SHAPES[n.shape].name.toLowerCase() + ')' : '') : n.outcome === 'death' ? 'lost the life' : n.outcome === 'metro' ? 'the whole night' : n.outcome === 'school' ? 'school done' : n.outcome === 'walk' ? 'walk done' : 'came home early'}</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet.</p>'}
+      <div class="btns"><button class="btn primary" id="go" autofocus>Go out</button><button class="btn" id="lb" title="The yellow rooms as a night of their own: room after room, no lives lost, a score to beat">The labyrinth${best.rooms ? ' (best ' + best.rooms + ')' : ''}</button><button class="btn" id="sh">Another topic</button><button class="btn" id="sr">Another route</button><button class="btn" id="x">Stay in</button>${o.teacher ? '<button class="btn" id="tm" style="margin-left:auto">Test a stage (teacher)</button>' : ''}</div></div>`);
     const draw = () => {
       el.querySelector('#tt').textContent = TOPICS[topic].title; el.querySelector('#th').textContent = '(' + TOPICS[topic].hu + ')';
       el.querySelectorAll('[data-d]').forEach(b => { b.classList.toggle('primary', b.dataset.d === diff); });
       el.querySelectorAll('[data-h]').forEach(b => { b.classList.toggle('primary', (b.dataset.h === '1') === hard); });
+      const S0 = SHAPES[shape]; el.querySelector('#rt').textContent = S0.name; el.querySelector('#rh').textContent = '(' + S0.hu + ')';
+      el.querySelector('#rd').textContent = fillDesc(run0, S0.desc);
+      el.querySelector('#rc').innerHTML = S0.route.map(st => `<span style="background:#2b2636;color:#e8dcc4;border-radius:6px;padding:2px 7px;font-size:.78em">${esc(stageName(run0, st))}</span>`).join('<span style="color:#7a6a50">→</span>');
     };
+    el.querySelector('#sr').onclick = () => { const ids = SHAPE_IDS.filter(x => x !== shape); shape = ids[Math.floor(Math.random() * ids.length)]; draw(); };
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
     el.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { hard = b.dataset.h === '1'; draw(); });
     el.querySelector('#sh').onclick = () => { const ids = Object.keys(TOPICS).filter(t => t !== topic); topic = ids[Math.floor(Math.random() * ids.length)]; draw(); };
-    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard }); };
+    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, shape }); };
     el.querySelector('#lb').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, mode: 'labyrinth' }); };
     el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
     const tm = el.querySelector('#tm'); if (tm) tm.onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, test: true }); };
@@ -155,7 +163,7 @@ export function testPanel(R, o) {
       <div class="btns">${Object.values(DIFFS).map(d => `<button class="btn small" data-d="${d.id}">${d.label}</button>`).join('')}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:8px">
         ${B('stairs', 'Stairwell', 'from your floor')}${B('maze', 'The yellow maze', 'as after a wrong call')}${B('labyrinth', 'The endless labyrinth', 'room after room, a score')}
-        ${B('walk:park', 'Walk: the park')}${B('walk:backrooms', 'Walk: the yellow rooms')}${B('walk:hotel', 'Walk: the hotel corridor')}${B('walk:pool', 'Walk: the empty pool')}${B('walk:underpass', 'Walk: the underpass')}
+        ${B('walk:park', 'Walk: the park')}${B('walk:backrooms', 'Walk: the yellow rooms')}${B('walk:hotel', 'Walk: the hotel corridor')}${B('walk:pool', 'Walk: the empty pool')}${B('walk:underpass', 'Walk: the underpass')}${B('walk:courtyard', 'Walk: the courtyard')}${B('walk:alley', 'Walk: the alley')}${B('walk:bus', 'Walk: the bus station')}
         ${B('school:feed:phone', 'School: screens + phone', 'the Feed, the Watcher, the found phone')}${B('school:fuse:phone', 'School: fuses + phone', 'permissions, the Watcher, the phone')}
         ${B('school:feed:chorus', 'School: screens + Chorus', 'the Feed, the Watcher, Dani')}${B('school:fuse:chorus', 'School: fuses + Chorus', 'permissions, the Watcher, Dani')}
         ${B('metro', 'Metro', 'the posts and the Collector')}${B('coins', '+500 coins', 'for testing the shop')}
@@ -170,28 +178,23 @@ export function testPanel(R, o) {
   });
 }
 
-/** At the end of the walk: on to the school, or home with what you have. */
-export function walkExitChoice(run) {
+/** Between stages (v0.17): what comes next on tonight's route, or home with what you have. */
+export function nextChoice(run, next) {
+  const W = n => WALK_NAME[n] || 'the street';
+  const T = {
+    school: ['Across the road, the school is dark. One window flickers.', 'Go on to the school', 'Three rooms, a figure that moves when you look away, and something different waiting each night.'],
+    metro: ['The metro entrance glows at the end of the street. The last train leaves soon.', 'Catch the last train', 'Your old posts are glowing all over the platform, and something is collecting them.'],
+    walk: [`The way on goes through ${W(run.walk)}.`, `Go through ${W(run.walk)}`, 'Three stretches of dark, and figures who want answers.'],
+    walk2: [`The train stopped early. The way home goes through ${W(run.walk2)}.`, `Walk home through ${W(run.walk2)}`, 'The last stretch of a long night: finish it for a 20% bonus on everything tonight.'],
+  }[next];
+  const left = (run.route || []).slice((run.route || []).indexOf(next) + 1).length;
   return new Promise(res => {
-    const el = openScreen(`<div class="panel" style="width:min(600px,94vw)"><h2>Out on the street</h2>
-      <p>So far tonight: <b>${run.xp} XP</b> and <b>${run.coins} coins</b>. Across the road, the school is dark. One window flickers.</p>
-      <p class="sub">The school is harder and pays more. If your nerve runs out there, you lose this life.</p>
+    const el = openScreen(`<div class="panel" style="width:min(600px,94vw)"><h2>${next === 'walk2' ? 'Two stations early' : 'Out on the street'}</h2>
+      <p>So far tonight: <b>${run.xp} XP</b> and <b>${run.coins} coins</b>. ${T[0]}</p>
+      <p class="sub">${left ? `After this, ${left} more stage${left > 1 ? 's' : ''} tonight.` : 'This is the last stage tonight.'} If your nerve runs out, you lose this life.</p>
       <div style="display:grid;gap:10px;margin-top:10px">
-      <button class="btn primary" data-m="school" style="text-align:left"><b>Go on to the school</b><br><span class="sub">Three rooms, a figure that moves when you look away, and something different waiting each night.</span></button>
+      <button class="btn primary" data-m="go" style="text-align:left"><b>${T[1]}</b><br><span class="sub">${T[2]}</span></button>
       <button class="btn" data-m="home" style="text-align:left"><b>Go home</b><br><span class="sub">Keep everything you earned tonight.</span></button></div></div>`, 'solid');
-    el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
-  });
-}
-
-/** After the school: the last train, or home. */
-export function schoolExitChoice(run) {
-  return new Promise(res => {
-    const el = openScreen(`<div class="panel" style="width:min(600px,94vw)"><h2>Behind the school</h2>
-      <p>So far tonight: <b>${run.xp} XP</b> and <b>${run.coins} coins</b>. The metro entrance glows at the end of the street. The last train leaves soon.</p>
-      <p class="sub">The metro is the last stage of the night. If your nerve runs out down there, you lose this life.</p>
-      <div style="display:grid;gap:10px;margin-top:10px">
-      <button class="btn primary" data-m="metro" style="text-align:left"><b>Catch the last train</b><br><span class="sub">Your old posts are glowing all over the platform, and something is collecting them.</span></button>
-      <button class="btn" data-m="home" style="text-align:left"><b>Walk home</b><br><span class="sub">Keep everything you earned tonight.</span></button></div></div>`, 'solid');
     el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
   });
 }

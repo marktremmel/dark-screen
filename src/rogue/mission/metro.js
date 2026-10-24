@@ -19,6 +19,7 @@ import { POSTS } from '../content/posts.js';
 import { NPC } from '../../core/npc.js';
 import { bone, attach, hideBone } from '../entities/rig.js';
 import { skipWait } from '../ui/skip.js';
+import { nextStage } from '../logic/routes.js';
 
 const X1 = 24, EDGE = -5.6;
 
@@ -219,9 +220,10 @@ export class Metro extends Walker {
     this.gain(CFG.xpGate + 5 * this.st.down + 3 * kept, CFG.coinsMission);
     this.run.stages.push('metro');
     caption('The doors close. The Collector stays on the platform with whatever it found.', 'say', 4);
-    await fade(true, 'The last train takes you home.', 1.2);
+    const nx = nextStage(this.run, 'metro');
+    await fade(true, nx === 'school' ? 'The last train takes you to the end of the line. The school is across the road.' : nx === 'walk2' ? 'The train stops two stations early. Everybody off.' : 'The last train takes you home.', 1.2);
     await wait(1.5);
-    this.G.endNight(this.run, 'metro');
+    this.G.rogueNext(this.run, 'metro');
   }
   quit() { this.playing = false; fade(true, '', 0.6).then(() => this.G.endNight(this.run, 'home')); }
 

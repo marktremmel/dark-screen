@@ -22,7 +22,6 @@ import { sitDown } from '../entities/rig.js';
 import { Watcher } from '../entities/watcher.js';
 import { phonePanel, fusePanel } from '../ui/missionPanels.js';
 import { DIFFS, newRun } from '../logic/night.js';
-import { schoolExitChoice } from '../ui/panels.js';
 import { typeOne } from '../ui/typing.js';
 import { timeFor } from '../logic/typing.js';
 import { skipWait } from '../ui/skip.js';
@@ -502,9 +501,7 @@ export class School extends Walker {
     const seen = new Set(), per = {};
     for (const l of this.st.lessons) { const z = l.zone || 0; if (seen.has(l.title) || (per[z] = (per[z] || 0) + 1) > 2) continue; seen.add(l.title); this.run.lessons.push({ ...l, zone: 'school' }); }
     persist();
-    const next = await schoolExitChoice(this.run);
-    await fade(true, '', 0.6);
-    if (next === 'metro') this.G.goMetro(this.run); else this.G.endNight(this.run, 'school');
+    this.G.rogueNext(this.run, 'school');
   }
   quit() { this.playing = false; if (this.lensEl) this.lensEl.style.display = 'none'; fade(true, '', 0.6).then(() => this.G.endNight(this.run, 'home')); }
   exit() { super.exit(); if (this.lensEl) { this.lensEl.remove(); this.lensEl = null; } if (this.glareEl) { this.glareEl.remove(); this.glareEl = null; } }

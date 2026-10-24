@@ -49,6 +49,11 @@ Lépcsőház (the stairwell mode)
   Train station sounds: field recordings by Okutasan (okutasan.itch.io)
   Arcade cabinet, vending machine, PSX vending machine: free low-poly models from Mark's asset library
   (authors to be confirmed before the itch.io release)
+  PSX Bus Depot Free Sampler by ATR0CITY (canopy, benches, departure board, ticket counter, doors, snack machine)
+  Playground and park kiosk: free models from Mark's asset library (authors to be confirmed before release)
+  Ikarus bus: low-poly model from the game Everlasting Summer, recoloured to BKV blue. CLASSROOM BUILD ONLY:
+  it must be replaced before the game is published (see Lépcsőház doc 04)
+  Rain sound: generated noise
 
 Engine
   three.js (MIT licence)

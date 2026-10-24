@@ -512,9 +512,10 @@ export class Stairwell extends Walker {
     const rw = groundReward(this.d.floor), xp = Math.round(rw.xp * this.D.reward), coins = Math.round(rw.coins * this.D.reward);
     earn(this.R, xp, coins); this.R.record.descents++; this.run.xp += xp; this.run.coins += coins; this.run.stages.push('stairs'); persist();
     play('door_open', { vol: 0.5 });
-    await fade(true, `Ground floor. +${xp} XP, +${coins} coins.\n\nYou push the street door open.`, 0.8);
+    const shortcut = this.run.route && this.run.route[1] === 'metro';
+    await fade(true, `Ground floor. +${xp} XP, +${coins} coins.\n\n${shortcut ? 'The basement door is open tonight. Steps down, a tunnel, and the hum of the metro.' : 'You push the street door open.'}`, 0.8);
     await wait(1.8);
-    this.G.goWalk(this.run);
+    this.G.rogueNext(this.run, 'stairs');
   }
   async goHome() {
     this.playing = false; this.busy = true; this.G.unlock(); prompt(null);
@@ -551,6 +552,15 @@ export class Stairwell extends Walker {
     }
     if (!this.inYellow) {
       const p = this.player.pos;
+      // v0.17 small events: the block is lived in. Never an anomaly, never a clue: only the sounds of other people's night.
+      this.evT = (this.evT == null ? 25 + this.r() * 20 : this.evT) - dt;
+      if (this.evT <= 0 && !this.busy) {
+        this.evT = 35 + this.r() * 30; const k = Math.floor(this.r() * 4);
+        if (k === 0) { play('door_close', { vol: 0.25, pos: [p.x, p.y + 6, p.z] }); caption('(a door closes, a few floors up)', 'sfx', 2.5); }
+        else if (k === 1) { play('lightsw', { vol: 0.3 }); caption('(the lift clunks to a stop on this floor. The doors stay shut. Nobody gets out.)', 'sfx', 3.5); }
+        else if (k === 2) { play('knock', { vol: 0.2, pos: [p.x + 3, 1.2, p.z] }); caption('(somebody knocks on a door downstairs, then gives up)', 'sfx', 3); }
+        else { play('presence', { vol: 0.12 }); caption('(a television, muffled, behind one of the doors)', 'sfx', 2.5); }
+      }
       this.y = this.groundY(p.x, p.z, this.y); this.player.yOff = this.y; this.player.sync();
       if (p.z >= 0.05) { const lv = Math.round(this.y / H); if (lv !== 0 && Math.abs(this.y - lv * H) < 0.06) { this.arrive(lv > 0 ? 'up' : 'down', lv); return; } }
       // the light timer

@@ -6,6 +6,17 @@ S=[
  ('arcade','ArcadeCab.fbx',None,0,'y',1.8,256),
  ('vending','VendingMachine.glb',None,0,'y',1.9,256),
  ('vending2','PSX_Vending_Machine.fbx','PSX_Vending_Texture.jpg',0,'y',1.9,256),
+ # v0.17: new places (courtyard, bus station); real-world sizes kept
+ ('ikarus','Ikarus.fbx','Ikarus_palette.png',0,'max',11.0,128),
+ ('playground','Playground.glb',None,0,'max',13.68,512),
+ ('kiosk','Kiosk_01.glb',None,0,'y',2.5,256),
+ ('bd_canopy','busdepot/psx_bus_depot_boarding_canopy_section.glb',None,0,'max',5.0,64),
+ ('bd_board','busdepot/psx_bus_depot_departure_board.glb',None,0,'max',2.0,64),
+ ('bd_doors','busdepot/psx_bus_depot_entrance_doors_wall.glb',None,0,'max',5.0,64),
+ ('bd_payphone','busdepot/psx_bus_depot_payphone.glb',None,0,'y',1.0,64),
+ ('bd_snack','busdepot/psx_bus_depot_snack_vending_machine.glb',None,0,'y',1.9,64),
+ ('bd_counter','busdepot/psx_bus_depot_ticket_counter.glb',None,0,'max',3.0,64),
+ ('bd_bench','busdepot/psx_bus_depot_waiting_bench_row.glb',None,0,'max',2.2,64),
  # name, file, tex, rx, axis, size, texSize
  ('sofa','Sofa_PSX.fbx','Sofa_PSX.jpg',HP,'y',0.85,128),
  ('armchair','SingleSofa_PSX.fbx','SingleSofa_PSX.jpg',HP,'y',0.85,128),
