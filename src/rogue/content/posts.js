@@ -30,4 +30,17 @@ export const POSTS = [
     why: 'Funny and harmless.' },
   { id: 'meme', img: 'sm_ep4_meme', caption: 'me every monday', reveals: false,
     why: 'A meme says nothing about where you are.' },
+  // v0.18: six more, from Mark's gallery paintings (the gallery pack is loaded with the flat, so it is there in the metro)
+  { id: 'bench4', img: 'gl_grinning_schoolyard_selfie_at_dusk', caption: 'outside school, same spot every day at 4 :)', reveals: true,
+    why: 'Your school building plus "every day at 4": where and when to find you.' },
+  { id: 'keys', img: 'gl_moody_dawn_in_a_cluttered_teen_bedroom', caption: 'whole flat to myself till sunday, dad took the car', reveals: true,
+    why: 'An empty home and how long it stays empty, in one line.' },
+  { id: 'training', img: 'gl_lonely_courtyard_under_amber_light', caption: 'walking home through here after training, 10pm every thursday', reveals: true,
+    why: 'A route, a time and "alone": your most private routine, made public.' },
+  { id: 'ramen', img: 'gl_cozy_rainy_night_ramen_feast', caption: 'rainy night ramen, 10/10', reveals: false,
+    why: 'Food and rain. Nothing to collect.' },
+  { id: 'teddy', img: 'gl_moonlit_teddy_bear_on_the_shelf', caption: 'he has seen things', reveals: false,
+    why: 'A teddy on a shelf gives nothing away.' },
+  { id: 'chaos', img: 'gl_painterly_cat_tumbles_through_cozy_night_apartment', caption: '3am zoomies', reveals: false,
+    why: 'A cat being a cat: harmless.' },
 ];

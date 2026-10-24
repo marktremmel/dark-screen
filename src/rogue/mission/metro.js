@@ -20,6 +20,7 @@ import { NPC } from '../../core/npc.js';
 import { bone, attach, hideBone } from '../entities/rig.js';
 import { skipWait } from '../ui/skip.js';
 import { nextStage } from '../logic/routes.js';
+import { makeDust } from '../ui/fx.js';
 
 const X1 = 24, EDGE = -5.6;
 
@@ -34,6 +35,7 @@ export class Metro extends Walker {
     this.buildStation(g);
     this.scene.add(new THREE.HemisphereLight(0x8aa0b0, 0x101418, 0.22));
     this.setupRig({ arms: true, flash: true, stepVol: 0.3, reach: 2.4 });
+    this.dust = makeDust(this.scene, this.G.camera);
     // the posts: four that give you away and four that don't, on random spots
     const rev = POSTS.filter(p => p.reveals).sort(() => this.r() - 0.5).slice(0, 4), safe = POSTS.filter(p => !p.reveals).sort(() => this.r() - 0.5).slice(0, 4);
     const slots = this.slots.sort(() => this.r() - 0.5);

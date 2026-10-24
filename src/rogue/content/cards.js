@@ -11,7 +11,7 @@ export const CARDS = {
   ...Object.fromEntries(POSTS.filter(p => p.reveals).map(p => ['p:' + p.id, { title: `Not public: "${p.caption}"`, text: p.why, theme: 'T9', from: 'metro' }])),
   ...Object.fromEntries(Object.values(WALK_LINE).map(l => ['w:' + l.id, { title: '"' + l.type + '"', text: l.lesson, theme: l.theme, from: 'walk' }])),
 };
-CALLS.forEach(c => { CARDS['c:' + c.id] = { title: 'Call back on the number you know', text: c.lesson, theme: 'T2', from: 'payphone' }; });
+CALLS.forEach(c => { CARDS['c:' + c.id] = { title: c.cardTitle || 'Call back on the number you know', text: c.lesson, theme: 'T2', from: 'payphone' }; });
 TRICKS.forEach(t => { CARDS['d:' + t.id] = { title: 'Trick: ' + t.name.toLowerCase(), text: t.why, theme: 'T5', from: 'arcade' }; });
 HOME_JOBS.forEach(j => { CARDS['j:' + j.id] = { title: j.card.title, text: j.card.text, theme: 'T8', from: 'phone' }; });
 // cards from living in the flat

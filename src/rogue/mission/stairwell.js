@@ -25,6 +25,7 @@ import { typeOne } from '../ui/typing.js';
 import { timeFor, hardText } from '../logic/typing.js';
 import { startNerve } from '../logic/home.js';
 import { skipWait } from '../ui/skip.js';
+import { shaft, glow, makeDust } from '../ui/fx.js';
 
 const H = CFG.floorH, HALF = H / 2, RUN = 3.0, STEPS = 8;
 const KS = [-2, -1, 0, 1, 2];
@@ -47,6 +48,7 @@ export class Stairwell extends Walker {
     this.scene.add(new THREE.AmbientLight(0x3a4456, 0.16));
     this.scene.add(new THREE.HemisphereLight(0x7a8aa0, 0x201810, 0.1));
     this.setupRig({ arms: true, flash: true, stepVol: 0.3, reach: 2.2 });
+    this.dust = makeDust(this.scene, this.G.camera);
     this.gate = {
       up: { x0: FB[0], x1: FB[1], z0: -0.32, z1: -0.04, y0: -0.7, y1: 0.7 },
       down: { x0: FA[0], x1: FA[1], z0: -0.32, z1: -0.04, y0: -0.7, y1: 0.7 },
@@ -105,7 +107,7 @@ export class Stairwell extends Walker {
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.03, 10), psxMat({ color: 0xd8d2c4 })); cap.position.set(x, y + 0.08, z); G.add(cap);
       const light = Math.abs(k) <= 1 ? new THREE.PointLight(0xffd9a0, 0, 7.5, 1.5) : null;
       if (light) { light.position.set(x, y - 0.15, z); G.add(light); }
-      m.lamps.push({ bm, light, base: 4.2 });
+      m.lamps.push({ bm, light, base: 4.2, glow: Math.abs(k) <= 1 ? glow(G, x, y, z, 0xffd9a0, 0.7, 0.45) : null, shaft: Math.abs(k) <= 1 && y > H / 2 ? shaft(G, x, y - 0.05, z, 0xffd9a0, { h: y, r1: 1.3, opacity: 0.05 }) : null });
     };
     bulb(-0.7, H - 0.36, 1.05);
     bulb(1.3, -HALF + 2.25, ZW + 0.2);
@@ -261,6 +263,7 @@ export class Stairwell extends Walker {
     for (const k of KS) this.mods[k].lamps.forEach((l, i) => {
       const r = this.mods[k].res, c = !r ? 0xffd9a0 : i === 0 ? r.lampColor : (r.midColor || 0xffd9a0);
       if (!this.lightsOn) l.bm.color.setRGB(0.1, 0.09, 0.08); else l.bm.color.set(c);
+      for (const f of [l.glow, l.shaft]) if (f) { f.visible = this.lightsOn; f.material.color.set(c); }
       if (l.light) l.light.intensity = this.lightsOn ? l.base : 0;
     });
   }

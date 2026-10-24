@@ -103,6 +103,7 @@ export class Walker {
     this.flash.intensity = fI;
     if (this.hasArms) { this.vmKey.intensity = fI > 0 ? 1.2 : 0; this.vmAmb.intensity = 0.14 + (fI > 0 ? 0.2 : 0); }
     if (this.drain) battery(this.batt);
+    if (this.dust) this.dust(dt, this.flash.intensity > 0.5);   // Lépcsőház: specks in the beam
   }
   lineOfSight(from, to) {
     const d = to.clone().sub(from); const dist = d.length(); d.normalize();

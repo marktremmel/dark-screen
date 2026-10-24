@@ -89,7 +89,8 @@ export const FUSES = [
 /** Zone 3, the other version: the Chorus in the gym. A crowd lit by phone screens around one person. T6.
  *  Four upstander actions, in any order. Each one makes some of the crowd lower their phones. */
 export const CHORUS = {
-  target: 'Dani',
+  id: 'dani', target: 'Dani', him: 'him', he: 'he',
+  what: 'filming Dani on the bench', shot: 'A printed screenshot of the post, with the comments.',
   jeers: ['"lol look at him"', '"post it, post it"', '"everyone has seen it anyway"', '"it\'s just a joke"', '"send it to the group"', '"film his face"'],
   tasks: {
     evidence: { title: 'Saved the evidence', rule: 'save evidence before blocking',
@@ -102,3 +103,23 @@ export const CHORUS = {
       lesson: 'A short private message ("are you okay? I am on your side") tells the target they are not alone. It matters more than it feels like.' },
   },
 };
+
+// v0.18: a second Chorus scene (Mark's list item 4). The same gym, a different thing being done to someone:
+// the class group chat has turned Dóri's face into a sticker, and everyone is using it.
+export const CHORUS_STICKER = {
+  id: 'dori', target: 'Dóri', him: 'her', he: 'she',
+  what: 'laughing at Dóri on the bench: her face, edited into a sticker, is on every screen', shot: 'A printed screenshot of the group chat: her face as a sticker, forty times.',
+  jeers: ['"it\'s so accurate lol"', '"add it to the pack"', '"make another one"', '"she\'ll never even know"', '"it\'s just a sticker"', '"everyone\'s using it"'],
+  tasks: {
+    evidence: { title: 'Saved the evidence', rule: 'screenshots before it is deleted',
+      lesson: 'Group chats get cleared fast. Screenshots with names and times (bizonyíték) are what a teacher or the platform needs to act.' },
+    stand: { title: 'Stood next to her', rule: 'do not wait for someone else',
+      lesson: 'Everyone in the circle is waiting for someone else to stop first. When one person stands next to her, the laughing gets quieter.' },
+    report: { title: 'Reported the sticker', type: 'i am reporting this sticker', rule: 'an edited photo can be bullying',
+      lesson: 'Editing someone\'s face into a sticker or a meme without asking is bullying (zaklatás), even when it is called a joke. Report it, in the app and to a teacher.' },
+    message: { title: 'Sent her a message', type: 'that sticker is not okay', rule: 'a small message can help',
+      lesson: 'A short private message ("that sticker is not okay, I am not using it") tells her someone noticed and is on her side.' },
+  },
+};
+export const CHORUSES = [CHORUS, CHORUS_STICKER];
+

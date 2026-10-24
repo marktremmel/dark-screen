@@ -23,6 +23,7 @@ import { Metro } from './mission/metro.js';
 import { VERSION } from './config.js';
 import { titleCard } from './ui/titleCard.js';
 import { CARDS_FOR } from './content/paintings.js';
+import { grain, routeStrip, hideRouteStrip } from './ui/fx.js';
 
 
 export function installRogue(G) {
@@ -32,7 +33,11 @@ export function installRogue(G) {
   tag.style.cssText = 'position:fixed;right:8px;bottom:6px;z-index:40;font:12px m5x7,monospace;color:#9a95b0;opacity:.75;pointer-events:none;display:none';
   document.body.appendChild(tag);
   const ROGUE = [HomeScene, Stairwell, Walk, School, Metro];
-  G.onScene = sc => { tag.style.display = ROGUE.some(C => sc instanceof C) ? '' : 'none'; };
+  G.afterBuild = sc => grain(sc.scene, ROGUE.some(C => sc instanceof C));   // v0.18: film grain and vignette inside the picture (a setting)
+  G.onScene = sc => {
+    const rogue = ROGUE.some(C => sc instanceof C); tag.style.display = rogue ? '' : 'none';
+    if (rogue && !(sc instanceof HomeScene) && G.run) routeStrip(G.run, stageName); else hideRouteStrip();
+  };
   G.goRogue = async () => {
     G.unlock(); hud(false); loading(true, 0, 'Lépcsőház v' + VERSION + '…');
     await ingestPack('ep1', AU.ctx, f => loading(true, f * 0.6));
@@ -53,7 +58,7 @@ export function installRogue(G) {
     if (!choice) return false;
     if (choice.test) return G.testStage(choice);
     const sh = SHAPES[choice.shape] || SHAPES.usual;
-    G.run = newRun(choice.topic, choice.diff, walk, !!choice.hard, sh.id, sh.route.slice(), walk2);
+    G.run = newRun(choice.topic, choice.diff, walk, !!choice.hard, sh.id, sh.route.slice(), walk2); G.run.cur = 'stairs';
     if (choice.mode === 'labyrinth') { G.run.mode = 'labyrinth'; persist(); await G.goLabyrinth(G.run); return true; }
     persist();
     await G.goStairs(G.run);

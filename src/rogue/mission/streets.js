@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { texBox, plane, place, canvasTex } from '../../core/world.js';
 import { psxMat } from '../../core/render.js';
 import { A, tex } from '../../core/assets.js';
+import { shaft, glow } from '../ui/fx.js';
 
 export const STREETS = {
   courtyard: { len: 62, hw: 11, bg: 0x0a0d14, fog: [3, 22], hemi: [0x8a9ac8, 0x1a2014, 0.68], rain: false, exitName: 'the archway',
@@ -75,7 +76,7 @@ export function buildStreet(W, g, kind) {
     const bm = new THREE.MeshBasicMaterial({ color: 0xffd9a0, fog: false });
     const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), bm); b.position.set(x, h, z); g.add(b);
     const Lt = new THREE.PointLight(color, 4.5, 13, 1.3); Lt.position.set(x, h - 0.2, z); g.add(Lt);
-    W.lamps.push({ L: Lt, bm, broken, base: 4.5 });
+    W.lamps.push({ L: Lt, bm, broken, base: 4.5, shaft: shaft(g, x, h - 0.05, z, color, { opacity: 0.06 }), glow: glow(g, x, h, z, color, 1.1) });
     col.push({ x0: x - 0.15, x1: x + 0.15, z0: z - 0.15, z1: z + 0.15 });
   };
   // panel-block facades along a side: storeys of 3 m, panels of 2 m, some windows lit
@@ -158,7 +159,7 @@ export function buildStreet(W, g, kind) {
       const b = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), bm); b.position.set(x, 2.6, z); g.add(b);
       texBox(g, null, side > 0 ? x : x - 0.25, 2.7, z - 0.12, side > 0 ? x + 0.25 : x, 2.74, z + 0.12, { color: 0x2a2a2a });
       const Lt = new THREE.PointLight(red ? 0xff2a1a : 0xffc070, red ? 5 : 3.6, red ? 10 : 9, 1.4); Lt.position.set(x - side * 0.2, 2.4, z); g.add(Lt);
-      W.lamps.push({ L: Lt, bm, broken: i === 4, base: red ? 5 : 3.6 });
+      W.lamps.push({ L: Lt, bm, broken: i === 4, base: red ? 5 : 3.6, shaft: shaft(g, x - side * 0.15, 2.55, z, red ? 0xff3020 : 0xffc070, { r1: 1.0, opacity: red ? 0.1 : 0.07 }), glow: glow(g, x, 2.6, z, red ? 0xff3020 : 0xffd9a0, 0.8) });
       if (red) puddle(x - side * 0.8, z, 1.2, 1.6).material.color.set(0x3a1418);   // the puddle under it catches the red
     });
     // the end: a fence gate onto the lit street

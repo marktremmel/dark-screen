@@ -49,7 +49,7 @@ async function boot() {
 export async function switchScene(sc) {
   if (G.scene) { G.scene.exit && G.scene.exit(); }
   stopAllLoops(); clearHUDText();
-  G.scene = sc; G.onScene && G.onScene(sc); await sc.build(); sc.enter && sc.enter();
+  G.scene = sc; G.onScene && G.onScene(sc); await sc.build(); G.afterBuild && G.afterBuild(sc); sc.enter && sc.enter();
 }
 export async function goField() {
   unlock(); hud(false); loading(true, 0, 'Opening the door…');

@@ -31,6 +31,7 @@ import { skipWait } from '../ui/skip.js';
 import { titleCard } from '../ui/titleCard.js';
 import { CARDS_FOR } from '../content/paintings.js';
 import { STREETS, buildStreet } from './streets.js';
+import { shaft, glow, makeDust } from '../ui/fx.js';
 
 const PX = z => 2.4 * Math.sin(z / 10);               // the park path's centre line
 const STYLE = {
@@ -63,6 +64,7 @@ export class Walk extends Walker {
     let k = 0; this.queue = counts.map(n => Array.from({ length: n }, () => lines[k++ % lines.length]));
     if (park) this.buildPark(g); else if (out) buildStreet(this, g, this.kind); else this.buildIndoor(g, st);
     this.setupRig({ arms: true, flash: true, stepVol: 0.28, reach: 2.4 });
+    this.dust = makeDust(this.scene, this.G.camera);
     this.flashOn = this.outdoor;
     this.eventT = 16 + this.r() * 10;
     // route length and wave positions (along the route)
@@ -149,7 +151,7 @@ export class Walk extends Walker {
       const bm = new THREE.MeshBasicMaterial({ color: 0xffd9a0, fog: false });
       const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), bm); b.position.set(x, 3.4, z); g.add(b);
       const L = new THREE.PointLight(0xffc880, 4.5, 12, 1.3); L.position.set(x, 3.2, z); g.add(L);
-      this.lamps.push({ L, bm, broken: i === 4 });
+      this.lamps.push({ L, bm, broken: i === 4, shaft: shaft(g, x, 3.35, z, 0xffc880, { opacity: 0.06 }), glow: glow(g, x, 3.4, z, 0xffc880, 1.1) });
       col.push({ x0: x - 0.15, x1: x + 0.15, z0: z - 0.15, z1: z + 0.15 });
       if (i % 2 === 0) { texBox(g, null, x - 0.9, 0.42, z + 0.6, x + 0.9, 0.48, z + 1.0, { color: 0x5a3a22, col }); texBox(g, null, x - 0.9, 0.48, z + 0.95, x + 0.9, 0.9, z + 1.0, { color: 0x5a3a22 }); }
     });
@@ -255,7 +257,7 @@ export class Walk extends Walker {
     pts.forEach((p, i) => { if (i < pts.length - 1) { const n = Math.floor(lens[i] / 2); for (let j = 0; j <= n; j++) route.push(p.clone().lerp(pts[i + 1], j / n)); } });
     route.forEach((p, i) => { if (i % 2 === 0) { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.6), pm); m.rotation.x = Math.PI / 2; m.position.set(p.x, H - 0.01, p.z); g.add(m); } });
     this.lamps = [];
-    for (let i = 0; i < 6; i++) { const p = route[Math.floor((i + 0.5) / 6 * route.length)]; const L = new THREE.PointLight(st.light, 3.2, 9, 1.3); L.position.set(p.x, H - 0.3, p.z); g.add(L); this.lamps.push({ L, bm: null, broken: i === 3 }); }
+    for (let i = 0; i < 6; i++) { const p = route[Math.floor((i + 0.5) / 6 * route.length)]; const L = new THREE.PointLight(st.light, 3.2, 9, 1.3); L.position.set(p.x, H - 0.3, p.z); g.add(L); this.lamps.push({ L, bm: null, broken: i === 3, shaft: shaft(g, p.x, H - 0.02, p.z, st.light, { r0: 0.4, r1: 1.3, opacity: 0.05 }) }); }
     // hotel doors along the walls
     if (st.doors) route.forEach((p, i) => {
       if (i % 3 !== 1 || pts.some(c => Math.hypot(c.x - p.x, c.z - p.z) < 2.6)) return;   // not at corners
@@ -509,6 +511,7 @@ export class Walk extends Walker {
     for (const l of this.lamps) if (l.offT > 0) { l.offT -= dt; l.L.intensity = l.offT > 0 ? 0 : (l.base || 4); if (l.bm) l.bm.color.setScalar(l.offT > 0 ? 0.1 : 0.8); } else if (l.broken) { const on = Math.random() > 0.08; l.L.intensity = on ? 2 : 0; if (l.bm) l.bm.color.setScalar(on ? 0.7 : 0.1); }
     if (this.gateOpen && this.gateBars) this.gateBars.position.x = Math.min(2.9, this.gateBars.position.x + dt * 1.5);
     if (this.rain) this.rain(dt, this.G.camera.position);
+    for (const l of this.lamps) { const on = l.L.intensity > 0.6; if (l.shaft) l.shaft.visible = on; if (l.glow) l.glow.visible = on; }
     for (const m of this.mimics) if (!this.wave && m.state === 'fade') m.update(dt, this.player.pos);
     if (!this.playing) return;
     this.player.update(dt);

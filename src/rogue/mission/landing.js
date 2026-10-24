@@ -93,7 +93,7 @@ export function dressLanding(g, spec, ctx) {
   // a note on the first door, and a smart doorbell by the third (anomalies)
   if (w === 'doorNote') {
     const dn = planeAt(g, 0.26, 0.2, new THREE.MeshLambertMaterial({ map: canvasTex(32, 24, c => { c.fillStyle = '#f2ede0'; c.fillRect(0, 0, 32, 24); c.fillStyle = '#333'; for (let l = 0; l < 4; l++) c.fillRect(3, 4 + l * 5, 20 + (l * 3) % 7, 1); }) }), DOOR_X[0], 1.25, L.ZB - L.WT - 0.02, Math.PI);
-    items.push({ obj: dn, kind: 'notice', data: { title: 'A note on the door', notices: [NOTICES.doorNote] } });
+    items.push({ obj: dn, kind: 'notice', data: { title: 'A note on the door', notices: [NOTICES[a.notice || 'doorNote']] } });
   }
   if (w === 'doorbellCam') {
     const db = texBox(g, null, DOOR_X[2] + 0.56, 1.2, L.ZB - L.WT - 0.05, DOOR_X[2] + 0.66, 1.42, L.ZB - L.WT, { color: 0x15161a });
@@ -122,9 +122,9 @@ export function dressLanding(g, spec, ctx) {
   const note = planeAt(g, wifi ? 0.42 : 0.24, wifi ? 0.32 : 0.14, new THREE.MeshLambertMaterial({ map: canvasTex(wifi ? 64 : 32, wifi ? 48 : 24, c => {
     if (!wifi) { c.fillStyle = '#d8dde2'; c.fillRect(0, 0, 32, 24); c.fillStyle = '#333'; for (let l = 0; l < 4; l++) c.fillRect(3, 4 + l * 5, 18 + (l * 5) % 9, 1); return; }
     c.fillStyle = '#f4e04a'; c.fillRect(0, 0, 64, 48); c.fillStyle = '#c0306a'; c.font = '16px m5x7'; c.textBaseline = 'top';
-    pxText(c, 'FREE', 4, 2, 16); pxText(c, 'WI-FI!', 4, 14, 16); c.fillStyle = '#333'; for (let l = 0; l < 3; l++) c.fillRect(4, 32 + l * 5, 40 + (l * 7) % 12, 1);
+    const sg = (a && a.sign) || ['FREE', 'WI-FI!']; pxText(c, sg[0], 4, 2, 16); pxText(c, sg[1], 4, 14, 16); c.fillStyle = '#333'; for (let l = 0; l < 3; l++) c.fillRect(4, 32 + l * 5, 40 + (l * 7) % 12, 1);
   }) }), liftX + 0.22, 1.45, lz + 0.004, 0);
-  items.push({ obj: note, kind: 'notice', data: { title: 'A note on the lift door', notices: [NOTICES[wifi ? 'liftDoor_wifi' : 'liftDoor']] } });
+  items.push({ obj: note, kind: 'notice', data: { title: 'A note on the lift door', notices: [NOTICES[wifi ? (a.notice || 'liftDoor_wifi') : 'liftDoor']] } });
 
   // the light switch (glows orange in the dark, like every Hungarian stairwell)
   texBox(g, null, -0.5, 1.15, lz - 0.01, -0.38, 1.29, lz + 0.03, { color: 0xe8e2d0 });

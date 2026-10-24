@@ -16,7 +16,7 @@ import { CFG, floorMult } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
 import { Noise } from '../logic/reading.js';
 import { earn, nerve, die } from '../save/rogueSave.js';
-import { FEED_LIGHTS, TRACKERS, TRACKERS_EXTRA, INBOX, GATE, FUSES, CHORUS } from '../content/school.js';
+import { FEED_LIGHTS, TRACKERS, TRACKERS_EXTRA, INBOX, GATE, FUSES, CHORUSES } from '../content/school.js';
 import { NPC } from '../../core/npc.js';
 import { sitDown } from '../entities/rig.js';
 import { Watcher } from '../entities/watcher.js';
@@ -25,6 +25,7 @@ import { DIFFS, newRun } from '../logic/night.js';
 import { typeOne } from '../ui/typing.js';
 import { timeFor } from '../logic/typing.js';
 import { skipWait } from '../ui/skip.js';
+import { makeDust } from '../ui/fx.js';
 
 const D2R = Math.PI / 180;
 const RING = { x0: -8, x1: 8, z0: -16, z1: 0, ix0: -5, ix1: 5, iz0: -13, iz1: -3, cz: -8 };
@@ -57,6 +58,7 @@ export class School extends Walker {
     this.watcher = new Watcher(g); this.watcher.speedMul = this.D.speed;
     this.watcher.root.visible = true; this.watcher.root.position.set(0, -30, 0);   // always in the scene, parked: the light count never changes
     this.setupRig({ arms: true, flash: true, stepVol: 0.3, reach: 2.3 });
+    this.dust = makeDust(this.scene, this.G.camera);
     this.flashOn = true;
     this.mult = floorMult(this.R.life.floor) * this.D.reward;
     this.msgs = [...INBOX].sort(() => this.r() - 0.5).slice(0, 4);
@@ -223,6 +225,7 @@ export class School extends Walker {
   }
 
   buildChorus(g) {
+    this.CH = CHORUSES[Math.floor(this.r() * CHORUSES.length)];   // v0.18: two Chorus scenes
     const C = this.chorus = { crowd: [], pol: [], done: {}, standT: 0, heat: 0, jeerT: 4, evidence: 0 }, cx = 0, cz = -39.4;
     place(g, 'sk_bench', cx, 0, cz, 0, { col: this.col });
     const dani = C.dani = new NPC('npc_mannequin');
@@ -271,7 +274,7 @@ export class School extends Walker {
       const C = this.chorus;
       for (const p of C.pol) it.add(p.mesh, 'A photo on the floor: pick it up (evidence)', () => this.pickPolaroid(p), () => !p.got);
       it.add(C.term, 'Report terminal (bejelentés)', () => this.chorusReport(), () => !C.done.report);
-      it.add(C.hit, () => C.done.stand ? `${CHORUS.target}: send him a message` : CHORUS.target, () => this.chorusMessage(), () => !C.done.message);
+      it.add(C.hit, () => C.done.stand ? `${this.CH.target}: send ${this.CH.him} a message` : this.CH.target, () => this.chorusMessage(), () => !C.done.message);
     }
     for (const d of this.lockedDoors) it.add(d.obj, `Room ${d.no}`, () => { play('click', { vol: 0.4, rate: 0.6 }); caption('Locked.', 'say', 1.5); });
     it.add(this.doors.north.obj, 'Door to the classroom', () => { if (!this.doors.north.open) { play('denied', { vol: 0.3 }); caption(this.v.ring === 'fuse' ? `Locked. The fuse boxes in the corridor are not sorted yet (${this.fuses.length - this.st.fusesDone} left).` : `Locked. The screens in the corridor are still on (${this.hooks.length - this.st.hooks} left).`, 'say', 3); } }, () => !this.doors.north.open);
@@ -346,7 +349,7 @@ export class School extends Walker {
   }
   chorusDone(key) {
     const C = this.chorus; if (C.done[key]) return; C.done[key] = true;
-    const t = CHORUS.tasks[key];
+    const t = this.CH.tasks[key];
     this.gain(CFG.xpHook * 2, 0); play('rg_signal1', { vol: 0.4 });
     this.st.lessons.push({ zone: 3, theme: 'T6', title: t.title, text: t.lesson, rule: t.rule });
     caption(`${t.title}. ${t.lesson}`, 'say', 7);
@@ -355,24 +358,24 @@ export class School extends Walker {
     for (const c of on.slice(0, k)) { c.state = 'fade'; c.col.off = true; c.mat.transparent = true; }
     if (Object.keys(C.done).length === 4) {
       this.gain(0, CFG.coinsZone); this.intercomLed.material.color.set(0xffd040);
-      setTimeout(() => { caption(`The phones go down. "Thanks," ${CHORUS.target} says quietly. "Really." By the fire exit, the intercom lights up.`, 'say', 6); if (C.dani.cur) C.dani.cur.paused = false; C.dani.obj.position.z = -38.9; C.standing = true; }, 2200);
+      setTimeout(() => { caption(`The phones go down. "Thanks," ${this.CH.target} says quietly. "Really." By the fire exit, the intercom lights up.`, 'say', 6); if (C.dani.cur) C.dani.cur.paused = false; C.dani.obj.position.z = -38.9; C.standing = true; }, 2200);
     }
     this.setObjective();
   }
   pickPolaroid(p) {
     const C = this.chorus; if (p.got) return; p.got = true; p.mesh.visible = false; C.evidence++; play('pickup', { vol: 0.4 });
-    if (C.evidence < C.pol.length) caption(`A printed screenshot of the post, with the comments. You keep it. (${C.evidence}/${C.pol.length})`, 'say', 3.5);
+    if (C.evidence < C.pol.length) caption(`${this.CH.shot} You keep it. (${C.evidence}/${C.pol.length})`, 'say', 3.5);
     else this.chorusDone('evidence');
   }
   async chorusReport() {
     const C = this.chorus; if (C.done.report || this.typing) return;
-    const t = CHORUS.tasks.report, r = await this.typeTask(t.type, 'The report terminal: type your report', timeFor(t.type, 4, 0.3));
+    const t = this.CH.tasks.report, r = await this.typeTask(t.type, 'The report terminal: type your report', timeFor(t.type, 4, 0.3));
     if (r.ok) this.chorusDone('report'); else if (!r.cancelled) caption('The screen times out. Try again.', 'say', 2.5);
   }
   async chorusMessage() {
     const C = this.chorus; if (C.done.message || this.typing) return;
-    if (!C.done.stand) { caption(`${CHORUS.target} does not look up. Stand next to him for a moment first.`, 'say', 3.5); return; }
-    const t = CHORUS.tasks.message, r = await this.typeTask(t.type, `A message to ${CHORUS.target}`, timeFor(t.type, 4, 0.3));
+    if (!C.done.stand) { caption(`${this.CH.target} does not look up. Stand next to ${this.CH.him} for a moment first.`, 'say', 3.5); return; }
+    const t = this.CH.tasks.message, r = await this.typeTask(t.type, `A message to ${this.CH.target}`, timeFor(t.type, 4, 0.3));
     if (r.ok) this.chorusDone('message'); else if (!r.cancelled) caption('You hesitate, and the moment passes. Try again.', 'say', 2.5);
   }
   chorusTick(dt) {
@@ -394,7 +397,7 @@ export class School extends Walker {
     if (Object.keys(C.done).length === 4) return;
     if (!C.done.stand && Math.hypot(p.x - C.center.x, p.z - (C.center.z + 0.6)) < 1.3) { C.standT += dt; if (C.standT > 2.5) this.chorusDone('stand'); } else C.standT = 0;
     C.jeerT -= dt;
-    if (C.jeerT <= 0 && d < 9) { C.jeerT = 5 + this.r() * 4; caption(CHORUS.jeers[Math.floor(this.r() * CHORUS.jeers.length)], 'sfx', 2.5); play('presence', { vol: 0.15 }); }
+    if (C.jeerT <= 0 && d < 9) { C.jeerT = 5 + this.r() * 4; caption(this.CH.jeers[Math.floor(this.r() * this.CH.jeers.length)], 'sfx', 2.5); play('presence', { vol: 0.15 }); }
     // standing in the circle doing nothing: the crowd turns on you
     if (d < 3 && !this.typing) { C.heat += dt; if (C.heat > 8) { C.heat = 0; caption('The phones turn towards you. They laugh louder. Nerve −2.', 'say', 3); if (nerve(this.R, -Math.round(2 * this.D.nerveLoss))) this.death(); } } else C.heat = Math.max(0, C.heat - dt);
   }
@@ -448,7 +451,7 @@ export class School extends Walker {
   inLight() { const p = this.player.pos; return Math.hypot(p.x - LAMP.x, p.z - LAMP.z) < LAMP.r; }
   /** The intercom: type three rules from tonight (one per zone) before the time runs out. */
   async gate() {
-    if (!this.zone3Done()) { play('denied', { vol: 0.3 }); caption(this.v.gym === 'chorus' ? `The intercom stays dark. Nobody here has helped ${CHORUS.target} yet.` : this.st.phone ? 'The intercom stays dark. Sort the messages on the phone first.' : 'The intercom stays dark. There is something you have not found yet.', 'say', 3.5); return; }
+    if (!this.zone3Done()) { play('denied', { vol: 0.3 }); caption(this.v.gym === 'chorus' ? `The intercom stays dark. Nobody here has helped ${this.CH.target} yet.` : this.st.phone ? 'The intercom stays dark. Sort the messages on the phone first.' : 'The intercom stays dark. There is something you have not found yet.', 'say', 3.5); return; }
     if (this.typing || this.gating) return;
     this.gating = true;
     const pick = z => { const ls = this.st.lessons.filter(l => l.zone === z && l.rule); return ls.length ? ls[Math.floor(this.r() * ls.length)].rule : null; };
@@ -524,7 +527,7 @@ export class School extends Walker {
     if (s.zone === 1 && this.v.ring === 'fuse') objective(`Each fuse box is one app permission. Leave on what the app needs; switch off (and type the setting) what it does not. ${s.fusesDone}/${this.fuses.length}`);
     else if (s.zone === 1) objective(`The screens drag your eyes towards them. Walk up to each one, press E and type the setting that switches it off. ${s.hooks}/${this.hooks.length}`);
     else if (s.zone === 2) objective(`It only moves when you look away. Q: Badger lens. Look at a tracker and press E to block it, then look back at the figure. ${s.trackers}/${this.trackers.length}`);
-    else if (this.v.gym === 'chorus' && !this.zone3Done()) { const C = this.chorus, d = C.done; objective(`Be the upstander. ${d.evidence ? '✓' : '·'} Pick up the evidence (${C.evidence}/3)  ${d.stand ? '✓' : '·'} Stand next to ${CHORUS.target}  ${d.report ? '✓' : '·'} Report it at the terminal  ${d.message ? '✓' : '·'} Message him`); }
+    else if (this.v.gym === 'chorus' && !this.zone3Done()) { const C = this.chorus, d = C.done; objective(`Be the upstander. ${d.evidence ? '✓' : '·'} Pick up the evidence (${C.evidence}/3)  ${d.stand ? '✓' : '·'} Stand next to ${this.CH.target}  ${d.report ? '✓' : '·'} Report it at the terminal  ${d.message ? '✓' : '·'} Message ${this.CH.him}`); }
     else if (this.v.gym === 'chorus') objective('Use the intercom by the fire exit: type tonight\'s rules back to it.');
     else if (!s.phone) objective('The gym. Find what is glowing on the floor. Keep to the light when you can.');
     else if (s.sorted < this.msgs.length) objective(`Read the phone in the light (P). Trust it, or report it as a scam. ${s.sorted}/${this.msgs.length}`);
@@ -562,7 +565,7 @@ export class School extends Walker {
         caption('The gym. One lamp still works. In the dark at the far end, a red light blinks on.', 'say', 5);
       } else {
         this.watcher.active = false; this.watcher.root.position.set(0, -30, 0);
-        caption(`The gym. Under the one working lamp, a crowd stands in a circle with their phones up, filming ${CHORUS.target} on the bench.`, 'say', 6);
+        caption(`The gym. Under the one working lamp, a crowd stands in a circle with their phones up, ${this.CH.what}.`, 'say', 6);
       }
       this.setObjective();
     }

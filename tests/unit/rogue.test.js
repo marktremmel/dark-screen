@@ -191,7 +191,7 @@ test('home: buy, place, cosiness, move up, keep one', () => {
 });
 test('posts: both kinds, explained', () => {
   assert.ok(POSTS.filter(p => p.reveals).length >= 5 && POSTS.filter(p => !p.reveals).length >= 5);
-  for (const p of POSTS) assert.ok(p.img.startsWith('sm_') && p.caption && p.why && !/—/.test(p.why), p.id);
+  for (const p of POSTS) assert.ok(/^(sm|gl)_/.test(p.img) && p.caption && p.why && !/—/.test(p.why), p.id);
 });
 
 test('descent: a wrong call costs a few floors when back is set', () => {
