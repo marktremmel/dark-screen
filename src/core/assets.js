@@ -45,7 +45,7 @@ function psxify(root, vc = false) {
     const conv = m => {
       if (cache.has(m)) return cache.get(m);
       if (m.map) { m.map.magFilter = THREE.NearestFilter; m.map.minFilter = THREE.LinearMipmapLinearFilter; m.map.anisotropy = 4; }
-      const n = psxMat({ map: m.map || null, color: m.map ? 0xffffff : (m.color ? m.color.getHex() : 0xaaaaaa), side: THREE.DoubleSide, alphaTest: m.alphaTest > 0 ? Math.max(m.alphaTest, 0.35) : 0, skinning: !!o.isSkinnedMesh, vertexColors: vc && !!o.geometry.attributes.color });
+      const n = psxMat({ map: m.map || null, color: m.map ? 0xffffff : (m.color ? m.color.getHex() : 0xaaaaaa), side: THREE.DoubleSide, alphaTest: m.alphaTest > 0 ? Math.max(m.alphaTest, 0.35) : (m.transparent && m.map ? 0.5 : 0), skinning: !!o.isSkinnedMesh, vertexColors: vc && !!o.geometry.attributes.color });
       cache.set(m, n); return n;
     };
     o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material);

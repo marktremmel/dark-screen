@@ -10,7 +10,8 @@ import { rng, freshSeed } from './logic/rng.js';
 import { newRun, pickTopic, pickWalk, recordNight, runWpm, runAcc, DIFFS, WALKS } from './logic/night.js';
 import { SHAPES, pickShape, pickWalk2, nextStage, walkOf, stageName, andList, WALK_NAME } from './logic/routes.js';
 import { TOPICS } from './content/walks.js';
-import { floorPicker, nightMenu, deathPanel, testPanel, nextChoice } from './ui/panels.js';
+import { floorPicker, nightMenu, deathPanel, testPanel, nextChoice, reflectPanel } from './ui/panels.js';
+import { REFLECT } from './content/reflect.js';
 import { keepPanel } from './ui/homePanels.js';
 import { thumb } from './ui/thumbs.js';
 import { ITEM } from './content/furniture.js';
@@ -26,7 +27,8 @@ import { CARDS_FOR } from './content/paintings.js';
 import { routeStrip, hideRouteStrip } from './ui/fx.js';
 import { postRender } from './ui/post.js';
 import { R as RR } from '../core/render.js';
-import { playCine, cineMimic } from './ui/cine.js';
+import { playCine, cineMimic, previewNight } from './ui/cine.js';
+import { decodeNight } from './logic/nightcode.js';
 import { INTRO, DEMO_HOME, INTRO_LOOPS } from './content/intro.js';
 import { TRAILER, TRAILER_OPTS } from './content/trailer.js';
 
@@ -47,6 +49,7 @@ export function installRogue(G) {
     music(null);
     const r = R(); r.record.intro = 1; persist();
   };
+  G.previewNight = code => { const n = decodeNight(code); return n ? previewNight(G, { ...n, code }) : null; };   // tools/codes.py: what a night code holds
   G.playTrailer = () => playCine(G, TRAILER, { ...TRAILER_OPTS, loops: INTRO_LOOPS });   // tools/ccap.py renders it
   G.post = (sc, dt) => ROGUE.some(C => sc instanceof C) && postRender(RR.renderer, sc.scene, G.camera, dt);   // v0.19: camera effects (a setting)
   G.onScene = sc => {
@@ -74,7 +77,8 @@ export function installRogue(G) {
     if (!choice) return false;
     if (choice.test) return G.testStage(choice);
     const sh = SHAPES[choice.shape] || SHAPES.usual;
-    G.run = newRun(choice.topic, choice.diff, walk, !!choice.hard, sh.id, sh.route.slice(), walk2, !!choice.tenant); G.run.cur = 'stairs';
+    G.run = newRun(choice.topic, choice.diff, choice.walk || walk, !!choice.hard, sh.id, sh.route.slice(), choice.walk2 || walk2, !!choice.tenant); G.run.cur = 'stairs';
+    if (choice.seed != null) { G.run.seed = choice.seed; G.run.code = choice.code || null; }   // v0.24: a night code (or the teacher's own night) fixes the details
     if (choice.mode === 'labyrinth') { G.run.mode = 'labyrinth'; persist(); await G.goLabyrinth(G.run); return true; }
     persist();
     await G.goStairs(G.run);
@@ -161,7 +165,7 @@ export function installRogue(G) {
     if (outcome === 'full' && run.shape === 'long') { bonus = Math.round(run.xp * 0.2); earn(r, bonus, 0); run.xp += bonus; }   // the long night pays 20% more
     let tb = null;
     if (run.tenant && run.stages.length && run.mode !== 'labyrinth') { tb = { xp: run.xp, coins: run.coins }; earn(r, tb.xp, tb.coins); run.xp += tb.xp; run.coins += tb.coins; }   // v0.20: home alive with the Tenant out: double
-    recordNight(r.record, run, outcome); persist();
+    const night = recordNight(r.record, run, outcome); persist();
     await fade(false, '', 0.01);
     if (outcome !== 'home' || run.stages.length) await titleCard(CARDS_FOR.morning, 'Morning', 'You made it home. The first tram is running.', 2.2);   // v0.17: Mark's dawn painting before the debrief
     const seen = new Set(), lessons = run.lessons.filter(l => !seen.has(l.title) && seen.add(l.title));
@@ -176,6 +180,13 @@ export function installRogue(G) {
         `Typing: ${runWpm(run)} wpm, ${runAcc(run)}% accurate`, `New cards: ${run.cards}`, `Nerve left: ${r.life.nerve}`],
       lessons: lessons.slice(0, 9),
     });
+    // v0.24: one question in your own words (with a night code, everyone gets the same one about the same line)
+    if (run.stages.length && run.mode !== 'labyrinth' && REFLECT[run.topic]) {
+      const qs = REFLECT[run.topic], qi = run.seed != null ? run.seed % qs.length : Math.floor(Math.random() * qs.length);
+      const a = run.anchor ? `${run.anchor.who}: "${run.anchor.say}" You typed: "${run.anchor.type}".` : null;
+      const ans = await reflectPanel(qs[qi], a);
+      if (ans) { night.rq = run.topic + ':' + qi; night.ra = ans; persist(); }
+    }
     await fade(true, '', 0.5); G.run = null; G.goRogue();
   };
   /** Nerve ran out: the life is lost (the record and the notebook stay). */

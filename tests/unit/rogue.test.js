@@ -246,3 +246,37 @@ test('routes: every shape starts on the stairs, next stage follows the route, sh
   for (let i = 0; i < 20; i++) assert.notEqual(pickWalk2(r, ['park', 'pool', 'hotel'], 'pool'), 'pool');
   assert.equal(andList(['a', 'b', 'c']), 'a, b and c');
 });
+
+// v0.24: night codes, topic messages, hard typing, reflection questions
+import { encodeNight, decodeNight, stageSeed, CODE_SHAPES, CODE_WALKS } from '../../src/rogue/logic/nightcode.js';
+import { INBOX_TOPIC } from '../../src/rogue/content/school.js';
+import { typed, sentence } from '../../src/rogue/logic/typing.js';
+import { REFLECT } from '../../src/rogue/content/reflect.js';
+test('night codes round-trip and reject typos', () => {
+  for (let i = 0; i < 300; i++) {
+    const n = { topic: 'T' + (1 + (i % 12)), shape: CODE_SHAPES[i % 5], walk: CODE_WALKS[i % 8], walk2: CODE_WALKS[(i + 3) % 8], diff: ['calm', 'normal', 'hard'][i % 3], seed: (i * 37) % 2048 };
+    const c = encodeNight(n), d = decodeNight(c);
+    assert.deepEqual(d, n, c);
+    assert.deepEqual(decodeNight(c.toLowerCase().replace('-', ' ')), n);
+  }
+  let bad = 0; const c = encodeNight({ topic: 'T4', shape: 'short', walk: 'alley', walk2: 'park', diff: 'normal', seed: 1234 });
+  for (const ch of '0123456789ABCDEFGHJKMNPQRSTVWXYZ') { const x = c.slice(0, -1) + ch; if (x !== c && decodeNight(x)) bad++; }
+  assert.ok(bad <= 4, 'most one-letter typos are caught: ' + bad);
+  assert.equal(stageSeed({ seed: 5 }, 'walk'), stageSeed({ seed: 5 }, 'walk'));
+  assert.notEqual(stageSeed({ seed: 5 }, 'walk'), stageSeed({ seed: 5 }, 'walk2'));
+  assert.equal(decodeNight('hello'), null);
+});
+test('every topic has messages for the found phone', () => {
+  for (let t = 2; t <= 12; t++) {
+    const ms = INBOX_TOPIC.filter(m => m.theme === 'T' + t);
+    assert.ok(ms.length >= 3 && ms.some(m => m.scam) && ms.some(m => !m.scam), 'T' + t);
+  }
+  const ids = new Set(); for (const m of INBOX_TOPIC) { assert.ok(!ids.has(m.id), m.id); ids.add(m.id); assert.ok(m.from && m.subject && m.body && m.why && /^[a-z ]+$/.test(m.rule), m.id); assert.ok(!/—/.test(m.body + m.why), 'no em dash ' + m.id); }
+});
+test('hard typing is a sentence everywhere', () => {
+  assert.equal(typed({ type: 'autoplay off' }, false), 'autoplay off');
+  assert.equal(typed({ type: 'autoplay off' }, true), 'Autoplay off.');
+  assert.equal(typed({ type: 'x y', lesson: 'One sentence (egy). Two.' }, true), 'One sentence.');
+  assert.equal(sentence('done!'), 'Done!');
+  for (const [t, qs] of Object.entries(REFLECT)) { assert.equal(qs.length, 3, t); for (const q of qs) assert.ok(!/—/.test(q) && q.endsWith('?') || q.endsWith('.'), q); }
+});

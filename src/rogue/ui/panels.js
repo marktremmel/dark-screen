@@ -7,6 +7,7 @@ import { TOPICS } from '../content/walks.js';
 import { DIFFS } from '../logic/night.js';
 import { THEMES } from '../content/themes.js';
 import { WALK_NAME, SHAPES, SHAPE_IDS, fillDesc, stageName } from '../logic/routes.js';
+import { encodeNight, decodeNight } from '../logic/nightcode.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const PAPER = 'background:#ece6d6;color:#1d1a14;border-radius:3px;padding:14px 16px;margin:10px 0;box-shadow:0 3px 12px rgba(0,0,0,.5);font-family:Georgia,serif;line-height:1.45';
@@ -118,11 +119,14 @@ export function nightMenu(R, o) {
     const rec = R.record, best = rec.best || { xp: 0, wpm: 0, stages: 0 }, nights = rec.nights || [];
     let diff = (R.options && R.options.diff) || 'normal', topic = o.topic, hard = !!(R.options && R.options.hard), shape = o.shape || 'usual', tenant = !!(R.options && R.options.tenant);
     const run0 = { walk: o.walk, walk2: o.walk2 };
+    let code = null; const tSeed = Math.floor(Math.random() * 2048);   // v0.24: night codes (a teacher sees the code of the night set up here)
     const WALK = WALK_NAME;
     const el = openScreen(`<div class="panel" style="width:min(760px,94vw)"><h2>Tonight</h2>
       <div style="${PAPER};margin:6px 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S TOPIC</span><br><b id="tt"></b> <span id="th" style="color:#7a6a50"></span>
         <br><span style="font-size:.85em">The stairwell, the walk and the cards tonight are mostly about this.</span>
         <br><label style="font-size:.8em;color:#7a6a50">Your teacher asked for a topic? <select id="tsel" style="font-size:1em">${Object.entries(TOPICS).map(([id, t]) => `<option value="${id}">${esc(t.title)}</option>`).join('')}</select></label></div>
+      <div style="${PAPER};margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span style="font-size:.8em;color:#7a6a50">A NIGHT CODE FROM YOUR TEACHER?</span>
+        <input id="nc" placeholder="T1-XXXXX" maxlength="9" style="font:18px m5x7,monospace;letter-spacing:2px;width:9em;padding:3px 6px;text-transform:uppercase"><button class="btn small" id="ncb">Use it</button><span id="nm" style="font-size:.85em;flex-basis:100%"></span></div>
       <div style="${PAPER};margin:0 0 12px"><span style="font-size:.8em;color:#7a6a50">TONIGHT'S ROUTE (útvonal)</span><br><b id="rt"></b> <span id="rh" style="color:#7a6a50"></span>
         <br><span id="rd" style="font-size:.85em"></span><div id="rc" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"></div></div>
       <h3 style="margin-top:0">Difficulty (nehézség)</h3>
@@ -140,17 +144,33 @@ export function nightMenu(R, o) {
       el.querySelectorAll('[data-d]').forEach(b => { b.classList.toggle('primary', b.dataset.d === diff); });
       el.querySelectorAll('[data-h]').forEach(b => { b.classList.toggle('primary', (b.dataset.h === '1') === hard); });
       el.querySelectorAll('[data-tn]').forEach(b => { b.classList.toggle('primary', (b.dataset.tn === '1') === tenant); });
+      const locked = !!code;
+      ['#sh', '#sr', '#tsel'].forEach(q => { const b = el.querySelector(q); if (b) { b.disabled = locked; b.style.opacity = locked ? '.4' : ''; } });
+      el.querySelectorAll('[data-d],[data-tn]').forEach(b => { b.style.pointerEvents = locked ? 'none' : ''; b.style.opacity = locked && !b.classList.contains('primary') ? '.4' : ''; });
+      const nm = el.querySelector('#nm');
+      if (code) nm.innerHTML = `<b>${code}</b>: everyone with this code gets the same night (the same landings, lines, school and metro). <a href="#" id="ncx" style="color:#7a5a30">Clear the code</a>`;
+      else if (o.teacher) nm.innerHTML = `Teacher: the code for the night set up below is <b style="font-family:m5x7,monospace;font-size:1.3em;letter-spacing:2px">${encodeNight({ topic, shape, walk: run0.walk, walk2: run0.walk2, diff, seed: tSeed })}</b>. Write it on the board.`;
+      else nm.textContent = '';
+      const cx = el.querySelector('#ncx'); if (cx) cx.onclick = e => { e.preventDefault(); code = null; draw(); };
       const S0 = SHAPES[shape]; el.querySelector('#rt').textContent = S0.name; el.querySelector('#rh').textContent = '(' + S0.hu + ')';
       el.querySelector('#rd').textContent = fillDesc(run0, S0.desc);
       el.querySelector('#rc').innerHTML = S0.route.map(st => `<span style="background:#2b2636;color:#e8dcc4;border-radius:6px;padding:2px 7px;font-size:.78em">${esc(stageName(run0, st))}</span>`).join('<span style="color:#7a6a50">→</span>');
     };
+    const useCode = () => {
+      const n = decodeNight(el.querySelector('#nc').value);
+      if (!n || !TOPICS[n.topic]) { el.querySelector('#nm').textContent = 'That code does not work. Check it letter by letter (it looks like T4-3KQ7M).'; return; }
+      code = encodeNight(n); codeN = n;
+      topic = n.topic; shape = n.shape; run0.walk = n.walk; run0.walk2 = n.walk2; diff = n.diff; tenant = false; if (diff === 'hard') hard = true; draw();
+    };
+    let codeN = null;
+    el.querySelector('#ncb').onclick = useCode; el.querySelector('#nc').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); useCode(); } e.stopPropagation(); };
     el.querySelector('#sr').onclick = () => { const ids = SHAPE_IDS.filter(x => x !== shape); shape = ids[Math.floor(Math.random() * ids.length)]; draw(); };
-    el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
+    el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; if (diff === 'hard') hard = true; draw(); });   // v0.24: Hard means hard typing too (you can still switch it back)
     el.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { hard = b.dataset.h === '1'; draw(); });
     el.querySelectorAll('[data-tn]').forEach(b => b.onclick = () => { tenant = b.dataset.tn === '1'; draw(); });
     el.querySelector('#tsel').onchange = e => { topic = e.target.value; draw(); };   // v0.22: choose the lesson's topic
     el.querySelector('#sh').onclick = () => { const ids = Object.keys(TOPICS).filter(t => t !== topic); topic = ids[Math.floor(Math.random() * ids.length)]; draw(); };
-    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; R.options.tenant = tenant; res({ diff, topic, hard, shape, tenant }); };
+    el.querySelector('#go').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; R.options.tenant = tenant; res({ diff, topic, hard, shape, tenant, walk: run0.walk, walk2: run0.walk2, code, seed: code ? codeN.seed : (o.teacher ? tSeed : null) }); };
     el.querySelector('#lb').onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; res({ diff, topic, hard, mode: 'labyrinth' }); };
     el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
     const tm = el.querySelector('#tm'); if (tm) tm.onclick = () => { closeScreen(el); R.options.diff = diff; R.options.hard = hard; R.options.tenant = tenant; res({ diff, topic, hard, tenant, test: true }); };
@@ -177,7 +197,7 @@ export function testPanel(R, o) {
       <div class="btns"><button class="btn" id="x">Back</button></div></div>`, 'solid');
     const draw = () => { el.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('primary', b.dataset.t === topic)); el.querySelectorAll('[data-d]').forEach(b => b.classList.toggle('primary', b.dataset.d === diff)); };
     el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { topic = b.dataset.t; draw(); });
-    el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; draw(); });
+    el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { diff = b.dataset.d; if (diff === 'hard') hard = true; draw(); });   // v0.24: Hard means hard typing too (you can still switch it back)
     el.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { closeScreen(el); res({ stage: b.dataset.s, topic, diff }); });
     el.querySelector('#x').onclick = () => { closeScreen(el); res(null); };
     draw();
@@ -202,5 +222,24 @@ export function nextChoice(run, next) {
       <button class="btn primary" data-m="go" style="text-align:left"><b>${T[1]}</b><br><span class="sub">${T[2]}</span></button>
       <button class="btn" data-m="home" style="text-align:left"><b>Go home</b><br><span class="sub">Keep everything you earned tonight.</span></button></div></div>`, 'solid');
     el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { closeScreen(el); res(b.dataset.m); });
+  });
+}
+
+/** v0.24: one question in your own words at the end of a night. Resolves with the answer (or '' if skipped). */
+export function reflectPanel(question, anchor) {
+  return new Promise(res => {
+    const el = openScreen(`<div class="panel" style="width:min(680px,94vw)"><h2>In your own words <span class="sub">(saját szavaiddal)</span></h2>
+      ${anchor ? `<div style="${PAPER};margin:6px 0 10px"><span style="font-size:.8em;color:#7a6a50">TONIGHT</span><br>${esc(anchor)}</div>` : ''}
+      <p style="font-size:1.1em"><b>${esc(question)}</b></p>
+      <textarea id="ra" maxlength="300" rows="4" style="width:100%;font-size:1.05em" placeholder="Write one or two sentences. There is no wrong answer, only a lazy one."></textarea>
+      <div class="sub" id="rn" style="font-size:.8em"></div>
+      <p class="sub" style="font-size:.8em">Your answer goes into your save code, so your teacher can read it.</p>
+      <div class="btns"><button class="btn primary" id="ok" disabled>Save my answer</button><button class="btn" id="x">Skip</button></div></div>`);
+    const ta = el.querySelector('#ra'), ok = el.querySelector('#ok'), rn = el.querySelector('#rn');
+    const upd = () => { const n = ta.value.trim().length; ok.disabled = n < 12; rn.textContent = n < 12 ? `${12 - n} more letters to go` : `${n} / 300`; };
+    ta.addEventListener('input', upd); ta.addEventListener('keydown', e => e.stopPropagation()); upd();
+    setTimeout(() => ta.focus(), 100);
+    ok.onclick = () => { closeScreen(el); res(ta.value.trim().slice(0, 300)); };
+    el.querySelector('#x').onclick = () => { closeScreen(el); res(''); };
   });
 }

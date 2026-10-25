@@ -16,6 +16,7 @@ import { loop, play, music } from '../../core/audio.js';
 import { S, persist } from '../../core/state.js';
 import { CFG, floorMult } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
+import { stageSeed } from '../logic/nightcode.js';
 import { Targets, timeFor, hardText } from '../logic/typing.js';
 import { DIFFS, runWpm } from '../logic/night.js';
 import { earn, nerve, noteCard } from '../save/rogueSave.js';
@@ -66,7 +67,7 @@ export class Walk extends Walker {
     const park = this.kind === 'park', out = STREETS[this.kind], st = STYLE[this.kind] || out;
     this.outdoor = park || !!out; this.exitName = park ? 'the far gate' : 'the EXIT door';
     const g = this.newScene(park ? 0x05070b : st.bg, park ? 2.5 : st.fog[0], park ? 19 : st.fog[1]);   // the park: darker and foggier (Mark, 24 Oct)
-    this.r = rng(freshSeed());
+    this.r = rng(stageSeed(this.run, this.stage));   // v0.24: a night code fixes it
     this.D = DIFFS[this.run.diff] || DIFFS.normal;
     this.mult = floorMult(this.R.life.floor) * this.D.reward;
     this.st = { wave: 0, done: 0, reached: 0 };
@@ -76,6 +77,7 @@ export class Walk extends Walker {
     const used = new Set(this.run.lessons.map(l => l.title));   // the walk home (walk2): lines you have not met tonight come first
     const lines0 = [...TOPICS[this.run.topic].lines].sort(() => this.r() - 0.5), lines = [...lines0.filter(l => !used.has(`"${l.type}"`)), ...lines0.filter(l => used.has(`"${l.type}"`))];
     let k = 0; this.queue = counts.map(n => Array.from({ length: n }, () => lines[k++ % lines.length]));
+    if (!this.run.anchor && this.queue[0][0]) { const l = this.queue[0][0]; this.run.anchor = { who: l.who, say: l.say, type: l.type }; }   // v0.24: the line the reflection question is about
     if (park) this.buildPark(g); else if (out) buildStreet(this, g, this.kind); else this.buildIndoor(g, st);
     this.setupRig({ arms: true, flash: true, stepVol: 0.28, reach: 2.4 });
     this.dust = makeDust(this.scene, this.G.camera);

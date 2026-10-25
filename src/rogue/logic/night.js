@@ -7,7 +7,7 @@ export const DIFFS = {
     anomaly: 0.35, back: 1, nerveLoss: 0.6, speed: 0.8, typeTime: 1.4, light: 45, reward: 0.8 },
   normal: { id: 'normal', label: 'Normal', hu: 'normál', desc: 'A wrong call on the stairs costs two floors.',
     anomaly: 0.45, back: 2, nerveLoss: 1, speed: 1, typeTime: 1, light: 30, reward: 1 },
-  hard: { id: 'hard', label: 'Hard', hu: 'nehéz', desc: 'A wrong call sends you back to your own floor. Less light, faster figures. Rewards x1.5.',
+  hard: { id: 'hard', label: 'Hard', hu: 'nehéz', desc: 'A wrong call sends you back to your own floor. Less light, faster figures, and hard typing switches on. Rewards x1.5.',
     anomaly: 0.55, back: Infinity, nerveLoss: 1.4, speed: 1.25, typeTime: 0.8, light: 20, reward: 1.5 },
 };
 
@@ -40,6 +40,7 @@ export function recordNight(record, run, outcome, date = Date.now()) {
   if (run.mode === 'labyrinth') { n.mode = 'labyrinth'; n.rooms = run.rooms || 0; }
   else n.shape = run.shape || 'usual';
   if (run.tenant) n.tenant = true;
+  if (run.code) n.code = run.code;   // v0.24: the night code, so the Teacher Board can group a class's nights
   record.nights = [n, ...(record.nights || [])].slice(0, 12);
   record.topics = record.topics || {}; record.topics[run.topic] = (record.topics[run.topic] || 0) + 1;
   const b = record.best = record.best || { xp: 0, wpm: 0, stages: 0 };

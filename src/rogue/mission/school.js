@@ -14,16 +14,18 @@ import { loop, play, music } from '../../core/audio.js';
 import { S, persist } from '../../core/state.js';
 import { CFG, floorMult } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
+import { stageSeed } from '../logic/nightcode.js';
 import { Noise } from '../logic/reading.js';
-import { earn, nerve, die } from '../save/rogueSave.js';
-import { FEED_LIGHTS, TRACKERS, TRACKERS_EXTRA, INBOX, GATE, FUSES, CHORUSES } from '../content/school.js';
+import { earn, nerve, noteCard, die } from '../save/rogueSave.js';
+import { TOPICS } from '../content/walks.js';
+import { FEED_LIGHTS, TRACKERS, TRACKERS_EXTRA, INBOX, INBOX_TOPIC, GATE, FUSES, CHORUSES } from '../content/school.js';
 import { NPC } from '../../core/npc.js';
 import { sitDown } from '../entities/rig.js';
 import { Watcher } from '../entities/watcher.js';
 import { phonePanel, fusePanel } from '../ui/missionPanels.js';
 import { DIFFS, newRun } from '../logic/night.js';
 import { typeOne } from '../ui/typing.js';
-import { timeFor } from '../logic/typing.js';
+import { timeFor, typed } from '../logic/typing.js';
 import { skipWait } from '../ui/skip.js';
 import { makeDust } from '../ui/fx.js';
 
@@ -39,7 +41,7 @@ export class School extends Walker {
 
   async build() {
     const g = this.newScene(0x040509, 2.5, 15);
-    this.r = rng(freshSeed());
+    this.r = rng(stageSeed(this.run, 'school'));   // v0.24: a night code fixes it
     const rnd = () => this.r() - 0.5, topic = this.run.topic;
     this.v = {
       ring: ['T3', 'T9', 'T12'].includes(topic) ? (this.r() < 0.75 ? 'fuse' : 'feed') : ['T5', 'T11'].includes(topic) ? (this.r() < 0.8 ? 'feed' : 'fuse') : (this.r() < 0.5 ? 'feed' : 'fuse'),
@@ -61,9 +63,12 @@ export class School extends Walker {
     this.dust = makeDust(this.scene, this.G.camera);
     this.flashOn = true;
     this.mult = floorMult(this.R.life.floor) * this.D.reward;
-    this.msgs = [...INBOX].sort(() => this.r() - 0.5).slice(0, 4);
-    if (!this.msgs.some(m => !m.scam)) this.msgs[3] = INBOX.find(m => !m.scam);
-    if (!this.msgs.some(m => m.scam)) this.msgs[3] = INBOX.find(m => m.scam);
+    // v0.24: the found phone talks about tonight's topic: up to three messages from it, the rest from the general inbox
+    const mine = [...INBOX, ...INBOX_TOPIC].filter(m => m.theme === topic).sort(() => this.r() - 0.5).slice(0, topic === 'T1' ? 4 : 3);
+    this.msgs = [...mine, ...[...INBOX].filter(m => !mine.includes(m)).sort(() => this.r() - 0.5)].slice(0, 4);
+    const pool = [...INBOX, ...INBOX_TOPIC];
+    if (!this.msgs.some(m => !m.scam)) this.msgs[3] = pool.find(m => !m.scam && m.theme === topic && !this.msgs.includes(m)) || INBOX.find(m => !m.scam);
+    if (!this.msgs.some(m => m.scam)) this.msgs[3] = pool.find(m => m.scam && m.theme === topic && !this.msgs.includes(m)) || INBOX.find(m => m.scam);
     this.phoneState = { done: {} };
     this.setupInteractions();
   }
@@ -111,7 +116,8 @@ export class School extends Walker {
     // the attention hooks (the Feed), or the fuse boxes
     this.fuses = [];
     if (this.v.ring === 'fuse') { this.hooks = []; this.buildFuses(g); }
-    else this.hooks = FEED_LIGHTS.map((f, i) => {
+    // v0.24: six screens of nine, tonight's topic first
+    else this.hooks = [...FEED_LIGHTS].sort((a, b) => (b.theme === this.run.topic) - (a.theme === this.run.topic) || this.r() - 0.5).slice(0, HOOK_AT.length).map((f, i) => {
       const [x, z, r] = HOOK_AT[i];
       const t = canvasTex(96, 70, () => { });
       const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.45), new THREE.MeshBasicMaterial({ map: t, fog: false }));
@@ -287,19 +293,20 @@ export class School extends Walker {
 
   // ---------- actions ----------
   /** Type a phrase while the world keeps going (you stand still, the Watcher does not). */
-  async typeTask(text, title, time) {
+  async typeTask(item, title, base = 3, per = 0.3) {
     if (this.typing) return { ok: false, cancelled: true };
+    const hard = !!this.run.hard, text = typed(item, hard), time = timeFor(text, base, per) * (hard ? 1.15 : 1);   // v0.24: hard typing is hard here too
     this.typing = true; this.player.frozen = true; prompt(null);
     this.typeHandle = {};
     const t0 = performance.now();
-    const r = await typeOne({ text, title, time: time * this.D.typeTime, handle: this.typeHandle });
+    const r = await typeOne({ text, title, time: time * this.D.typeTime, handle: this.typeHandle, strict: hard });
     this.typing = false; this.player.frozen = false; this.typeHandle = null;
     if (r.ok) { this.st.typed = (this.st.typed || 0) + 1; this.run.typedChars += text.length; this.run.typeMs += performance.now() - t0; const k = Math.round(text.length / Math.max(0.05, r.accuracy)); this.run.keys += k; this.run.errors += k - text.length; }
     return r;
   }
   async silence(h) {
     if (h.off || this.typing) return;
-    const r = await this.typeTask(h.f.type, 'Switch it off: type the setting', timeFor(h.f.type, 3, 0.3));
+    const r = await this.typeTask(h.f, 'Switch it off: type the setting', 3, 0.3);
     if (!r.ok) {
       if (r.cancelled) return;
       play('beep', { vol: 0.4, rate: 0.7 }); caption('Too slow. The screen glows brighter, and your eyes slide back to it.', 'say', 4);
@@ -326,7 +333,7 @@ export class School extends Walker {
     const f = fz.f;
     if ((ch === 'off') === !f.need) {
       if (ch === 'off') {
-        const r = await this.typeTask(f.type, `Switch it off: type the setting (${f.app})`, timeFor(f.type, 3, 0.3));
+        const r = await this.typeTask(f, `Switch it off: type the setting (${f.app})`, 3, 0.3);
         if (!r.ok) { if (!r.cancelled) { play('beep', { vol: 0.4, rate: 0.7 }); caption('Too slow. The switch springs back.', 'say', 3); } return; }
         fz.state = 'off'; play('switch_off', { vol: 0.5 });
       } else { fz.state = 'on'; play('click', { vol: 0.5, rate: 1.2 }); }
@@ -369,13 +376,13 @@ export class School extends Walker {
   }
   async chorusReport() {
     const C = this.chorus; if (C.done.report || this.typing) return;
-    const t = this.CH.tasks.report, r = await this.typeTask(t.type, 'The report terminal: type your report', timeFor(t.type, 4, 0.3));
+    const t = this.CH.tasks.report, r = await this.typeTask(t, 'The report terminal: type your report', 4, 0.3);
     if (r.ok) this.chorusDone('report'); else if (!r.cancelled) caption('The screen times out. Try again.', 'say', 2.5);
   }
   async chorusMessage() {
     const C = this.chorus; if (C.done.message || this.typing) return;
     if (!C.done.stand) { caption(`${this.CH.target} does not look up. Stand next to ${this.CH.him} for a moment first.`, 'say', 3.5); return; }
-    const t = this.CH.tasks.message, r = await this.typeTask(t.type, `A message to ${this.CH.target}`, timeFor(t.type, 4, 0.3));
+    const t = this.CH.tasks.message, r = await this.typeTask(t, `A message to ${this.CH.target}`, 4, 0.3);
     if (r.ok) this.chorusDone('message'); else if (!r.cancelled) caption('You hesitate, and the moment passes. Try again.', 'say', 2.5);
   }
   chorusTick(dt) {
@@ -439,7 +446,7 @@ export class School extends Walker {
     await phonePanel(this.msgs, this.phoneState, c => { this.phoneClose = c; }, (m, r) => {
       this.st.sorted++;
       if (r.rushed) { this.st.rushed++; this.noise.add(CFG.noiseRushed); caption('It heard you.', 'say', 2.5); }
-      if (r.right) { this.st.right++; if (!r.rushed) this.gain(CFG.xpMsg, 0); this.st.lessons.push({ zone: 3, theme: m.theme, title: (m.scam ? 'Spotted: ' : 'Trusted: ') + m.subject, text: m.why, rule: m.rule }); }
+      if (r.right) { this.st.right++; if (!r.rushed) this.gain(CFG.xpMsg, 0); if (noteCard(this.R, 'm:' + m.id)) this.run.cards++; this.st.lessons.push({ zone: 3, theme: m.theme, title: (m.scam ? 'Spotted: ' : 'Trusted: ') + m.subject, text: m.why, rule: m.rule }); }
       else { this.noise.add(CFG.noiseWrong); if (nerve(this.R, -Math.round(CFG.nerveWrongMsg * this.D.nerveLoss))) this.dieSoon = true; }
       if (this.st.sorted === this.msgs.length) { this.gain(0, CFG.coinsZone); this.intercomLed.material.color.set(0xffd040); }
     });
@@ -454,12 +461,14 @@ export class School extends Walker {
     if (!this.zone3Done()) { play('denied', { vol: 0.3 }); caption(this.v.gym === 'chorus' ? `The intercom stays dark. Nobody here has helped ${this.CH.target} yet.` : this.st.phone ? 'The intercom stays dark. Sort the messages on the phone first.' : 'The intercom stays dark. There is something you have not found yet.', 'say', 3.5); return; }
     if (this.typing || this.gating) return;
     this.gating = true;
-    const pick = z => { const ls = this.st.lessons.filter(l => l.zone === z && l.rule); return ls.length ? ls[Math.floor(this.r() * ls.length)].rule : null; };
-    const lines = [pick(1), pick(2), pick(3) || this.msgs[0].rule].filter(Boolean).slice(0, GATE.lines);
+    const pick = z => { const ls = this.st.lessons.filter(l => l.zone === z && l.rule); if (!ls.length) return null; const l = ls[Math.floor(this.r() * ls.length)]; return { type: l.rule, lesson: l.text }; };
+    // v0.24: the third line is always from tonight's topic, so the school ends on what the night is about
+    const T = TOPICS[this.run.topic], tl = T && T.lines.length ? T.lines[Math.floor(this.r() * T.lines.length)] : null;
+    const lines = [pick(1), pick(2), tl || pick(3) || { type: this.msgs[0].rule }].filter(Boolean).slice(0, GATE.lines);
     caption('The intercom crackles: "Say tonight\'s rules back to me, and the door opens."', 'say', 4);
     for (let i = 0; i < lines.length; i++) {
       for (;;) {
-        const r = await this.typeTask(lines[i], `The intercom: type tonight's rule (${i + 1} of ${lines.length})`, timeFor(lines[i], GATE.base, GATE.perChar));
+        const r = await this.typeTask(lines[i], `The intercom: type tonight's rule (${i + 1} of ${lines.length})`, GATE.base, GATE.perChar);
         if (r.ok) { play('beep', { vol: 0.3, rate: 1.3 }); break; }
         if (r.cancelled) { this.gating = false; caption('You step back from the intercom.', 'say', 2); return; }
         caption('"Too slow. Again." The static gets louder.', 'say', 3); this.noise.add(CFG.noiseWrong);

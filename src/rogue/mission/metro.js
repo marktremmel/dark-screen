@@ -13,6 +13,7 @@ import { loop, play, music } from '../../core/audio.js';
 import { S, persist } from '../../core/state.js';
 import { CFG, floorMult } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
+import { stageSeed } from '../logic/nightcode.js';
 import { DIFFS } from '../logic/night.js';
 import { earn, nerve, noteCard } from '../save/rogueSave.js';
 import { POSTS } from '../content/posts.js';
@@ -29,7 +30,7 @@ export class Metro extends Walker {
 
   async build() {
     const g = this.newScene(0x05070a, 3, 22);
-    this.r = rng(freshSeed());
+    this.r = rng(stageSeed(this.run, 'metro'));   // v0.24: a night code fixes it
     this.mult = floorMult(this.R.life.floor) * this.D.reward;
     this.st = { down: 0, wrongDown: 0, taken: 0, safe: 0, timer: this.run.diff === 'calm' ? 100 : this.run.diff === 'hard' ? 65 : 80, train: 'away' };
     this.buildStation(g);

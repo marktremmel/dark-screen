@@ -24,7 +24,7 @@ export function phonePanel(msgs, state, expose, onAnswer) {
     el.querySelector('#px').onclick = close; expose(close);
     const list = () => {
       const left = msgs.filter(m => !state.done[m.id]).length;
-      box.innerHTML = `<div class="msg sys">${left ? `${left} message${left > 1 ? 's' : ''} to sort. Trust it, or report it as a scam (csalás).` : 'All sorted. The fire exit is at the far end of the gym.'}</div>` +
+      box.innerHTML = `<div class="msg sys">${left ? `${left} message${left > 1 ? 's' : ''} to sort. Trust it, or report it (jelentés): a scam, a trick, pressure, or something that is not okay.` : 'All sorted. The fire exit is at the far end of the gym.'}</div>` +
         msgs.map(m => `<button class="btn" data-id="${m.id}" style="text-align:left;${state.done[m.id] ? 'opacity:.55' : ''}"><b>${esc(m.from)}</b>${state.done[m.id] ? ` · ${state.done[m.id] === 'right' ? '✓' : '✗'}` : ''}<br><span class="sub">${esc(m.subject)}</span></button>`).join('');
       box.querySelectorAll('[data-id]').forEach(b => b.onclick = () => open(msgs.find(m => m.id === b.dataset.id)));
     };
@@ -32,7 +32,7 @@ export function phonePanel(msgs, state, expose, onAnswer) {
       const shown = performance.now(), text = m.subject + ' ' + m.body;
       box.innerHTML = `<div class="msg" style="max-width:100%"><span class="who">${esc(m.from)} &lt;${esc(m.addr)}&gt;</span><b>${esc(m.subject)}</b><br><br>${esc(m.body)}</div>
         <div id="fb"></div>
-        <div class="btns" id="ab" style="justify-content:center">${state.done[m.id] ? '' : '<button class="btn" id="tr">Trust it</button><button class="btn" id="sc">Report as a scam</button>'}<button class="btn small" id="bk">Back</button></div>`;
+        <div class="btns" id="ab" style="justify-content:center">${state.done[m.id] ? '' : '<button class="btn" id="tr">Trust it</button><button class="btn" id="sc">Report it</button>'}<button class="btn small" id="bk">Back</button></div>`;
       box.querySelector('#bk').onclick = list;
       const answer = sayScam => {
         const right = sayScam === m.scam, r = rushed(text, performance.now() - shown);
@@ -163,7 +163,7 @@ export function arcadePanel(TRICKS, FINE, secs = 22, rand = Math.random) {
  * happen next and you pick again; the safe reply is then typed out on the phone's keyboard.
  * Resolves {done, tries, chars, ms, keys, errors} (done false if the phone was put away first).
  */
-export function homeJobPanel(job, Phrase, rand = Math.random) {
+export function homeJobPanel(job, Phrase, rand = Math.random, strict = false) {
   return new Promise(res => {
     const el = openScreen(`<div class="phone"><div class="bar"><span>${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2, '0')}</span><span>▮▮▮ 64%</span></div>
       <div class="appbar">${esc(job.from)}</div><div class="msgs" id="hm"></div>
@@ -194,8 +194,8 @@ export function homeJobPanel(job, Phrase, rand = Math.random) {
       });
     };
     const type = text => {
-      const p = new Phrase(text), t0 = performance.now();
-      foot.innerHTML = `<div class="sub" style="font-size:.75em">Type it (gépeld be):</div><div id="ht" style="font:18px m5x7,monospace;letter-spacing:1px;padding:8px 10px;background:#15141c;border-radius:10px;width:100%;box-sizing:border-box"></div>`;
+      const p = new Phrase(text, strict), t0 = performance.now();
+      foot.innerHTML = `<div class="sub" style="font-size:.75em">Type it (gépeld be)${strict ? ': capitals and punctuation count' : ''}:</div><div id="ht" style="font:18px m5x7,monospace;letter-spacing:1px;padding:8px 10px;background:#15141c;border-radius:10px;width:100%;box-sizing:border-box"></div>`;
       const ht = foot.querySelector('#ht');
       const draw = () => { ht.innerHTML = `<span style="color:#8fe3c9">${esc(text.slice(0, p.pos))}</span><span style="text-decoration:underline">${esc(text.slice(p.pos, p.pos + 1))}</span><span style="color:#8a8598">${esc(text.slice(p.pos + 1))}</span>`; };
       typing = {

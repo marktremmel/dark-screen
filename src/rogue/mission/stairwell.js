@@ -13,6 +13,7 @@ import { loop, stopLoop, play, music, babble } from '../../core/audio.js';
 import { S, persist } from '../../core/state.js';
 import { CFG } from '../config.js';
 import { rng, freshSeed } from '../logic/rng.js';
+import { stageSeed } from '../logic/nightcode.js';
 import { newDescent, prepare, resolve, advance, groundReward } from '../logic/descent.js';
 import { DIFFS, newRun } from '../logic/night.js';
 import { TOPICS } from '../content/walks.js';
@@ -22,7 +23,7 @@ import { dressLanding, L } from './landing.js';
 import { readPanel, rulesPanel } from '../ui/panels.js';
 import { Watcher } from '../entities/watcher.js';
 import { typeOne } from '../ui/typing.js';
-import { timeFor, hardText } from '../logic/typing.js';
+import { timeFor, hardText, typed } from '../logic/typing.js';
 import { startNerve } from '../logic/home.js';
 import { skipWait } from '../ui/skip.js';
 import { shaft, glow, makeDust } from '../ui/fx.js';
@@ -38,8 +39,8 @@ export class Stairwell extends Walker {
 
   async build() {
     const g = this.newScene(0x040506, 2.2, 12.5);
-    this.r = rng(freshSeed());
-    this.d = newDescent(this.R.life.floor, { chance: this.D.anomaly, topic: this.run.topic, back: this.D.back }); prepare(this.r, this.d);
+    this.r = rng(stageSeed(this.run, 'stairs'));   // v0.24: a night code fixes it
+    this.d = newDescent(this.R.life.floor, { chance: this.D.anomaly, topic: this.run.topic, back: this.D.back }); this.rd = rng(stageSeed(this.run, 'landings')); prepare(this.rd, this.d);   // the landings have their own stream: same code, same landings
     this.R.life.nerveMax = startNerve(this.R.life); this.R.life.nerve = this.R.life.nerveMax; this.R.life.fed = false; this.R.life.rested = false;   // a meal and a rest count for one night
     this.mods = {};
     this.buildShaft(g);
@@ -124,7 +125,7 @@ export class Stairwell extends Walker {
   }
   /** Build a new maze: N x N cells of C metres, a spanning tree of openings, an exit on the far side. */
   genMaze(N = 4) {
-    const Y = this.yellow, C = 4, h = 2.6, r = this.r;
+    const Y = this.yellow, C = 4, h = 2.6, r = this.rm || (this.rm = rng(stageSeed(this.run, 'maze')));   // its own stream, so a maze does not change the landings after it
     while (Y.children.length) Y.remove(Y.children[0]);
     for (let i = this.col.length - 1; i >= 0; i--) if (this.col[i].maze) this.col.splice(i, 1);
     for (let i = this.block.length - 1; i >= 0; i--) if (this.block[i].userData.maze) this.block.splice(i, 1);
@@ -200,10 +201,10 @@ export class Stairwell extends Walker {
     if (this.typing || n.done) return;
     this.typing = true; this.player.frozen = true; prompt(null);
     this.typeHandle = {};
-    const r = await typeOne({ text: n.line.type, title: `${n.line.who}: "${n.line.say}" Your answer (it hides you from the figure):`, time: timeFor(n.line.type, 4, 0.35) * this.D.typeTime, handle: this.typeHandle });
+    const txt = typed(n.line, this.run.hard), r = await typeOne({ text: txt, title: `${n.line.who}: "${n.line.say}" Your answer (it hides you from the figure):`, time: timeFor(txt, 4, 0.35) * this.D.typeTime * (this.run.hard ? 1.15 : 1), handle: this.typeHandle, strict: !!this.run.hard });
     this.typing = false; this.player.frozen = false;
     if (!r.ok) { if (!r.cancelled) caption('The screen flickers. Try again.', 'say', 2); return; }
-    n.done = true; this.run.typedChars += n.line.type.length; this.run.xp += 2; earn(this.R, 2, 0); if (this.endless) this.endless.screens++; else nerve(this.R, 2);
+    n.done = true; this.run.typedChars += txt.length; this.run.xp += 2; earn(this.R, 2, 0); if (this.endless) this.endless.screens++; else nerve(this.R, 2);
     this.it.remove(n.it); n.mesh.material[4].color.set(0x334433);
     this.wFreeze = 9; play('rg_signal1', { vol: 0.4 });
     caption(`"${n.line.type}". The figure has lost you: about nine seconds.${this.endless ? '' : ' Nerve +2.'}`, 'say', 4); this.updateHud();
@@ -321,7 +322,7 @@ export class Stairwell extends Walker {
     // shift the world so the landing you reached is module 0 again
     this.y -= lv * H; this.player.yOff = this.y; this.player.sync();
     const d = this.d, from = d.cur, out = resolve(d, dir), R = this.R;
-    advance(this.r, d, out);
+    advance(this.rd, d, out);
     if (out.nerve < 0) out.nerve = -Math.round(-out.nerve * this.D.nerveLoss);
     out.xp = Math.round(out.xp * this.D.reward); out.coins = Math.round(out.coins * this.D.reward);
     const dead = nerve(R, out.nerve);

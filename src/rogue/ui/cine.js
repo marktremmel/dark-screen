@@ -200,3 +200,26 @@ export function mazeCam(sc, push = 0.8) {
   const bx = x - dx * 1.4, bz = z - dz * 1.4;   // start a little behind the centre, against the back wall
   return [[bx, 1.6, bz, yaw, 0], [bx + dx * push, 1.6, bz + dz * push, yaw, 0]];
 }
+
+/**
+ * v0.24: what a night code holds, for the teacher guide (tools/codes.py). Builds each stage of the route on a copy of the
+ * save, exactly as a student's game would, reads what was chosen, and throws the scene away.
+ */
+export async function previewNight(G, n) {
+  const out = { code: n.code, stages: {} };
+  const route = { usual: ['stairs', 'walk', 'school', 'metro'], short: ['stairs', 'walk'], train: ['stairs', 'walk', 'metro', 'school'], shortcut: ['stairs', 'metro'], long: ['stairs', 'walk', 'school', 'metro', 'walk2'] }[n.shape];
+  for (const st of route) {
+    if (st === 'stairs') continue;
+    const place = st === 'walk2' ? n.walk2 : n.walk, key = st.startsWith('walk') ? 'walk:' + place : st;
+    for (const p of PACKS[key] || []) await ingestPack(p, AU.ctx, () => { });
+    const R = sandbox(), run = newRun(n.topic, n.diff, n.walk, false, n.shape, route, n.walk2); run.seed = n.seed; run.cur = st; run.stages = route.slice(0, route.indexOf(st));
+    const sc = st.startsWith('walk') ? new Walk(G, R, run) : st === 'school' ? new School(G, R, run) : new Metro(G, R, run);
+    const prev = G.scene; await sc.build();
+    if (st.startsWith('walk')) out.stages[st] = { place, waves: sc.queue.map(w => w.map(l => ({ who: l.who, say: l.say, type: l.type }))), call: sc.payphone && sc.payphone.call.who, arcade: !!sc.arcade, anchor: run.anchor };
+    if (st === 'school') out.stages.school = { screens: sc.v.ring === 'fuse' ? 'fuse boxes: ' + sc.fuseSet.map(f => f.app + ' / ' + f.perm).join('; ') : 'the Feed: ' + sc.hooks.map(h => h.f.label).join('; '), gym: sc.v.gym === 'chorus' ? 'the Chorus (' + sc.CH.target + ')' : 'the found phone: ' + sc.msgs.map(m => (m.scam ? 'report: ' : 'real: ') + m.from + ', "' + m.subject + '"').join('; ') };
+    if (st === 'metro') out.stages.metro = { posts: sc.posts.map(p => (p.p.reveals ? 'take down: ' : 'harmless: ') + p.p.caption) };
+    if (sc.exit) try { sc.exit(); } catch (e) { }
+    G.scene = prev; if (prev && prev.scene) prev.scene.add(G.camera);
+  }
+  return out;
+}

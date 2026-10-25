@@ -14,6 +14,7 @@ import { S, persist } from '../../core/state.js';
 import { ITEM , WALLS } from '../content/furniture.js';
 import { ensureHome, flatOf, cosiness, startNerve, takeOut, putBack, placeItem, lift, insideFlat } from '../logic/home.js';
 import { homeComputer, boxPanel } from '../ui/homePanels.js';
+import { buildEstate } from './estate.js';
 import { preparePosters } from '../ui/posterMaker.js';
 import { ledApp, ledState, ledSecure } from '../ui/ledApp.js';
 import { noteCard } from '../save/rogueSave.js';
@@ -129,9 +130,9 @@ export class HomeScene extends Walker {
     if (rooms[1] && !rooms.some(r => r.balcony && r.x0 >= rooms[1].x0 && r.z1 <= rooms[1].z0 + 1e-6 && false)) windowPane(g, rooms[1].x1 - 0.13, 1.5, -2.8, 1.4, 1.2, -Math.PI / 2, { lights: true, view });
     // the balcony looks out over the estate
     const bal = rooms.find(r => r.balcony);
-    if (bal && A.img[view]) {
-      const im = new Image(); const t = new THREE.Texture(im); t.colorSpace = THREE.SRGBColorSpace; im.onload = () => { t.needsUpdate = true; }; im.src = A.img[view];
-      const vp = new THREE.Mesh(new THREE.PlaneGeometry(34, 19), new THREE.MeshBasicMaterial({ map: t, fog: false, color: 0x9a9aa8 })); vp.position.set((bal.x0 + bal.x1) / 2, 5, bal.z0 - 14); g.add(vp);
+    if (bal) {   // v0.24: the estate all the way round, instead of a painted picture
+      const xs = rooms.filter(r => !r.balcony), flat = { x0: Math.min(...xs.map(r => r.x0)), x1: Math.max(...xs.map(r => r.x1)) };
+      buildEstate(g, bal, this.R.life.floor || 5, flat); this.farView = true; this.G.camera.far = 330; this.G.camera.updateProjectionMatrix();
     }
   }
 
@@ -423,7 +424,7 @@ export class HomeScene extends Walker {
     const job = this.jobWaiting();
     if (!job) { caption('No new messages. Your friends are asleep, or pretending to be.', 'say', 3); return; }
     this.playing = false; this.G.unlock(); prompt(null);
-    const r = await homeJobPanel(job, Phrase);
+    const r = await homeJobPanel(job, Phrase, Math.random, !!(this.R.options && this.R.options.hard));   // v0.24: hard typing counts at home too
     if (r.done) {
       const rec = this.R.record; rec.jobs = [...(rec.jobs || []), job.id];
       rec.jobAt = Object.values(rec.topics || {}).reduce((a, b) => a + b, 0) + 1;   // the next message comes after your next night out
@@ -439,7 +440,7 @@ export class HomeScene extends Walker {
     if (!going) { this.leaving = false; this.playing = true; lockPointer(); }
   }
   quit() { if (this.placing) { putBack(this.R.life, this.placing.id); this.placing = null; } persist(); this.playing = false; this.G.goHub(); }
-  exit() { if (this._wh) removeEventListener('wheel', this._wh); super.exit && super.exit(); }
+  exit() { if (this._wh) removeEventListener('wheel', this._wh); if (this.farView) { this.G.camera.far = 80; this.G.camera.updateProjectionMatrix(); } super.exit && super.exit(); }
   update(dt, t) {
     if (this.phoneScr) { if (this._jobT == null || (this._jobT -= dt) <= 0) { this._jobT = 1; this._job = !!this.jobWaiting(); } this.phoneScr.visible = this._job && Math.sin(t * 4) > -0.4; }
     const ls = this.R.life.leds;

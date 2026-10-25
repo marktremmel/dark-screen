@@ -8,6 +8,17 @@ export const strictKey = ch => String(ch).normalize('NFD').replace(/[̀-ͯ]/g, '
 /** The long version of a line for hard typing: the first sentence of its lesson, without the Hungarian words in brackets. */
 export function hardText(lesson) { const t = String(lesson).replace(/\s*\([^)]*\)/g, '').trim(); const m = t.match(/^.*?[.!?](?=\s|$)/); return (m ? m[0] : t).trim(); }
 
+/** A short typed line as a sentence: a capital at the start, a full stop at the end (for items with no lesson). */
+export function sentence(t) { t = String(t).trim(); if (!t) return t; t = t[0].toUpperCase() + t.slice(1); return /[.!?]$/.test(t) ? t : t + '.'; }
+/** v0.24: what to type for a content item, the same everywhere: the short rule normally; with hard typing the first
+ *  sentence of its lesson (or the rule as a sentence), where capitals and punctuation count. */
+export function typed(item, hard) {
+  if (typeof item === 'string') return hard ? sentence(item) : item;
+  const short = item.type || item.rule || '';
+  if (!hard) return short;
+  return item.lesson ? hardText(item.lesson) : sentence(short);
+}
+
 /** One phrase being typed. */
 export class Phrase {
   /** @param {string} text */
