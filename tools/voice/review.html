@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sötét Képernyő voice review</title>
+<style>
+ :root { --bg:#0b0a10; --card:#16141f; --fg:#e8e2d6; --mut:#9a93a8; --acc:#8fe3c9; --hot:#ff9b7a }
+ body { background:var(--bg); color:var(--fg); font:15px/1.45 system-ui,sans-serif; margin:0; padding:20px 16px 90px }
+ h1 { font-weight:600; margin:0 0 4px } p.lead { color:var(--mut); margin:0 0 14px; max-width:780px }
+ .tabs { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 16px } .tabs button { background:#221f2c; color:var(--fg); border:0; border-radius:20px; padding:5px 11px; cursor:pointer; font-size:.85em }
+ .tabs button.on { background:var(--acc); color:#0b0a10 } .tabs button i { font-style:normal; opacity:.6 }
+ .row { display:grid; grid-template-columns:38px 1fr auto; gap:10px; align-items:start; background:var(--card); border-radius:10px; padding:9px 12px; margin:0 0 6px }
+ .row.playing { outline:1px solid var(--acc) } .row.flag { background:#2a1a17 } .row.dyn { opacity:.5 }
+ .pl { width:34px; height:34px; border-radius:50%; border:0; background:#2a2635; color:var(--fg); cursor:pointer } .row.playing .pl { background:var(--acc); color:#0b0a10 }
+ .who { font-size:.8em; color:var(--acc) } .who span { color:var(--mut) } .txt { margin-top:2px }
+ .fl { background:transparent; border:1px solid #3a3546; color:var(--mut); border-radius:7px; padding:4px 9px; cursor:pointer; font-size:.8em } .row.flag .fl { border-color:var(--hot); color:var(--hot) }
+ input.note { display:none; width:100%; box-sizing:border-box; margin-top:6px; background:#0f0d15; color:var(--fg); border:1px solid #3a3546; border-radius:7px; padding:5px 8px; font:inherit; font-size:.85em } .row.flag input.note { display:block }
+ .bar { position:fixed; left:0; right:0; bottom:0; background:#120f19ee; padding:10px 16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+ .bar button { background:var(--acc); color:#0b0a10; border:0; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer } .bar button.sec { background:#2a2635; color:var(--fg) }
+ #stat { color:var(--mut); font-size:.85em }
+</style></head><body>
+<h1>Voice review</h1>
+<p class="lead">Pick a part of the game, press <b>Play all</b> and listen. If a line sounds wrong (bad pronunciation, wrong voice, odd pause, wrong mood), press <b>Fix</b> and write a few words. Faded lines change in the game (a name or a number), so they stay silent for now. At the end press <b>Save fixes</b> and send me the file.</p>
+<div class="tabs" id="tabs"></div>
+<div id="list"></div>
+<div class="bar"><button id="all">▶ Play all</button><button class="sec" id="stop">Stop</button><button id="save">Save fixes</button><span id="stat"></span></div>
+<script src="render/manifest.js"></script>
+<script>
+const R = window.RENDER; let F = {};
+try { F = JSON.parse(localStorage.getItem('sk_review') || '{}'); } catch (e) {}
+const keep = () => { try { localStorage.setItem('sk_review', JSON.stringify(F)); } catch (e) {} stat(); };
+const groups = [...new Set(R.lines.map(l => l.group))];
+const order = g => (g.startsWith('lepcsohaz/intro') ? 0 : g.startsWith('ep') ? 1 : 2) + g;
+groups.sort((a, b) => order(a).localeCompare(order(b), undefined, { numeric: true }));
+let cur = groups[0], queue = [], playingRow = null; const audio = new Audio();
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function tabs() {
+  document.getElementById('tabs').innerHTML = groups.map(g => {
+    const n = R.lines.filter(l => l.group === g), f = n.filter(l => F[l.id]).length;
+    return `<button data-g="${g}" class="${g === cur ? 'on' : ''}">${g.replace('lepcsohaz/', 'L: ')} <i>${n.length}${f ? ' · ' + f + ' fix' : ''}</i></button>`;
+  }).join('');
+}
+document.getElementById('tabs').onclick = e => { const g = e.target.closest('button')?.dataset.g; if (g) { cur = g; stop(); tabs(); list(); } };
+function list() {
+  const el = document.getElementById('list'); el.innerHTML = '';
+  for (const l of R.lines.filter(l => l.group === cur)) {
+    const r = document.createElement('div'); r.className = 'row' + (F[l.id] ? ' flag' : '') + (!l.file ? ' dyn' : ''); r.dataset.id = l.id;
+    r.innerHTML = `<button class="pl" ${l.file ? '' : 'disabled'}>▶</button><div><div class="who">${esc(l.who)} <span>· ${l.role}${l.fx ? ' · ' + l.fx : ''}</span></div><div class="txt">${esc(l.text)}</div><input class="note" placeholder="What's wrong?"></div><button class="fl">Fix</button>`;
+    const note = r.querySelector('.note'); note.value = F[l.id]?.note || '';
+    r.querySelector('.pl').onclick = () => { stop(); playRow(r, l); };
+    r.querySelector('.fl').onclick = () => { if (F[l.id]) delete F[l.id]; else F[l.id] = { who: l.who, role: l.role, text: l.text, note: '' }; r.classList.toggle('flag', !!F[l.id]); if (F[l.id]) note.focus(); keep(); tabs(); };
+    note.oninput = () => { if (F[l.id]) { F[l.id].note = note.value; keep(); } };
+    el.appendChild(r);
+  }
+}
+function playRow(r, l) { playingRow?.classList.remove('playing'); playingRow = r; r.classList.add('playing'); r.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); audio.src = l.file; audio.play(); }
+function stop() { queue = []; audio.pause(); playingRow?.classList.remove('playing'); }
+audio.onended = () => { playingRow?.classList.remove('playing'); if (queue.length) { const [r, l] = queue.shift(); setTimeout(() => playRow(r, l), 450); } };
+document.getElementById('all').onclick = () => {
+  stop(); queue = [...document.querySelectorAll('#list .row')].map(r => [r, R.lines.find(l => l.id === r.dataset.id)]).filter(([, l]) => l.file);
+  if (queue.length) { const [r, l] = queue.shift(); playRow(r, l); }
+};
+document.getElementById('stop').onclick = stop;
+function stat() { const n = R.lines.filter(l => l.file).length; document.getElementById('stat').textContent = `${n} voiced lines · ${Object.keys(F).length} marked to fix`; }
+document.getElementById('save').onclick = () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(F, null, 1)], { type: 'application/json' })); a.download = 'review_fixes.json'; a.click();
+};
+tabs(); list(); stat();
+</script></body></html>

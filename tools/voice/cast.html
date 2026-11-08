@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sötét Képernyő casting</title>
+<style>
+ :root { --bg:#0b0a10; --card:#16141f; --fg:#e8e2d6; --mut:#9a93a8; --acc:#8fe3c9; --hot:#ff9b7a }
+ body { background:var(--bg); color:var(--fg); font:15px/1.45 system-ui,sans-serif; margin:0; padding:20px 16px 90px }
+ h1 { font-weight:600; margin:0 0 4px } h2.sec { margin:30px 0 10px; font-weight:600 } p.lead { color:var(--mut); margin:0 0 18px; max-width:760px }
+ .card { background:var(--card); border-radius:12px; padding:14px 16px; margin:0 0 16px }
+ .card h3 { font-size:1em; margin:0 0 4px; color:var(--acc) }
+ .lines { color:var(--mut); font-size:.85em; margin:0 0 10px; padding-left:18px } .lines li { margin:2px 0 }
+ .cands { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px }
+ .c { border:1px solid #2a2635; border-radius:10px; padding:9px 10px } .c.win { border-color:var(--acc); background:#1b2a26 }
+ .c b { font-size:.92em } .c small { display:block; color:var(--mut); font-size:.75em; margin-bottom:6px }
+ .c button { background:#2a2635; color:var(--fg); border:0; border-radius:7px; padding:5px 9px; margin:0 4px 4px 0; cursor:pointer; font-size:.85em }
+ .c button.playing { background:var(--acc); color:#0b0a10 }
+ .c .pick { background:transparent; border:1px solid var(--acc); color:var(--acc) } .c.win .pick { background:var(--acc); color:#0b0a10 }
+ textarea { width:100%; box-sizing:border-box; background:#0f0d15; color:var(--fg); border:1px solid #2a2635; border-radius:8px; margin-top:8px; padding:6px 8px; font:inherit; font-size:.85em }
+ .bar { position:fixed; left:0; right:0; bottom:0; background:#120f19ee; padding:10px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+ .bar button { background:var(--acc); color:#0b0a10; border:0; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer }
+ #count { color:var(--mut); font-size:.85em }
+</style></head><body>
+<h1>Casting</h1>
+<p class="lead">Each character has 3 candidates, reading real lines from the game. Play the lines, then press <b>This one</b> on your favourite. A note helps too ("slower", "older", "less breathy"). Below that are the Hungarian names: pick the spelling that sounds closest. At the end press <b>Save choices</b> and send me the file.</p>
+<div id="cast"></div>
+<h2 class="sec">Hungarian names</h2>
+<p class="lead">Each spelling is read by two voices (nicole and heart). Pick the one that sounds most like the real name. If none is close, write how it sounds wrong.</p>
+<div id="names"></div>
+<div class="bar"><button id="save">Save choices</button><span id="count"></span></div>
+<script src="cast_clips/manifest.js"></script>
+<script>
+const M = window.CAST; let S = { cast: {}, notes: {}, names: {} };
+try { Object.assign(S, JSON.parse(localStorage.getItem('sk_cast') || '{}')); } catch (e) {}
+const keep = () => { try { localStorage.setItem('sk_cast', JSON.stringify(S)); } catch (e) {} count(); };
+const audio = new Audio(); let curBtn = null, queue = [];
+function play(btn, srcs) {
+  if (curBtn === btn && !audio.paused) { audio.pause(); queue = []; btn.classList.remove('playing'); return; }
+  curBtn?.classList.remove('playing'); curBtn = btn; btn.classList.add('playing'); queue = srcs.slice(1); audio.src = srcs[0]; audio.play();
+}
+audio.onended = () => { if (queue.length) { audio.src = queue.shift(); setTimeout(() => audio.play(), 350); } else curBtn?.classList.remove('playing'); };
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+const castEl = document.getElementById('cast');
+for (const c of M.cast) {
+  const d = document.createElement('div'); d.className = 'card';
+  d.innerHTML = `<h3>${esc(c.role)}</h3><ol class="lines">${c.lines.map(l => `<li>${esc(l.text)}${l.fx ? ` <i>(${l.fx})</i>` : ''}</li>`).join('')}</ol><div class="cands"></div><textarea placeholder="Note (optional)"></textarea>`;
+  const g = d.querySelector('.cands');
+  c.cands.forEach(([v, sp, st], ci) => {
+    const b = document.createElement('div'); b.className = 'c' + (S.cast[c.id] === ci ? ' win' : '');
+    const srcs = c.lines.map((_, li) => M.clips[`${c.id}_${ci}_${li}`]);
+    b.innerHTML = `<b>${v}</b><small>speed ${sp}${st ? ` · pitch ${st > 0 ? '+' : ''}${st}` : ''}</small>` +
+      c.lines.map((_, li) => `<button data-li="${li}">▶ ${li + 1}</button>`).join('') + `<button data-all>▶ all</button><br><button class="pick">This one</button>`;
+    b.onclick = e => {
+      const t = e.target; if (t.tagName !== 'BUTTON') return;
+      if (t.classList.contains('pick')) { S.cast[c.id] = ci; g.querySelectorAll('.c').forEach((x, i) => x.classList.toggle('win', i === ci)); keep(); }
+      else play(t, t.dataset.all !== undefined ? srcs : [srcs[+t.dataset.li]]);
+    };
+    g.appendChild(b);
+  });
+  const ta = d.querySelector('textarea'); ta.value = S.notes[c.id] || ''; ta.oninput = () => { S.notes[c.id] = ta.value; keep(); };
+  castEl.appendChild(d);
+}
+
+const namesEl = document.getElementById('names');
+for (const [hu, opts] of Object.entries(M.names)) {
+  const d = document.createElement('div'); d.className = 'card';
+  d.innerHTML = `<h3>${esc(hu)}</h3><div class="cands"></div><textarea placeholder="Note (optional)"></textarea>`;
+  const g = d.querySelector('.cands');
+  opts.forEach((sp, oi) => {
+    const b = document.createElement('div'); b.className = 'c' + (S.names[hu] === sp ? ' win' : '');
+    b.innerHTML = `<b>${esc(sp)}</b><small>&nbsp;</small><button data-v="af_nicole">▶ nicole</button><button data-v="af_heart">▶ heart</button><br><button class="pick">This one</button>`;
+    b.onclick = e => {
+      const t = e.target; if (t.tagName !== 'BUTTON') return;
+      if (t.classList.contains('pick')) { S.names[hu] = sp; g.querySelectorAll('.c').forEach((x, i) => x.classList.toggle('win', i === oi)); keep(); }
+      else play(t, [M.clips[`${hu}|${oi}|${t.dataset.v}`]]);
+    };
+    g.appendChild(b);
+  });
+  const ta = d.querySelector('textarea'); ta.value = S.notes['name:' + hu] || ''; ta.oninput = () => { S.notes['name:' + hu] = ta.value; keep(); };
+  namesEl.appendChild(d);
+}
+function count() { document.getElementById('count').textContent = `Characters picked: ${Object.keys(S.cast).length}/${M.cast.length} · names: ${Object.keys(S.names).length}/${Object.keys(M.names).length}`; }
+count();
+document.getElementById('save').onclick = () => {
+  const out = { ...S, castVoices: Object.fromEntries(Object.entries(S.cast).map(([id, ci]) => [id, M.cast.find(c => c.id === id).cands[ci]])) };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }));
+  a.download = 'cast_choices.json'; a.click();
+};
+</script></body></html>

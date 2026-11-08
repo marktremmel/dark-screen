@@ -1,5 +1,15 @@
 # Sötét Képernyő: changelog
 
+## v1.4 (8 November 2026): voices
+
+### Voice acting
+- The narrator and the characters now speak: about 600 lines, an hour of voice across all nine episodes and Lépcsőház (the intro, the walks, the calls, the found phone's inbox, the messages at home).
+- Every character has their own voice: Nagyi, Mum, Ms Varga, VELA, Bence, Dóri, Lili, Laci, Feri bácsi and the rest. Phone calls sound like phone calls, VELA sounds like a speaker, chat messages are read in the sender's voice.
+- Scammers who pretend to be someone you know speak in that person's voice, like a cloned voice would.
+- The music dips while someone speaks, captions stay up until the line is finished, and the Lépcsőház intro waits for the narrator.
+- Settings: Voice acting on/off and Voice volume. Off brings back the old mumbling sounds.
+- Lines that contain your nickname or a number still use the mumbling sounds for now.
+
 ## v1.3 (Lépcsőház)
 
 ### Lépcsőház (Stairwell), 13+

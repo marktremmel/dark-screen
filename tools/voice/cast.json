@@ -1,0 +1,482 @@
+[
+ {
+  "id": "narrator",
+  "role": "Narrator (26 min, the whole game)",
+  "cands": [
+   [
+    "af_nicole",
+    1,
+    0
+   ],
+   [
+    "af_heart",
+    1,
+    0
+   ],
+   [
+    "af_bella",
+    1,
+    0
+   ],
+   [
+    "am_michael",
+    1,
+    0
+   ]
+  ],
+  "lines": [
+   {
+    "text": "Four cameras, four matches. Every screen in the building shows your face. Laci is waiting at the next corner: \"The police are on their way.\" While he argues with the dispatcher, you slip back into the dark.",
+    "fx": null
+   },
+   {
+    "text": "Friday, 22:58. Platán School, Room 214. Digital Culture Night: pizza, a film, sleeping bags on the lab floor. Ms Varga has gone down to the car park for the spare sleeping bags. Everyone else is asleep.",
+    "fx": null
+   },
+   {
+    "text": "They say thanks, then ask for another one, \"a better one this time\". You cannot take back the first one: it is on their phone now, and you do not know who they really are.",
+    "fx": null
+   }
+  ]
+ },
+ {
+  "id": "tip",
+  "role": "Tips / instructions (ep3-6, 7 min)",
+  "cands": [
+   [
+    "af_heart",
+    1,
+    0
+   ],
+   [
+    "af_nicole",
+    1.05,
+    0
+   ],
+   [
+    "af_sarah",
+    1,
+    0
+   ],
+   [
+    "am_fenrir",
+    1,
+    0
+   ]
+  ],
+  "lines": [
+   {
+    "text": "Look at the corner: \"PanoMap · street view · 2026\". It's a picture from an online map that anyone can open. He wasn't at your stop. He only knows which stop it is.",
+    "fx": null
+   },
+   {
+    "text": "It isn't you. Prove it: take the video apart (Frames, Sound), find where every piece came from (Search, Mail), then report it and tell Ms Varga. School starts at 8.",
+    "fx": null
+   }
+  ]
+ },
+ {
+  "id": "nagyi",
+  "role": "Nagyi (grandma)",
+  "cands": [
+   [
+    "bf_alice",
+    0.9,
+    -1.5
+   ],
+   [
+    "bf_isabella",
+    0.88,
+    -2
+   ],
+   [
+    "af_bella",
+    0.88,
+    -2.5
+   ]
+  ],
+  "lines": [
+   {
+    "text": "That was your mother. She… she had an accident with the car. A woman is hurt. The police want bail tonight, 900,000, or she goes to prison. A lawyer is coming at midnight for the money.",
+    "fx": null
+   },
+   {
+    "text": "Check what? It was her, I know my own daughter's voice! …She was crying. I can't sit down, I have to find the money. The biscuit tins. Your grandfather never trusted banks.",
+    "fx": null
+   }
+  ]
+ },
+ {
+  "id": "mum",
+  "role": "Mum",
+  "cands": [
+   [
+    "af_heart",
+    1,
+    0
+   ],
+   [
+    "af_sarah",
+    1,
+    0
+   ],
+   [
+    "bf_isabella",
+    1,
+    0
+   ]
+  ],
+  "lines": [
+   {
+    "text": "Bence's mum called me. I saw it. I know it isn't you, sweetheart. Nobody who knows you would believe it. Do what Ms Varga says, and call me at break.",
+    "fx": "mail"
+   },
+   {
+    "text": "Oh God. My poor Anyu. Listen: nobody opens that door. Not for anyone. Don't give anybody any money. If someone comes, call 112. Put Nagyi on, please.",
+    "fx": null
+   }
+  ]
+ },
+ {
+  "id": "varga",
+  "role": "Ms Varga (teacher)",
+  "cands": [
+   [
+    "bf_isabella",
+    1,
+    0
+   ],
+   [
+    "af_sarah",
+    1,
+    0
+   ],
+   [
+    "af_heart",
+    0.97,
+    -0.5
+   ]
+  ],
+  "lines": [
+   {
+    "text": "I've seen the video. Before you say anything: I know what you're like, and I also know what can be faked. Come to Room 214 before first lesson. Bring anything that helps. – Varga",
+    "fx": "mail"
+   },
+   {
+    "text": "Exactly. Paying tells them we're a school that pays, and there's no guarantee anyway. I'm calling the head and the police, and on Monday we report it to the national cyber security centre.",
+    "fx": null
+   }
+  ]
+ },
+ {
+  "id": "vela",
+  "role": "VELA smart speaker",
+  "cands": [
+   [
+    "bf_emma",
+    0.95,
+    0
+   ],
+   [
+    "af_heart",
+    0.95,
+    0
+   ],
+   [
+    "af_nicole",
+    0.95,
+    0
+   ]
+  ],
+  "lines": [
+   {
+    "text": "Memory from yesterday, 23:04: \"…scared of the dark…\". Would you like to hear it again?",
+    "fx": "speaker"
+   },
+   {
+    "text": "Are you sure? Check the times in the activity logs.",
+    "fx": "speaker"
+   }
+  ]
+ },
+ {
+  "id": "bence",
+  "role": "Bence and other boys in chats",
+  "cands": [
+   [
+    "am_puck",
+    1.05,
+    2
+   ],
+   [
+    "am_michael",
+    1.05,
+    2.5
+   ],
+   [
+    "am_fenrir",
+    1.05,
+    2
+   ]
+  ],
+  "lines": [
+   {
+    "text": "Hey, it's Bence. I'm stuck at Keleti, my card is blocked. Can you send me 8 000 forints? I'll pay you back tomorrow!",
+    "fx": "chat"
+   },
+   {
+    "text": "I posted something stupid and people are laughing. I want to disappear.",
+    "fx": "chat"
+   }
+  ]
+ },
+ {
+  "id": "girls",
+  "role": "Dóri, Lili, Réka, Zsófi (girls in chats)",
+  "cands": [
+   [
+    "af_nicole",
+    1.1,
+    1
+   ],
+   [
+    "af_bella",
+    1.1,
+    1.5
+   ],
+   [
+    "af_sky",
+    1.1,
+    1.5
+   ]
+  ],
+  "lines": [
+   {
+    "text": "I'm leaving Réka's now, home in 15 min. texting mum too. you did the right thing telling me",
+    "fx": "chat"
+   },
+   {
+    "text": "hey, I was mean in the group yesterday. I deleted it. sorry, it was not okay.",
+    "fx": "chat"
+   }
+  ]
+ },
+ {
+  "id": "ghost",
+  "role": "szellem_7b (anonymous bully, ep4)",
+  "cands": [
+   [
+    "am_puck",
+    1,
+    0
+   ],
+   [
+    "af_bella",
+    1,
+    -1
+   ],
+   [
+    "am_fenrir",
+    1.05,
+    1
+   ]
+  ],
+  "lines": [
+   {
+    "text": "I see you read everything one in the group and you're safe",
+    "fx": "chat"
+   }
+  ]
+ },
+ {
+  "id": "laci",
+  "role": "Laci (ep7)",
+  "cands": [
+   [
+    "am_fenrir",
+    1,
+    0
+   ],
+   [
+    "am_michael",
+    1,
+    0
+   ],
+   [
+    "bm_lewis",
+    1,
+    0
+   ]
+  ],
+  "lines": [
+   {
+    "text": "White trainers. A backpack. Taller than you. And you were in Screen 3 at half six? …This thing beeps at every red hoodie in Budapest. Last week it matched a mannequin.",
+    "fx": null
+   },
+   {
+    "text": "And one more thing. Some kid at the bus stop was filming the screens through the glass. Your face on every one of them. …I'd keep an eye on that.",
+    "fx": null
+   }
+  ]
+ },
+ {
+  "id": "feri",
+  "role": "Feri bácsi (old caretaker)",
+  "cands": [
+   [
+    "bm_lewis",
+    0.92,
+    -1
+   ],
+   [
+    "bm_george",
+    0.92,
+    -1
+   ],
+   [
+    "bm_fable",
+    0.9,
+    -1.5
+   ]
+  ],
+  "lines": [
+   {
+    "text": "A virus? On the computers? …I don't know computers, kid. I know boilers. The basement door sticks: push hard. I'll go and get Ms Varga out of that lift.",
+    "fx": null
+   },
+   {
+    "text": "Nothing? With every screen in the school screaming red? …Go on, tell Ms Varga. I'll be at the lift.",
+    "fx": null
+   }
+  ]
+ },
+ {
+  "id": "scammer",
+  "role": "Scam calls (Lépcsőház calls, \"The voice\" in ep9)",
+  "cands": [
+   [
+    "af_bella",
+    1,
+    0
+   ],
+   [
+    "am_michael",
+    1,
+    0
+   ],
+   [
+    "af_heart",
+    1.05,
+    0
+   ]
+  ],
+  "lines": [
+   {
+    "text": "This is the police cyber unit. Your IP address was used in a crime. To avoid a fine, tell me the login code for the family bank app, and do not tell your parents.",
+    "fx": "phone"
+   },
+   {
+    "text": "It is Dad, my phone is broken, I am calling from a colleague. Read me the code from the text that just arrived on your phone. Quickly!",
+    "fx": "phone"
+   }
+  ]
+ },
+ {
+  "id": "system",
+  "role": "Apps, brands, official voices (inbox, 112, nurse, VárosVill)",
+  "cands": [
+   [
+    "bf_emma",
+    1,
+    0
+   ],
+   [
+    "bm_fable",
+    1,
+    0
+   ],
+   [
+    "am_michael",
+    1,
+    0
+   ]
+  ],
+  "lines": [
+   {
+    "text": "Attached: all data held about you. Saturday 18:40 match against the electronics shop incident: 91 %. Operator review 21:49: FALSE MATCH (different shoes, no backpack, cinema ticket 18:30–20:45). Case closed. Your face template will be deleted in 30 days.",
+    "fx": "mail"
+   },
+   {
+    "text": "Here is what we hold. Saturday 18:40 match against the electronics shop incident: 91 %. Operator review 21:49: FALSE MATCH. Case closed. Your face template will be deleted in 30 days.",
+    "fx": "mail"
+   }
+  ]
+ },
+ {
+  "id": "man",
+  "role": "Adult men (police officer, the man behind the door, coach)",
+  "cands": [
+   [
+    "am_fenrir",
+    0.95,
+    -1
+   ],
+   [
+    "bm_lewis",
+    1,
+    0
+   ],
+   [
+    "am_michael",
+    0.95,
+    -1
+   ]
+  ],
+  "lines": [
+   {
+    "text": "\"Police. Is everyone OK in there? He ran off, but we've got his car number. We'll need you to make a statement in the morning.\"",
+    "fx": null
+   },
+   {
+    "text": "Coach here. The tournament bus leaves early tomorrow. Send me photos of your ID card and your TAJ card tonight on WhatsApp.",
+    "fx": "phone"
+   }
+  ]
+ },
+ {
+  "id": "thought",
+  "role": "Thoughts and temptations on the walks",
+  "cands": [
+   [
+    "af_nicole",
+    0.95,
+    0
+   ],
+   [
+    "af_heart",
+    0.95,
+    -1
+   ],
+   [
+    "af_bella",
+    0.95,
+    0
+   ],
+   [
+    "am_michael",
+    0.95,
+    -1
+   ]
+  ],
+  "lines": [
+   {
+    "text": "I'm the only one who understands you. Don't tell anyone about us.",
+    "fx": null
+   },
+   {
+    "text": "Just one more video! It's starting in 3, 2, 1…",
+    "fx": null
+   }
+  ]
+ }
+]

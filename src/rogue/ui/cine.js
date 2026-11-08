@@ -9,6 +9,9 @@ import { ingestPack } from '../../core/assets.js';
 import { AU, loop, stopAllLoops, music, play } from '../../core/audio.js';
 import { hud, clearHUDText, loading } from '../../core/hud.js';
 import { S } from '../../core/state.js';
+import { voDur } from '../../core/voice.js';
+// v0.25: a shot stays on screen until its narration has been spoken (the trailer capture keeps its exact timing)
+const voiced = s => { const v = Math.max(voDur(s.text) + 0.9, s.say ? (s.say.at || 0) + voDur(s.say.text) + 0.7 : 0); return v > s.dur ? { ...s, dur: v } : s; };
 import { ensureRogue } from '../save/rogueSave.js';
 import { newRun } from '../logic/night.js';
 import { HomeScene } from '../home/HomeScene.js';
@@ -159,7 +162,7 @@ export async function playCine(G, shots, o = {}) {
       if (s.fadeOut == null) s.fadeOut = !s.card && (!next || next.card || next.at !== s.at);
       if (s.setup && G.scene && !s.card) await s.setup(G.scene, C);
       if (typeof s.cam === 'function') s.cam = s.cam(G.scene, C);
-      C.t = 0; C.shot = s;
+      C.t = 0; C.shot = G.capture ? s : voiced(s);
       await new Promise(res => { C.done = res; });
       if (s.after && G.scene) s.after(G.scene, C);
     }

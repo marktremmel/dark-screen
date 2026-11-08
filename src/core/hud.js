@@ -2,6 +2,7 @@ import { A } from './assets.js';
 import { S } from './state.js';
 import { rich, plain } from '../text.js';
 import { play, babble, voiceFor } from './audio.js';
+import { speak, voDur } from './voice.js';
 
 const $ = id => document.getElementById(id);
 export const H = {};
@@ -49,7 +50,9 @@ export function battery(v) { $('battfill').style.width = Math.round(Math.max(0, 
 // captions: kind 'sfx' for sound descriptions (shown only if subtitles on), 'say' for thoughts
 export function caption(text, kind = 'say', dur = 4) {
   if (kind === 'sfx' && !S.settings.subs) return;
-  if (kind === 'say' || kind === 'call') { const m = String(text).match(/^([^:]{2,48}):\s*(.+)$/s); if (m) { const v = voiceFor(m[1]); if (v) babble(m[2], v, { phone: kind === 'call' || /phone|📞/.test(m[1]) }); } }
+  const spoke = kind !== 'sfx' && speak(text, { force: true });   // v0.25: the recorded line, if there is one
+  if (spoke) dur = Math.max(dur, voDur(text) + 0.6);
+  else if (kind === 'say' || kind === 'call') { const m = String(text).match(/^([^:]{2,48}):\s*(.+)$/s); if (m) { const v = voiceFor(m[1]); if (v) babble(m[2], v, { phone: kind === 'call' || /phone|📞/.test(m[1]) }); } }
   const el = document.createElement('div'); el.className = 'cap ' + kind; el.innerHTML = rich(text);
   const c = $('captions'); c.appendChild(el);
   while (c.children.length > 3) c.removeChild(c.firstChild);

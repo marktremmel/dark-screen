@@ -1,0 +1,111 @@
+Lines: 686 unique (692 incl. repeats), ~65.4 min audio, dynamic: 82
+
+By group:
+  lepcsohaz/walks               114 lines    9.4 min
+  lepcsohaz/school              116 lines    9.1 min
+  ep9                            47 lines    5.7 min
+  ep8                            34 lines    4.4 min
+  ep4                            50 lines    4.3 min
+  ep1                            51 lines    4.2 min
+  ep3                            51 lines    4.0 min
+  ep6                            25 lines    3.7 min
+  lepcsohaz/homejobs             22 lines    3.0 min
+  ep7                            24 lines    2.6 min
+  lepcsohaz/stairwell            27 lines    2.5 min
+  ep5                            23 lines    2.4 min
+  lepcsohaz/intro                15 lines    2.2 min
+  ep2                            30 lines    1.9 min
+  lepcsohaz/calls                10 lines    1.8 min
+  lepcsohaz/walk                 17 lines    1.4 min
+  lepcsohaz/HomeScene            11 lines    1.2 min
+  lepcsohaz/metro                11 lines    1.0 min
+  hub/hub                         4 lines    0.3 min
+  lepcsohaz/panels                2 lines    0.1 min
+  hub/field                       1 lines    0.1 min
+  lepcsohaz/trailer               1 lines    0.1 min
+
+By language:
+  en        643 lines  59.9 min
+  mixed      40 lines  5.3 min
+  hu          3 lines  0.2 min
+
+By source:
+  caption           196 lines  17.0 min
+  content           126 lines  11.4 min
+  inbox-body         49 lines  6.7 min
+  tip                59 lines  6.7 min
+  fade               30 lines  4.8 min
+  talk               36 lines  4.6 min
+  chat               53 lines  3.1 min
+  homejob-outcome    20 lines  2.9 min
+  intro              14 lines  2.1 min
+  toast              22 lines  2.0 min
+  inbox-subject      39 lines  1.1 min
+  sub                13 lines  1.1 min
+  panel               9 lines  0.9 min
+  vela               13 lines  0.7 min
+  notify              3 lines  0.2 min
+  homechat            2 lines  0.1 min
+  cutIn               2 lines  0.1 min
+
+Top characters:
+  Narrator                                    257 lines  26.2 min  [lepcsohaz/homejobs, lepcsohaz/intro, lepcsohaz/HomeScene, le]
+  Tip                                          59 lines  6.7 min  [ep3, ep4, ep5, ep6]
+  Ms Varga                                     14 lines  2.3 min  [lepcsohaz/school, ep6, ep8]
+  Nagyi                                        13 lines  1.7 min  [lepcsohaz/calls, lepcsohaz/school, ep9]
+  Mum                                          11 lines  1.5 min  [lepcsohaz/calls, lepcsohaz/school, ep1, ep4, ep6, ep9]
+  Laci                                          8 lines  0.9 min  [ep7]
+  VELA (smart speaker)                         14 lines  0.7 min  [ep1, ep2]
+  Bence                                        10 lines  0.7 min  [lepcsohaz/calls, lepcsohaz/walks, ep2, ep4]
+  Feri bácsi                                    5 lines  0.7 min  [ep8]
+  Lili                                          9 lines  0.6 min  [lepcsohaz/school, ep4]
+  szellem_7b                                   10 lines  0.5 min  [ep4]
+  Fürkész · data protection officer             2 lines  0.5 min  [ep6]
+  112                                           3 lines  0.4 min  [ep9]
+  dori                                          5 lines  0.4 min  [ep3]
+  Mum (the real one)                            2 lines  0.3 min  [ep9]
+  PhotoShare                                    4 lines  0.3 min  [lepcsohaz/school]
+  Through the peephole                          2 lines  0.3 min  [ep1, ep9]
+  Your AI friend                                4 lines  0.3 min  [lepcsohaz/walks]
+  bence                                         4 lines  0.3 min  [ep3]
+  VárosVill                                     3 lines  0.3 min  [ep1]
+  School IT Support                             2 lines  0.2 min  [lepcsohaz/school]
+  Someone saying they are the police            1 lines  0.2 min  [lepcsohaz/calls]
+  The group chat                                3 lines  0.2 min  [lepcsohaz/walks]
+  GameHub Security                              2 lines  0.2 min  [lepcsohaz/school]
+  Ms Varga (out of breath, Feri bácsi behi      2 lines  0.2 min  [ep8]
+  A friend                                      3 lines  0.2 min  [lepcsohaz/walks]
+  Lumi (your AI friend)                         2 lines  0.2 min  [lepcsohaz/school]
+  A classmate                                   4 lines  0.2 min  [lepcsohaz/walks]
+  Gift Card Winners                             2 lines  0.2 min  [lepcsohaz/school]
+  FitRun                                        2 lines  0.2 min  [lepcsohaz/school]
+  Loopa Trust & Safety                          1 lines  0.2 min  [ep6]
+  Réka                                          3 lines  0.2 min  [lepcsohaz/school, lepcsohaz/walks]
+  Bence (new number)                            2 lines  0.2 min  [lepcsohaz/school]
+  The voice                                     2 lines  0.2 min  [ep9]
+  Dóri                                          1 lines  0.2 min  [lepcsohaz/calls]
+  A news alert                                  2 lines  0.2 min  [lepcsohaz/walks]
+  Dad                                           1 lines  0.2 min  [lepcsohaz/calls]
+  Your cousin Ádám                              1 lines  0.2 min  [lepcsohaz/calls]
+  A voice message from Lili                     1 lines  0.2 min  [lepcsohaz/walks]
+  The feed                                      3 lines  0.2 min  [lepcsohaz/walks]
+  Your bank app                                 2 lines  0.2 min  [lepcsohaz/school]
+  A stranger                                    2 lines  0.2 min  [lepcsohaz/walks]
+  Dusty                                         2 lines  0.2 min  [ep2]
+  A friend borrowing your phone                 1 lines  0.2 min  [lepcsohaz/walks]
+  Design detective                              1 lines  0.2 min  [lepcsohaz/walk]
+  A police officer (through the door)           1 lines  0.2 min  [ep9]
+  Feri bácsi (caretaker)                        2 lines  0.2 min  [lepcsohaz/school]
+  Snapchat-style app                            2 lines  0.2 min  [lepcsohaz/school]
+  Your form teacher                             1 lines  0.2 min  [lepcsohaz/calls]
+  Notification                                  3 lines  0.2 min  [ep5]
+  Parcel Delivery                               2 lines  0.2 min  [lepcsohaz/school]
+  Which Celebrity Are You?                      2 lines  0.2 min  [lepcsohaz/school]
+  Screen Time                                   2 lines  0.2 min  [lepcsohaz/school]
+  ChatApp                                       2 lines  0.2 min  [lepcsohaz/school]
+  Your football coach                           1 lines  0.2 min  [lepcsohaz/calls]
+  Dad, on a blurry video call                   1 lines  0.2 min  [lepcsohaz/walks]
+  Fürkész · Pláza Platán                        1 lines  0.2 min  [ep6]
+  The comments                                  3 lines  0.2 min  [lepcsohaz/walks]
+  Class 8.B                                     2 lines  0.1 min  [lepcsohaz/school]
+  BKV                                           2 lines  0.1 min  [lepcsohaz/school]

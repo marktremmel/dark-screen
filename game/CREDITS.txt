@@ -55,6 +55,10 @@ Lépcsőház (the stairwell mode)
   The public build uses a bus made in code instead.
   Rain sound: generated noise
 
+Voices
+  Voice acting generated with Kokoro-82M by hexgrad (Apache 2.0 licence), built-in voices,
+  with pitch, speed and phone/speaker effects per character. Can be turned off in Settings.
+
 Engine
   three.js (MIT licence)
 

@@ -1,6 +1,7 @@
 import { S, DEFAULT_SETTINGS, persist, listPlayers, lastPlayer, loadPlayer, exportCode, importCode, peekCode, epData } from '../core/state.js';
 import { rich, CREDITS, CONTENT_NOTE, LOCKS_ON } from '../text.js';
 import { play, setVolumes, resumeAudio } from '../core/audio.js';
+import { setVoiceVolume, voStop, voDur } from '../core/voice.js';
 import { setBrightness, setLines } from '../core/render.js';
 import { pxCanvas } from '../core/world.js';
 
@@ -27,7 +28,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 export function applySettings() {
   setBrightness(S.settings.brightness, S.settings.projector);
   setLines(S.settings.sharp ? 405 : 270);
-  setVolumes(S.settings.master, S.settings.music);
+  setVolumes(S.settings.master, S.settings.music); setVoiceVolume(S.settings.voiceVol ?? 1); if (S.settings.voice === false) voStop();
   document.body.classList.toggle('bigtext', !!S.settings.bigText);
 }
 
@@ -145,6 +146,8 @@ export function settingsScreen(onClose) {
     ${tg('projector', 'Projector mode', 'Extra brightness and contrast for washed-out classroom projectors.')}
     ${sl('master', 'Volume', 'All sounds.', 0, 1, 0.05)}
     ${sl('music', 'Music volume', '', 0, 1, 0.05)}
+    ${tg('voice', 'Voice acting (szinkron)', 'The narrator and the characters read their lines aloud. Off: the old mumbling sounds, and you read everything yourself.')}
+    ${sl('voiceVol', 'Voice volume', '', 0, 1.5, 0.05)}
     ${sl('mouse', 'Mouse speed', '', 0.3, 2.5, 0.05)}
     ${tg('subs', 'Sound subtitles', 'Shows what you hear, like [footsteps in the hallway].')}
     ${tg('sharp', 'Sharper picture', 'Draws the game at a higher resolution. Still pixelated, just finer. Turn off on slow computers.')}

@@ -1,0 +1,11 @@
+[
+ {"id": "narr_calm", "role": "Narrator, calm (the intro)", "text": "You live in a small flat in a panel block in Budapest. In here, nothing can hurt you. Every night, you go out."},
+ {"id": "narr_tense", "role": "Narrator, tense (ep1 power cut)", "speed": 1.08, "text": "Stop it. It's just shadows. It's just shadows. …Was someone standing there?"},
+ {"id": "nagyi", "role": "Nagyi (ep9, worried grandma)", "speed": 0.9, "text": "Check what? It was her, I know my own daughter's voice! …She was crying. I can't sit down, I have to find the money."},
+ {"id": "scam_call", "role": "Scam call on the phone (Lépcsőház)", "fx": "phone", "text": "Szia, drágám, it is Nagyi. I am at the hospital and the nurse needs 20 000 forints for my medicine. Read me the numbers, quick!"},
+ {"id": "varga", "role": "Ms Varga, teacher (ep8)", "text": "Exactly. Paying tells them we're a school that pays, and there's no guarantee anyway. I'm calling the head and the police."},
+ {"id": "vela", "role": "VELA smart speaker (ep1-2)", "fx": "speaker", "speed": 0.95, "text": "Good evening. Night mode is on. Memory from yesterday, 23:04: scared of the dark. Would you like to hear it again?"},
+ {"id": "chat", "role": "Chat message from a classmate (ep4, homejobs)", "fx": "chat", "speed": 1.1, "text": "heyy u play so good!! send me a selfie so i know ur real, everyone does it"},
+ {"id": "whisper", "role": "Whisper (the voice in the recording, ep9)", "fx": "phone", "text": "Mama, please, there's no time. Don't tell anyone. Not even the kid."},
+ {"id": "names", "role": "Hungarian names test", "text": "Bence is stuck at Keleti. Dóri and Réka are at Platán. Feri bácsi fixed the lift, and Mrs Kovács said thank you."}
+]

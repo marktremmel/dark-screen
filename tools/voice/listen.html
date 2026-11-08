@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sötét Képernyő voice test</title>
+<style>
+ :root { --bg:#0b0a10; --card:#16141f; --fg:#e8e2d6; --mut:#9a93a8; --acc:#8fe3c9; --hot:#ff9b7a }
+ body { background:var(--bg); color:var(--fg); font:15px/1.45 system-ui,sans-serif; margin:0; padding:20px 16px 80px }
+ h1 { font-weight:600; margin:0 0 4px } p.lead { color:var(--mut); margin:0 0 18px; max-width:760px }
+ .line { background:var(--card); border-radius:12px; padding:14px 16px; margin:0 0 16px }
+ .line h2 { font-size:1em; margin:0; color:var(--acc) } .line q { display:block; color:var(--mut); margin:4px 0 10px; font-style:italic }
+ .fx { color:var(--hot); font-size:.85em; margin-left:6px }
+ .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px }
+ .v { border:1px solid #2a2635; border-radius:9px; padding:7px 8px; cursor:pointer; user-select:none }
+ .v.playing { border-color:var(--acc) } .v b { font-weight:600; font-size:.9em } .v small { color:var(--mut); display:block; font-size:.75em }
+ .stars { margin-top:4px; letter-spacing:2px } .stars span { cursor:pointer; color:#3a3546 } .stars span.on { color:#ffd479 }
+ .bar { position:fixed; left:0; right:0; bottom:0; background:#120f19ee; padding:10px 16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+ button { background:var(--acc); color:#0b0a10; border:0; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer }
+ #best { color:var(--mut); font-size:.85em }
+</style></head><body>
+<h1>Voice test</h1>
+<p class="lead">Click a box to play it. Give each one 1–5 stars. Your stars stay in this browser. When you're done, press <b>Save scores</b> and send me the file (or just tell me your favourites per line).</p>
+<div id="app"></div>
+<div class="bar"><button id="save">Save scores</button><span id="best"></span></div>
+<script src="clips/manifest.js"></script>
+<script>
+const M = window.MANIFEST, NICE = { a: '🇺🇸', b: '🇬🇧' }, SEX = { f: 'woman', m: 'man' };
+let S = {}; try { S = JSON.parse(localStorage.getItem('sk_voice_scores') || '{}'); } catch (e) {}
+const keep = () => { try { localStorage.setItem('sk_voice_scores', JSON.stringify(S)); } catch (e) {} best(); };
+const audio = new Audio(); let cur = null;
+const app = document.getElementById('app');
+for (const ln of M.lines) {
+  const d = document.createElement('div'); d.className = 'line';
+  d.innerHTML = `<h2>${ln.role}${ln.fx ? `<span class="fx">effect: ${ln.fx}</span>` : ''}</h2><q>${ln.text}</q><div class="grid"></div>`;
+  const g = d.querySelector('.grid');
+  for (const v of M.voices) {
+    const key = ln.id + '__' + v, b = document.createElement('div'); b.className = 'v';
+    b.innerHTML = `<b>${v.slice(3)}</b><small>${NICE[v[0]]} ${SEX[v[1]]}</small><div class="stars">${[1,2,3,4,5].map(i => `<span data-i="${i}">★</span>`).join('')}</div>`;
+    const paint = () => b.querySelectorAll('.stars span').forEach(s => s.classList.toggle('on', +s.dataset.i <= (S[key] || 0)));
+    paint();
+    b.onclick = e => {
+      if (e.target.dataset.i) { S[key] = +e.target.dataset.i === S[key] ? 0 : +e.target.dataset.i; paint(); keep(); return; }
+      if (cur === b && !audio.paused) { audio.pause(); b.classList.remove('playing'); return; }
+      cur?.classList.remove('playing'); cur = b; b.classList.add('playing'); audio.src = M.clips[key]; audio.play();
+    };
+    g.appendChild(b);
+  }
+  app.appendChild(d);
+}
+audio.onended = () => cur?.classList.remove('playing');
+function best() {
+  const out = M.lines.map(ln => { const top = M.voices.map(v => [v, S[ln.id + '__' + v] || 0]).sort((a, b) => b[1] - a[1])[0]; return top[1] ? `${ln.id}: ${top[0]}` : null; }).filter(Boolean);
+  document.getElementById('best').textContent = out.length ? 'Favourites so far: ' + out.join(' · ') : '';
+}
+best();
+document.getElementById('save').onclick = () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }));
+  a.download = 'voice_scores.json'; a.click();
+};
+</script></body></html>

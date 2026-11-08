@@ -1,4 +1,5 @@
 import { babble, voiceFor } from './core/audio.js';
+import { initVoice, hasVO, voReset } from './core/voice.js';
 import * as THREE from 'three';
 import { initRenderer, R } from './core/render.js';
 import { initAudio, updateListener, resumeAudio, stopAllLoops, music, AU } from './core/audio.js';
@@ -48,7 +49,7 @@ async function boot() {
 
 export async function switchScene(sc) {
   if (G.scene) { G.scene.exit && G.scene.exit(); }
-  stopAllLoops(); clearHUDText();
+  stopAllLoops(); clearHUDText(); voReset();
   G.scene = sc; G.onScene && G.onScene(sc); await sc.build(); G.afterBuild && G.afterBuild(sc); sc.enter && sc.enter();
 }
 export async function goField() {
@@ -138,9 +139,10 @@ new MutationObserver(muts => {
     const p = ps.find(x => x.firstElementChild && x.firstElementChild.tagName === 'B' && /:\s*$/.test(x.firstElementChild.textContent));
     if (!p) continue;
     const who = p.firstElementChild.textContent.replace(/[:📞]/g, '').trim(); const v = voiceFor(who);
-    if (v) babble(p.textContent.slice(p.firstElementChild.textContent.length), v, { phone: /📞|phone/.test(p.firstElementChild.textContent) || p.style.color !== '' });
+    if (v && !hasVO(p.textContent)) babble(p.textContent.slice(p.firstElementChild.textContent.length), v, { phone: /📞|phone/.test(p.firstElementChild.textContent) || p.style.color !== '' });
     return;
   }
 }).observe(document.getElementById('overlay'), { childList: true, subtree: true });
 
+initVoice();
 boot();

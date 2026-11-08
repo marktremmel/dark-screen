@@ -55,6 +55,7 @@ function psxify(root, vc = false) {
 
 export async function ingestPack(name, audioCtx, onProgress) {
   if (A.packs[name]) return;
+  if (window.SK_VO_PRELOAD) window.SK_VO_PRELOAD(name);      // v0.25: this part's voice clips load alongside
   const P = await loadPackScript(name);
   const jobs = [];
   for (const [k, v] of Object.entries(P.glb || {})) jobs.push(async () => {
