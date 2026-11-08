@@ -5,7 +5,8 @@
 #   ./tools/build_public.sh <app folder>   → also copies it into a Capacitor project (its root and www/), then: npx cap sync ios
 set -e
 cd "$(dirname "$0")/.."
-./build.sh
+# rebuild game.js if esbuild is installed (npm install); otherwise use the game.js already in the repo
+if [ -x node_modules/.bin/esbuild ]; then ./build.sh; else echo "(esbuild not installed: using the game.js in the repo)"; fi
 OUT=build/public
 rm -rf "$OUT" && mkdir -p "$OUT"
 cp -R game/* "$OUT/"
