@@ -394,7 +394,7 @@ export class Ep9 extends Walker {
     const s = this.st; let num = '';
     const notes = [s.bookSeen ? `Ward 3: ${SHOW.ward}` : null, s.mumNum || s.mobSeen ? `Mum's mobile: ${SHOW.mum}` : null, s.callerSeen ? `The caller: ${SHOW.scam}` : null, 'Emergency: 112'].filter(Boolean);
     const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-    const el = openScreen(`<div class="panel dial9"><h2 style="margin:0">Landline</h2><div class="num" id="n"></div>
+    const el = openScreen(`<div class="panel dial9"><h2 style="margin:0">Landline</h2><p class="sub" style="font-size:.85em;margin:4px 0 0">Click or tap the digits on the dial, one by one.</p><div class="num" id="n"></div>
       <div class="wheel">${digits.map((d, i) => { const a = (-60 + i * 30) * D2R; return `<button data-d="${d}" style="left:${130 + Math.cos(a) * 98 - 22}px;top:${130 + Math.sin(a) * 98 - 22}px">${d}</button>`; }).join('')}</div>
       <p class="sub" style="font-size:.85em">${notes.map(esc).join(' · ')}</p>
       <div class="btns"><button class="btn" id="clr">Start again</button><button class="btn" id="x">Hang up</button></div></div>`);

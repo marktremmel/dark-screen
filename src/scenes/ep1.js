@@ -318,11 +318,12 @@ export class Ep1 {
   }
   async usePeephole() {
     const T = this.threat;
-    if (!T.active || T.leaving) { play('knob', { vol: 0.2 }); caption('The peephole (kémlelő): the landing outside is dark and empty.', 'say', 3); return; }
+    if (!T.active) { play('knob', { vol: 0.2 }); caption('The peephole (kémlelő): the landing outside is dark and empty.', 'say', 3); return; }
     this.playing = false; this.G.unlock(); this.st.peeped = true;
-    await cutIn(this.peepImage(), '', 3600, 'peep');
+    // v1.4: the narrator starts with the picture, the caption stays up after it
+    caption('Through the peephole: Mrs Kovács from the third floor, in her dressing gown, with a torch. She listens… shakes her head… and goes back upstairs.', 'say', 9);
+    await cutIn(this.peepImage(), '', 4200, 'peep');
     T.leaving = true; T.leaveAt = T.t; this.st.noise = 0.3;
-    caption('Through the peephole: Mrs Kovács from the third floor, in her dressing gown, with a torch. She listens… shakes her head… and goes back upstairs.', 'say', 6);
     this.playing = true; lockPointer();
   }
   setupInteractions() {
@@ -348,7 +349,7 @@ export class Ep1 {
     it.add(this.vela, 'VELA smart speaker (okoshangszóró)', () => this.velaSay(this.st.phase === 'boot' ? 'Goodnight. I\'ll be listening.' : 'Hi! I\'m VELA. I\'m always here when you need me.'));
     it.add(this.landline, () => this.ringing ? 'Answer the phone (vezetékes telefon)' : 'Landline phone (vezetékes telefon)', () => { if (this.ringing) this.answerLandline(); else caption(this.st.events.answered ? 'Dead silence on the line now.' : 'An old wired phone. It works even in a power cut.', 'say', 3); });
     it.add(this.note, 'Read the note', () => this.readNote(), () => this.note.visible);
-    it.add(this.peep, () => this.threat.active && !this.threat.leaving ? 'Look through the peephole (kémlelő)' : 'Front door', () => this.usePeephole(), () => !this.st.carrying || this.threat.active);
+    it.add(this.peep, () => this.threat.active ? 'Look through the peephole (kémlelő)' : 'Front door', () => this.usePeephole(), () => !this.st.carrying || this.threat.active);
     if (this.bubu) it.add(this.bubu, 'Bubu, your old smart teddy (okosmaci)', () => { this.bubuBlink(1); caption(this.st.phase === 'lit' ? 'Bubu. You haven\'t played with it in years. Mum says it\'s "still connected to something".' : 'Bubu. Its eye just blinked red. …It\'s still on?', 'say', 4.5); });
     it.add(this.coat, 'Coat stand', () => { caption(this.st.phase === 'done' || this.st.phase === 'boot' ? "Dad's long winter coat. Just a coat." : "A tall coat stand. You'd rather not look at it too long in the dark.", 'say', 3); });
   }
@@ -677,9 +678,10 @@ export class Ep1 {
       if (dist > 0.05) T.pos.add(d.normalize().multiplyScalar(Math.min(0.7, dist)));
       play('heavy' + (1 + ((Math.random() * 4) | 0)), { vol: T.leaving ? 0.5 : 0.85, rate: 0.75, pos: [T.pos.x, 0.2, T.pos.z] });
     }
-    if (T.leaving) { if (T.t > T.leaveAt + 4) { T.active = false; T.cool = 28; objective(this.objBackup); } return; }
+    if (T.leaving) { if (T.t > T.leaveAt + 8) {   // v1.4: 8 s (was 4) so there is time to look through the peephole as she goes
+      T.active = false; T.cool = 28; objective(this.objBackup); } return; }
     if (T.still >= 6) { T.leaving = true; T.leaveAt = T.t; caption('[the footsteps stop at your door… a long silence… then they slowly go away]', 'sfx', 5); st.noise = 0.35; return; }
-    if (T.t > 12) this.caught();
+    if (T.t > (window.SK_TOUCH && window.SK_TOUCH.active ? 20 : 12)) this.caught();   // touch controls are slower to hide with
   }
   startListen() {
     const T = this.threat;

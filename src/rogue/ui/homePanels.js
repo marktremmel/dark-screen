@@ -1,5 +1,5 @@
 // Screens in your flat: the computer (notebook, shop, moving), the box of your things, and choosing what to keep.
-import { openScreen, closeScreen, saveToFile, settingsScreen } from '../../ui/screens.js';
+import { openScreen, closeScreen, saveToFile, settingsScreen, progressBox } from '../../ui/screens.js';
 import { exportCode } from '../../core/state.js';
 import { TOPICS } from '../content/walks.js';
 import { WALK_NAME } from '../logic/routes.js';
@@ -82,7 +82,7 @@ export function homeComputer(R, nick, thumb, tab0 = 'shop') {
       const ns = rec.nights || [], b = rec.best || {}, tp = rec.topics || {};
       const stat = (n, l) => `<div style="background:#1a1822;border:1px solid #2e2a3a;border-radius:10px;padding:10px 12px;min-width:120px"><div style="font:28px m5x7,monospace;color:#f2e6cf">${n}</div><div class="sub" style="font-size:.78em">${l}</div></div>`;
       const OUT = { full: 'the whole night', home: 'went home early', death: 'lost the flat', labyrinth: 'the labyrinth' };
-      body.innerHTML = `<h3 style="margin-top:0">Your nights (eredmények)</h3><div style="display:flex;flex-wrap:wrap;gap:8px">
+      body.innerHTML = `<h3 style="margin-top:0">Your nights (eredmények)</h3>${progressBox()}<div style="display:flex;flex-wrap:wrap;gap:8px">
         ${stat(Object.values(tp).reduce((a, c) => a + c, 0), 'nights out')}${stat(rec.xp, 'XP, all lives')}${stat(b.wpm || 0, 'best typing (wpm)')}${stat(b.xp || 0, 'best night (XP)')}${stat(b.rooms || 0, 'labyrinth rooms')}${stat(rec.descents, 'ground floor reached')}${stat(rec.deaths, 'flats lost')}</div>
         <h3>The last nights</h3>${ns.length ? `<table style="width:100%;border-collapse:collapse;font-size:.88em">${ns.slice(0, 12).map(n => `<tr style="border-bottom:1px solid #2a2636"><td style="padding:5px 4px">${esc((TOPICS[n.topic] || {}).title || n.topic)}</td><td style="opacity:.75">${esc(WALK_NAME[n.walk] || '')}</td><td>${esc(OUT[n.outcome] || n.outcome || '')}</td><td style="text-align:right">+${n.xp} XP</td><td style="text-align:right;opacity:.75">${n.wpm} wpm</td></tr>`).join('')}</table>` : '<p class="sub">No nights yet. The front door is waiting.</p>'}
         <h3>Topics you have met</h3><div style="display:flex;flex-wrap:wrap;gap:6px">${Object.entries(TOPICS).map(([id, T]) => chip(esc(T.title), tp[id] ? '×' + tp[id] : 'not yet')).join('')}</div>`;

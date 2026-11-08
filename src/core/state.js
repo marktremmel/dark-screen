@@ -1,7 +1,7 @@
 // Global state + saving (localStorage per nickname, plus export/import codes).
 import { EPISODES, epPos, BUILT, LOCKS_ON, UNLOCK_HASH, TEACHER_HASH, codeHash, normCode } from '../text.js';
 const KEY = 'sotetkepernyo.v1';
-export const DEFAULT_SETTINGS = { quiet: false, brightness: 1.0, projector: false, master: 0.9, music: 0.6, mouse: 1.0, bigText: false, bob: true, subs: true, calibrated: false, sharp: false, grain: true, post: true, dof: 1, blur: 1, voice: true, voiceVol: 1 };
+export const DEFAULT_SETTINGS = { quiet: false, brightness: 1.0, projector: false, master: 0.9, music: 0.6, mouse: 1.0, bigText: false, bob: true, subs: true, calibrated: false, sharp: false, grain: true, post: true, dof: 1, blur: 1, voice: true, voiceVol: 1, orientationMode: 'auto' };
 
 export const S = {
   nick: null,
@@ -10,6 +10,8 @@ export const S = {
   onUnlock: null,
   paused: false,
 };
+if (typeof window !== 'undefined') window.SK_STATE = S;   // for the app's platform scripts (platform/)
+
 
 function readAll() { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } }
 function writeAll(all) { try { localStorage.setItem(KEY, JSON.stringify(all)); return true; } catch (e) { return false; } }

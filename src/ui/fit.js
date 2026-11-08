@@ -111,7 +111,7 @@ export function openFit(part, cb) {
     $('#todo').innerHTML = TODO.map(([t, done], i) => { const d = done(); const first = !d && TODO.slice(0, i).every(x => x[1]()); return `<li class="${d ? 'done' : first ? 'now' : ''}">${d ? '✓ ' : ''}${t}</li>`; }).join('');
     $('#svgwrap').innerHTML = caseSVG(st, cb.fitted, part);
     $('#svgwrap').appendChild(ghost); $('#svgwrap').appendChild(tag); ghost.innerHTML = partIcon(part, st);
-    $('#svgwrap').querySelectorAll('.hot').forEach(h => { h.addEventListener('mouseenter', () => { tag.textContent = NAMES[h.dataset.id]; tag.style.display = 'block'; }); h.addEventListener('mouseleave', () => { tag.style.display = 'none'; }); });
+    $('#svgwrap').querySelectorAll('.hot').forEach(h => { h.addEventListener('mouseenter', () => { tag.textContent = NAMES[h.dataset.id]; tag.style.display = 'block'; }); h.addEventListener('mouseleave', () => { tag.style.display = 'none'; }); h.addEventListener('touchstart', () => { tag.textContent = NAMES[h.dataset.id]; tag.style.display = 'block'; }, { passive: true }); });
     $('#icon').innerHTML = partIcon(part, st);
     $('#svgwrap').querySelectorAll('.hot').forEach(h => h.addEventListener('click', ev => click(h.dataset.id, ev)));
     $('#ground').textContent = st.grounded ? 'Discharged ✓' : 'Touch the metal case';
@@ -240,7 +240,11 @@ export function openFit(part, cb) {
   addEventListener('keydown', keyH);
   const close = () => { removeEventListener('keydown', keyH); closeScreen(el); };
   const wrapEl = $('#svgwrap');
-  wrapEl.addEventListener('mousemove', e => { if (finished) return; const r = wrapEl.getBoundingClientRect(); ghost.style.display = 'block'; ghost.style.left = (e.clientX - r.left + 14) + 'px'; ghost.style.top = (e.clientY - r.top + 14) + 'px'; tag.style.left = (e.clientX - r.left + 14) + 'px'; tag.style.top = (e.clientY - r.top - 30) + 'px'; });
+  const follow = (x, y) => { if (finished) return; const r = wrapEl.getBoundingClientRect(); ghost.style.display = 'block'; ghost.style.left = (x - r.left + 14) + 'px'; ghost.style.top = (y - r.top + 14) + 'px'; tag.style.left = (x - r.left + 14) + 'px'; tag.style.top = (y - r.top - 30) + 'px'; };
+  wrapEl.addEventListener('mousemove', e => follow(e.clientX, e.clientY));
+  // touch: the part follows the finger
+  const tf = e => { const t = e.touches && e.touches[0]; if (t) follow(t.clientX, t.clientY); };
+  wrapEl.addEventListener('touchstart', tf, { passive: true }); wrapEl.addEventListener('touchmove', tf, { passive: true });
   wrapEl.addEventListener('mouseleave', () => { ghost.style.display = 'none'; tag.style.display = 'none'; });
   steps(); render();
   say(part === 'cables' ? 'Last step.' : 'Every mistake makes noise. If you\'re not sure, read the manual.');

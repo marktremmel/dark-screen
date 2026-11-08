@@ -50,7 +50,12 @@ async function boot() {
 export async function switchScene(sc) {
   if (G.scene) { G.scene.exit && G.scene.exit(); }
   stopAllLoops(); clearHUDText(); voReset();
+  // a new scene never starts paused or behind an old menu (on a phone this left the joysticks dead)
+  S.paused = false; document.body.classList.remove('paused', 'in-menu', 'has-screen-overlay'); G.pauseEl = null;
+  if (sc.player) document.getElementById('overlay').innerHTML = '';
+  G.expectUnlock = true; setTimeout(() => { G.expectUnlock = false; }, 800);
   G.scene = sc; G.onScene && G.onScene(sc); await sc.build(); G.afterBuild && G.afterBuild(sc); sc.enter && sc.enter();
+  if (window.SK_TOUCH) { window.SK_TOUCH.resetMovement && window.SK_TOUCH.resetMovement(); window.SK_TOUCH.updateState && window.SK_TOUCH.updateState(); }
 }
 export async function goField() {
   unlock(); hud(false); loading(true, 0, 'Opening the door…');
@@ -88,15 +93,18 @@ export function unlock() { G.expectUnlock = true; unlockPointer(); setTimeout(()
 G.unlock = unlock;
 
 // pause when the pointer is released (Esc) during play
-S.onUnlock = () => { if (!G.expectUnlock && G.scene && G.scene.playing && !anyScreenOpen()) openPause(); };
+S.onUnlock = () => { if (window.SK_TOUCH && window.SK_TOUCH.active) return; if (!G.expectUnlock && G.scene && G.scene.playing && !anyScreenOpen()) openPause(); };
 addEventListener('keydown', e => {
   if (e.code === 'Escape' && G.scene && G.scene.playing && !anyScreenOpen()) { G.expectUnlock = true; unlockPointer(); openPause(); setTimeout(() => { G.expectUnlock = false; }, 300); }
 });
+G.openPause = () => { if (G.scene && G.scene.playing && !anyScreenOpen()) openPause(); };   // the touch Pause button
 function openPause() {
-  S.paused = true; persist();
+  S.paused = true; document.body.classList.add('paused', 'in-menu'); persist();
+  const leave = () => { G.expectUnlock = true; setTimeout(() => { G.expectUnlock = false; }, 500); S.paused = false; document.body.classList.remove('paused', 'in-menu'); G.pauseEl = null; };
   G.pauseEl = pauseScreen({
-    onResume: () => { S.paused = false; G.pauseEl = null; G.scene.resume ? G.scene.resume() : lockPointer(); },
-    onQuit: () => { S.paused = false; G.pauseEl = null; G.scene.quit ? G.scene.quit() : goHub(); },
+    onResume: () => { leave(); G.scene.resume ? G.scene.resume() : lockPointer();
+  if (window.SK_TOUCH) { window.SK_TOUCH.resetMovement && window.SK_TOUCH.resetMovement(); window.SK_TOUCH.updateState && window.SK_TOUCH.updateState(); } },
+    onQuit: () => { leave(); G.scene.quit ? G.scene.quit() : goHub(); },
     quitLabel: G.scene.quitLabel,
   });
 }

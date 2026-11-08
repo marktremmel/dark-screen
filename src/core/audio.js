@@ -8,6 +8,8 @@ export function initAudio() {
   AU.master = AU.ctx.createGain(); AU.master.connect(AU.ctx.destination);
   AU.sfx = AU.ctx.createGain(); AU.sfx.connect(AU.master);
   AU.mus = AU.ctx.createGain(); AU.mus.connect(AU.master);
+  // v1.4 app: touch, haptics and gyro scripts (platform/) talk to the game through these window hooks
+  window.SK_AUDIO = { AU, ve: AU, get ctx() { return AU.ctx; }, resume: resumeAudio, play: (n, o) => play(n, o), music: (n, v, f) => music(n, v, f) };
   return AU.ctx;
 }
 export function resumeAudio() { if (AU.ctx && AU.ctx.state !== 'running') AU.ctx.resume(); }
@@ -19,6 +21,7 @@ export function setVolumes(master, music) {
 // play a one-shot (or loop). pos = [x,y,z] makes it positional.
 export function play(name, o = {}) {
   const buf = A.audio[name]; if (!buf || !AU.ctx) return null;
+  if (window.SK_HAPTICS && window.SK_HAPTICS.onSound) window.SK_HAPTICS.onSound(name, o);
   const src = AU.ctx.createBufferSource(); src.buffer = buf;
   src.loop = !!o.loop; src.playbackRate.value = o.rate || 1;
   const g = AU.ctx.createGain(); g.gain.value = o.vol == null ? 1 : o.vol;

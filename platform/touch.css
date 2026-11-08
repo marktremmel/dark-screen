@@ -1,0 +1,2466 @@
+/* ==========================================================================
+   SÖTÉT KÉPERNYŐ (Dark Screen) - Cross-Platform Touch & Mobile Controls System
+   PSX Retro Horror Aesthetic Touch Layer
+   ========================================================================== */
+
+/* Root Touch Overlay Container */
+#touch-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 38;
+  display: none;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#touch-root.active {
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   Touch Zones (Split Viewport)
+   -------------------------------------------------------------------------- */
+#touch-joy-zone {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50vw;
+  height: 100vh;
+  pointer-events: auto;
+  touch-action: none;
+  z-index: 39;
+}
+
+#touch-look-zone {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 50vw;
+  height: 100vh;
+  pointer-events: auto;
+  touch-action: none;
+  z-index: 39;
+}
+
+/* --------------------------------------------------------------------------
+   Virtual Thumbstick (Dynamic / Floating PSX CRT Styling)
+   -------------------------------------------------------------------------- */
+#touch-joy-base {
+  position: absolute;
+  width: 136px;
+  height: 136px;
+  margin-left: -68px;
+  margin-top: -68px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out, border-color 0.15s ease;
+  background: radial-gradient(circle, rgba(16, 15, 24, 0.78) 0%, rgba(6, 6, 10, 0.88) 100%);
+  border: 2px solid rgba(81, 75, 98, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(143, 227, 201, 0.12),
+              0 10px 30px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 40;
+}
+
+#touch-joy-base::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px dashed rgba(143, 227, 201, 0.25);
+  pointer-events: none;
+}
+
+#touch-joy-base.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#touch-joy-base.sprint {
+  border-color: var(--acc, #8fe3c9);
+  box-shadow: inset 0 0 18px rgba(143, 227, 201, 0.35),
+              0 0 25px rgba(143, 227, 201, 0.4);
+}
+
+#touch-joy-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin-left: -28px;
+  margin-top: -28px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 35% 35%, #353044 0%, #15141e 100%);
+  border: 2px solid rgba(143, 227, 201, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8),
+              0 0 10px rgba(143, 227, 201, 0.25);
+  transform: translate(0, 0);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#touch-joy-knob::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--acc, #8fe3c9);
+  box-shadow: 0 0 8px var(--acc, #8fe3c9);
+}
+
+#touch-joy-base.sprint #touch-joy-knob {
+  border-color: #fff;
+  box-shadow: 0 0 16px var(--acc, #8fe3c9);
+}
+
+/* Subtle resting ring when waiting for touch on left side */
+#touch-joy-anchor {
+  position: absolute;
+  left: calc(36px + env(safe-area-inset-left));
+  bottom: calc(36px + env(safe-area-inset-bottom));
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 1px dashed rgba(81, 75, 98, 0.4);
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity 0.3s ease;
+}
+
+#touch-joy-anchor.hidden {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Action Cluster & Buttons
+   -------------------------------------------------------------------------- */
+#touch-actions {
+  position: absolute;
+  right: calc(22px + env(safe-area-inset-right));
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  pointer-events: none;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.touch-btn {
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--px, "m5x7", monospace);
+  color: var(--ink, #f1ece2);
+  background: var(--plate, rgba(8, 8, 12, 0.86));
+  border: 1px solid var(--line, #3a3644);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.touch-btn:active,
+.touch-btn.pressed {
+  transform: scale(0.92);
+  background: #2a2538;
+  border-color: var(--acc, #8fe3c9);
+  box-shadow: 0 0 18px rgba(143, 227, 201, 0.5);
+}
+
+/* Primary [ USE / INTERACT ] Tactile Arcade Button */
+#touch-btn-use {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  position: relative;
+  background: radial-gradient(circle at 35% 32%, #383146 0%, #1f1b29 55%, #110f17 100%);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65),
+              inset 0 2px 4px rgba(255, 255, 255, 0.22),
+              inset 0 -4px 10px rgba(0, 0, 0, 0.65),
+              0 0 0 1px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  transition: transform 0.08s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#touch-btn-use::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+#touch-btn-use .use-btn-bezel {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 50%, rgba(0, 0, 0, 0.35) 100%);
+  pointer-events: none;
+}
+
+#touch-btn-use .use-btn-core {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 100%;
+  height: 100%;
+}
+
+#touch-btn-use .use-icon-glyph {
+  width: 32px;
+  height: 32px;
+  color: var(--ink, #f1ece2);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease, filter 0.2s ease;
+}
+
+#touch-btn-use .use-btn-text {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  line-height: 1;
+}
+
+#touch-btn-use .use-text-main {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--ink, #f1ece2);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+#touch-btn-use .use-text-key {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 11px;
+  color: var(--mute, #9e978d);
+  letter-spacing: 1px;
+}
+
+/* Tactile Click feedback */
+#touch-btn-use:active,
+#touch-btn-use.pressed {
+  transform: scale(0.91) translateY(2px);
+  background: radial-gradient(circle at 45% 45%, #463d59 0%, #252033 70%, #171422 100%);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.7),
+              inset 0 1px 2px rgba(255, 255, 255, 0.3),
+              inset 0 -2px 6px rgba(0, 0, 0, 0.8);
+}
+
+#touch-btn-use:active .use-icon-glyph,
+#touch-btn-use.pressed .use-icon-glyph {
+  transform: scale(0.88);
+}
+
+/* Active Proximity State (Looking at an interactable object) */
+#touch-btn-use.ready {
+  border-color: var(--acc, #8fe3c9) !important;
+  box-shadow: 0 0 28px rgba(143, 227, 201, 0.75),
+              inset 0 0 14px rgba(143, 227, 201, 0.35),
+              0 8px 24px rgba(0, 0, 0, 0.65) !important;
+  animation: useGlowPulse 1.4s infinite alternate ease-in-out;
+}
+
+#touch-btn-use.ready::before {
+  border-color: rgba(143, 227, 201, 0.6);
+  animation: useBezelRotate 10s linear infinite;
+}
+
+#touch-btn-use.ready::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 2px solid rgba(143, 227, 201, 0.7);
+  opacity: 0;
+  pointer-events: none;
+  animation: useBeaconRing 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+}
+
+#touch-btn-use.ready .use-icon-glyph {
+  color: var(--acc, #8fe3c9);
+  filter: drop-shadow(0 0 8px rgba(143, 227, 201, 0.85));
+  transform: rotate(45deg);
+}
+
+#touch-btn-use.ready .glyph-ring-outer {
+  stroke-dasharray: 4 2;
+  animation: useReticleSpin 6s linear infinite;
+}
+
+#touch-btn-use.ready .use-text-main {
+  color: var(--acc, #8fe3c9);
+  text-shadow: 0 0 10px rgba(143, 227, 201, 0.9);
+}
+
+#touch-btn-use.ready .use-text-key {
+  color: var(--acc, #8fe3c9);
+}
+
+@keyframes useGlowPulse {
+  0% {
+    box-shadow: 0 0 16px rgba(143, 227, 201, 0.4), inset 0 0 8px rgba(143, 227, 201, 0.2);
+    border-color: rgba(143, 227, 201, 0.65);
+  }
+  100% {
+    box-shadow: 0 0 34px rgba(143, 227, 201, 0.9), inset 0 0 16px rgba(143, 227, 201, 0.45);
+    border-color: var(--acc, #8fe3c9);
+  }
+}
+
+@keyframes useBezelRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes useReticleSpin {
+  0% { transform-origin: 24px 24px; transform: rotate(0deg); }
+  100% { transform-origin: 24px 24px; transform: rotate(360deg); }
+}
+
+@keyframes useBeaconRing {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* Satellite Action Grid */
+#touch-satellites {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.touch-btn-sub {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  font-size: 20px;
+  display: none; /* revealed contextually */
+}
+
+.touch-btn-sub.visible {
+  display: flex;
+}
+
+#touch-btn-scale-down,
+#touch-btn-scale-up {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--acc, #8fe3c9);
+}
+
+/* Torch Button Active Glow */
+#touch-btn-torch.active-torch {
+  border-color: var(--warn, #f0b65a);
+  color: #fff9e6;
+  box-shadow: 0 0 16px rgba(240, 182, 90, 0.65), inset 0 0 8px rgba(240, 182, 90, 0.3);
+}
+
+/* Badger Lens (Q) Active Crimson Glow & Pulse */
+#touch-btn-drop.active-lens,
+#touch-btn-q.active-lens {
+  border-color: #ff3355 !important;
+  background: radial-gradient(circle at 35% 35%, #4a0d18 0%, #1a0408 100%) !important;
+  color: #ff9a8a !important;
+  box-shadow: 0 0 18px rgba(255, 51, 85, 0.85), inset 0 0 8px rgba(255, 51, 85, 0.4) !important;
+  animation: lensPulse 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes lensPulse {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 51, 85, 0.4), inset 0 0 6px rgba(255, 51, 85, 0.2);
+    border-color: rgba(255, 51, 85, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 24px rgba(255, 51, 85, 0.95), inset 0 0 12px rgba(255, 51, 85, 0.5);
+    border-color: #ff4d6d;
+  }
+}
+
+/* In-Game Phone (P) Unread Messages Waiting Notification Pulse */
+#touch-btn-app.has-unread {
+  border-color: var(--warn, #f0b65a) !important;
+  box-shadow: 0 0 14px rgba(240, 182, 90, 0.75) !important;
+  animation: phoneUnreadPulse 1.3s infinite alternate ease-in-out;
+}
+
+@keyframes phoneUnreadPulse {
+  0% {
+    box-shadow: 0 0 8px rgba(240, 182, 90, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(240, 182, 90, 0.9);
+  }
+}
+
+/* Directly Tappable Objective */
+#objective {
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+#objective:active {
+  transform: translateX(-50%) scale(0.97);
+}
+
+/* --------------------------------------------------------------------------
+   Top-Right Pause Button
+   -------------------------------------------------------------------------- */
+#touch-pause-btn {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  z-index: 52;
+  font-size: 18px;
+  letter-spacing: -1px;
+}
+
+#touch-pause-btn .icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Top-Right Gyro Quick Recalibration Button
+   -------------------------------------------------------------------------- */
+.sk-btn-gyro-quick {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  right: calc(68px + env(safe-area-inset-right));
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(14, 14, 20, 0.78);
+  border: 1px solid rgba(143, 227, 201, 0.35);
+  color: var(--acc, #8fe3c9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 52;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, border-color 0.2s ease, background-color 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sk-btn-gyro-quick:active {
+  transform: scale(0.92);
+  background: rgba(143, 227, 201, 0.25);
+}
+
+.sk-btn-gyro-quick.calibrated {
+  background: rgba(143, 227, 201, 0.45);
+  border-color: #8fe3c9;
+  box-shadow: 0 0 12px rgba(143, 227, 201, 0.8);
+}
+
+/* --------------------------------------------------------------------------
+   Directly Tappable Prompt (#prompt) Enhancements
+   -------------------------------------------------------------------------- */
+#prompt {
+  pointer-events: auto !important;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#prompt:hover {
+  border-color: var(--acc, #8fe3c9);
+}
+
+#prompt:active,
+#prompt.touched {
+  transform: translateX(-50%) scale(0.95) !important;
+  border-color: var(--acc, #8fe3c9) !important;
+  box-shadow: 0 0 20px rgba(143, 227, 201, 0.6) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Viewport & Touch Ergonomic Tweaks
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px), (pointer: coarse) {
+  :root {
+    --fs: clamp(14px, 3.8vw, 17px) !important;
+  }
+
+  /* Compact prompt banner */
+  #prompt {
+    padding: 7px 14px 7px 10px !important;
+    font-size: calc(var(--fs, 20px) * 0.88) !important;
+  }
+}
+
+/* Dedicated Portrait Mode Non-Colliding Layout (Mobile Phones) */
+@media (orientation: portrait), (max-width: 600px) {
+  :root {
+    --fs: clamp(13px, 3.5vw, 16px) !important;
+  }
+
+  /* 1. Pause Button: Sleek in top-right safe area */
+  #touch-pause-btn {
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    right: calc(10px + env(safe-area-inset-right)) !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 8px !important;
+  }
+
+  /* 2. Objective Banner: Anchored across top row to the left of Pause (Zero Overlaps) */
+  #objective {
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    left: calc(10px + env(safe-area-inset-left)) !important;
+    right: calc(54px + env(safe-area-inset-right)) !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    font-size: 11.5px !important;
+    line-height: 1.25 !important;
+    padding: 6px 10px !important;
+    border-radius: 7px !important;
+    text-align: left !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  /* 3. Noise Eye & Battery: Stacked below Pause Button on the right */
+  #status {
+    top: calc(52px + env(safe-area-inset-top)) !important;
+    right: calc(10px + env(safe-area-inset-right)) !important;
+    gap: 5px !important;
+    transform: scale(0.82) !important;
+    transform-origin: top right !important;
+  }
+
+  /* HUD layer above touch controls so checklist and prompt are clickable */
+  #hud {
+    z-index: 50 !important;
+  }
+
+  /* 4. Checklist: Positioned below Objective on the left, compact & scrollable */
+  #checklist {
+    z-index: 55 !important;
+    pointer-events: auto !important;
+    top: calc(54px + env(safe-area-inset-top)) !important;
+    left: calc(10px + env(safe-area-inset-left)) !important;
+    min-width: 0 !important;
+    max-width: min(200px, 52vw) !important;
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+    border-radius: 7px !important;
+    max-height: 34vh !important;
+    overflow-y: auto !important;
+  }
+
+  #checklist .h {
+    font-size: 12px !important;
+    margin-bottom: 2px !important;
+  }
+
+  #checklist .row {
+    font-size: 10.5px !important;
+    gap: 3px !important;
+    margin-top: 1.5px !important;
+  }
+
+  /* Hide secondary Hungarian translations in portrait checklist to prevent multi-line bloating */
+  #checklist .hu {
+    display: none !important;
+  }
+
+  /* 5. Captions / Speech Bubbles: Compact, non-intrusive, scrollable */
+  #captions {
+    bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+    max-width: 92vw !important;
+  }
+
+  #captions .cap {
+    font-size: 12.5px !important;
+    line-height: 1.35 !important;
+    padding: 6px 12px !important;
+    max-height: 22vh !important;
+    overflow-y: auto !important;
+    border-radius: 8px !important;
+    background: rgba(8, 8, 14, 0.88) !important;
+    border: 1px solid rgba(81, 75, 98, 0.5) !important;
+    backdrop-filter: blur(4px) !important;
+  }
+
+  /* 6. Carrying Banner: Centered cleanly above action controls */
+  #carry {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-width: 90vw !important;
+    text-align: center !important;
+    font-size: 11.5px !important;
+    padding: 5px 12px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+/* ==========================================================================
+   VELA Home App (.tablet) - Mobile & Portrait Responsive Layout
+   ========================================================================== */
+@media (max-width: 800px), (orientation: portrait) {
+  .tablet {
+    width: 96vw !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
+    border-width: 5px !important;
+    border-radius: 14px !important;
+    font-size: 0.8em !important;
+    margin: auto !important;
+  }
+
+  .tbar {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+  }
+
+  .tbar b {
+    font-size: 14px !important;
+  }
+
+  .tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    flex: 1 !important;
+  }
+
+  .tlist {
+    flex: 0 0 auto !important;
+    max-height: 36% !important;
+    padding: 8px !important;
+    gap: 6px !important;
+    overflow-y: auto !important;
+    border-bottom: 2px solid #cfc9bd !important;
+  }
+
+  .tdev {
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    font-size: 12.5px !important;
+  }
+
+  .tdev small {
+    font-size: 10px !important;
+  }
+
+  .tmain {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 10px 14px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .tmain h3 {
+    font-size: 15px !important;
+    margin: 4px 0 2px !important;
+  }
+
+  .ttabs {
+    gap: 4px !important;
+    margin: 6px 0 !important;
+  }
+
+  .ttabs .btn {
+    padding: 4px 8px !important;
+    font-size: 11.5px !important;
+  }
+
+  .tset {
+    gap: 8px !important;
+    padding: 6px 0 !important;
+    font-size: 11.5px !important;
+  }
+
+  .tlog {
+    font-size: 11px !important;
+  }
+
+  .tlog td {
+    padding: 4px 6px !important;
+  }
+}
+
+/* ==========================================================================
+   Monitor & Computer Setup (.monitor, .os, .dlg) - Mobile Screen Adaptation
+   ========================================================================== */
+@media (max-width: 800px), (orientation: portrait) {
+  .monitor {
+    width: 95vw !important;
+    aspect-ratio: auto !important;
+    height: auto !important;
+    min-height: min(400px, 75vh) !important;
+    max-height: 88vh !important;
+    border-width: 6px !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    font-size: 0.85em !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .os {
+    position: relative !important;
+    min-height: 360px !important;
+    padding: 12px 6px !important;
+    border-radius: 6px !important;
+  }
+
+  .os .dlg {
+    max-width: 94% !important;
+    padding: 16px 18px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .os .dlg h4 {
+    font-size: 1.15em !important;
+    line-height: 1.25 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .os .dlg p {
+    font-size: 0.9em !important;
+    line-height: 1.35 !important;
+  }
+
+  .os .dlg .btns {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+    width: 100% !important;
+  }
+
+  .os .dlg .btns .btn {
+    width: 100% !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  .os .dlg #later {
+    padding: 8px 0 !important;
+    font-size: 13px !important;
+    text-align: center !important;
+    display: block !important;
+  }
+}
+
+/* ==========================================================================
+   PHASE 3: CINEMATIC ARTWORK LOADING SCREEN & PSX CRT VIGNETTE
+   ========================================================================== */
+
+#loading {
+  position: fixed;
+  inset: 0;
+  background: #050508;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  overflow: hidden;
+  user-select: none;
+}
+
+#loading.hidden {
+  display: none !important;
+}
+
+/* Atmospheric Artwork Backdrop Container */
+.loading-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Dual Crossfading Artwork Layers with Ken Burns Motion */
+.loading-art {
+  position: absolute;
+  inset: -6%;
+  width: 112%;
+  height: 112%;
+  background-size: cover;
+  background-position: center center;
+  opacity: 0;
+  transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  filter: brightness(0.68) contrast(1.12);
+  will-change: transform, opacity;
+}
+
+.loading-art.active {
+  opacity: 1;
+  animation: kenBurnsPan 20s ease-in-out infinite alternate;
+}
+
+@keyframes kenBurnsPan {
+  0% {
+    transform: scale(1.02) translate3d(-1.5%, -1%, 0);
+  }
+  50% {
+    transform: scale(1.08) translate3d(1%, 0.8%, 0);
+  }
+  100% {
+    transform: scale(1.05) translate3d(2%, -1.2%, 0);
+  }
+}
+
+/* Deep Liminal Vignette */
+.loading-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(7, 7, 10, 0.42) 0%,
+    rgba(7, 7, 10, 0.82) 58%,
+    rgba(4, 4, 7, 0.98) 95%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* PSX Scanlines and Cathode Glow */
+.loading-scanlines {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.38) 0px, rgba(0, 0, 0, 0.38) 2px, transparent 2px, transparent 4px),
+    repeating-linear-gradient(90deg, rgba(143, 227, 201, 0.02) 0px, rgba(143, 227, 201, 0.02) 1px, transparent 1px, transparent 38px);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Rolling Cathode Ray Tube Beam Line */
+#loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(143, 227, 201, 0.05) 50%,
+    rgba(143, 227, 201, 0.14) 51%,
+    transparent 55%
+  );
+  background-size: 100% 180%;
+  animation: crtBeamRoll 6s linear infinite;
+  pointer-events: none;
+  z-index: 4;
+}
+
+@keyframes crtBeamRoll {
+  0% {
+    background-position: 0 -180%;
+  }
+  100% {
+    background-position: 0 180%;
+  }
+}
+
+/* Loading Content Foreground HUD */
+.loading-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  max-width: 90vw;
+}
+
+/* Retro PSX Horror Title with Phosphor Flicker */
+#loading .ltitle {
+  position: relative;
+  font-family: var(--px, "m5x7", monospace);
+  font-size: clamp(48px, 9vw, 84px);
+  letter-spacing: 6px;
+  color: var(--ink, #f1ece2);
+  text-shadow: 0 0 15px rgba(143, 227, 201, 0.45), 0 0 32px rgba(143, 227, 201, 0.22);
+  animation: phosphorGlow 3.5s infinite ease-in-out alternate;
+  margin: 0;
+  line-height: 1;
+}
+
+@keyframes phosphorGlow {
+  0% {
+    text-shadow: 0 0 10px rgba(143, 227, 201, 0.35), 0 0 20px rgba(143, 227, 201, 0.15);
+    opacity: 0.94;
+  }
+  48% {
+    opacity: 0.98;
+  }
+  50% {
+    opacity: 0.88;
+  }
+  52% {
+    opacity: 1;
+  }
+  100% {
+    text-shadow: 0 0 22px rgba(143, 227, 201, 0.65), 0 0 45px rgba(143, 227, 201, 0.3);
+    opacity: 1;
+  }
+}
+
+/* Context Area Stage Badge */
+.loading-stage {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: clamp(16px, 3.5vw, 24px);
+  letter-spacing: 3px;
+  color: var(--acc, #8fe3c9);
+  text-shadow: 0 0 10px rgba(143, 227, 201, 0.6);
+  background: rgba(10, 14, 13, 0.75);
+  border: 1px solid rgba(143, 227, 201, 0.35);
+  border-radius: 4px;
+  padding: 4px 18px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  min-height: 28px;
+}
+
+/* Loading Progress Bar Container */
+#lbar {
+  position: relative;
+  width: min(460px, 78vw);
+  height: 12px;
+  background: rgba(16, 14, 22, 0.88);
+  border: 1px solid rgba(143, 227, 201, 0.4);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8), inset 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Glowing Progress Fill with Phosphor Pulse */
+#lfill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2b6153 0%, var(--acc, #8fe3c9) 100%);
+  border-radius: 4px;
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 0 14px var(--acc, #8fe3c9);
+  position: relative;
+}
+
+#lfill::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background: #ffffff;
+  filter: blur(2px);
+  opacity: 0.85;
+}
+
+/* Loading Status Message */
+#lmsg {
+  position: relative;
+  font-family: var(--px, "m5x7", monospace);
+  font-size: calc(var(--fs, 22px) * 0.92);
+  letter-spacing: 2px;
+  color: var(--mute, #b9b2a6);
+  text-transform: uppercase;
+}
+
+/* Atmospheric Lore Hint / Quote */
+.loading-quote {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: clamp(15px, 2.8vw, 21px);
+  letter-spacing: 1.5px;
+  color: #cfc8be;
+  max-width: min(540px, 85vw);
+  line-height: 1.35;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95);
+  opacity: 0.92;
+  font-style: italic;
+  min-height: 24px;
+}
+
+/* ==========================================================================
+   PHASE 3: SMART SUGGESTION CHIPS ("AUTOCORRECT" ALTERNATIVE)
+   ========================================================================== */
+
+.sk-keyboard-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100005 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sk-suggest-container.hidden,
+.sk-vkeyboard.hidden,
+.sk-expand-pill.hidden,
+.sk-numpad-container.hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.sk-keyboard-open .sk-suggest-container {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.sk-keyboard-open #touch-actions,
+body.sk-keyboard-open #touch-joy-zone,
+body.sk-keyboard-open #touch-joy-anchor {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.sk-keyboard-open .tyb {
+  bottom: calc(260px + max(env(safe-area-inset-bottom, 0px), 16px)) !important;
+  z-index: 100007 !important;
+}
+
+/* Word Suggestion Chips Bar (Docked above typing input) */
+.sk-suggest-container {
+  pointer-events: auto;
+  position: fixed;
+  left: 50%;
+  bottom: calc(18% + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: var(--plate, rgba(8, 8, 12, 0.92));
+  border: 1px solid var(--line, #3a3644);
+  border-radius: 12px;
+  padding: 10px 14px;
+  width: min(620px, 94vw);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.sk-suggest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(81, 75, 98, 0.4);
+  padding-bottom: 6px;
+}
+
+.sk-suggest-title {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  color: var(--acc, #8fe3c9);
+}
+
+.sk-btn-micro {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 14px;
+  color: var(--mute, #b9b2a6);
+  background: rgba(30, 28, 40, 0.7);
+  border: 1px solid #48435a;
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.sk-btn-micro:hover,
+.sk-btn-micro:active {
+  color: #fff;
+  border-color: var(--acc, #8fe3c9);
+}
+
+.sk-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+/* Individual Word / Action Chip */
+.sk-chip {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 19px;
+  letter-spacing: 1px;
+  color: var(--ink, #f1ece2);
+  background: rgba(26, 24, 35, 0.95);
+  border: 1px solid #4a455c;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  touch-action: manipulation;
+}
+
+.sk-chip:hover {
+  background: #2e2a3f;
+  border-color: var(--acc, #8fe3c9);
+}
+
+.sk-chip:active {
+  transform: scale(0.94);
+  background: #3a3450;
+  box-shadow: 0 0 14px rgba(143, 227, 201, 0.45);
+}
+
+/* Highlight the next word in the sequence */
+.sk-chip.current {
+  border-color: var(--acc, #8fe3c9);
+  color: #ffffff;
+  background: rgba(44, 90, 77, 0.6);
+  box-shadow: 0 0 12px rgba(143, 227, 201, 0.35);
+  animation: chipPulse 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes chipPulse {
+  0% { box-shadow: 0 0 6px rgba(143, 227, 201, 0.25); }
+  100% { box-shadow: 0 0 16px rgba(143, 227, 201, 0.65); }
+}
+
+/* Completed word */
+.sk-chip.done {
+  opacity: 0.45;
+  border-color: #28443b;
+  text-decoration: line-through;
+}
+
+/* ==========================================================================
+   PHASE 3: ON-SCREEN VIRTUAL KEYBOARD (QWERTY PSX TERMINAL)
+   ========================================================================== */
+
+.sk-vkeyboard {
+  pointer-events: auto;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100006 !important;
+  background: rgba(10, 9, 14, 0.96);
+  border-top: 1px solid var(--line, #3a3644);
+  padding: 8px 8px calc(10px + max(env(safe-area-inset-bottom, 0px), 12px));
+  box-shadow: 0 -10px 35px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: slideUpFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  touch-action: manipulation;
+  box-sizing: border-box;
+}
+
+.sk-vk-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 4px;
+}
+
+.sk-vk-title {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--mute, #b9b2a6);
+}
+
+.sk-vk-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sk-vk-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.sk-vk-key {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 20px;
+  color: var(--ink, #f1ece2);
+  background: #1e1c28;
+  border: 1px solid #3c384a;
+  border-radius: 6px;
+  min-width: 28px;
+  height: 42px;
+  flex: 1;
+  max-width: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 3px 0 #0d0c14;
+  transition: transform 0.06s ease, background 0.08s ease;
+  user-select: none;
+}
+
+.sk-vk-key:active,
+.sk-vk-key.active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0d0c14;
+  background: #353046;
+  border-color: var(--acc, #8fe3c9);
+}
+
+.sk-vk-wide {
+  max-width: 80px;
+  flex: 1.4;
+  font-size: 16px;
+  background: #252233;
+}
+
+.sk-vk-space {
+  max-width: 280px;
+  flex: 4;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+.sk-vk-action {
+  max-width: 80px;
+  flex: 1.4;
+  font-size: 16px;
+  background: #23483e;
+  border-color: #3b7364;
+  color: #dffff5;
+}
+
+/* Portrait / Mobile Narrow Screen Rules */
+@media (orientation: portrait), (max-width: 600px) {
+  .sk-vkeyboard {
+    height: auto !important;
+    max-height: 52dvh !important;
+    padding: 6px 4px calc(10px + max(env(safe-area-inset-bottom, 0px), 16px)) !important;
+    gap: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  .sk-vk-topbar {
+    padding: 0 4px 2px !important;
+  }
+
+  .sk-vk-title {
+    font-size: 13px !important;
+    letter-spacing: 1px !important;
+  }
+
+  .sk-vk-grid {
+    gap: 3px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 2px !important;
+    box-sizing: border-box !important;
+  }
+
+  .sk-vk-row {
+    gap: 2.5px !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .sk-vk-key {
+    height: 38px !important;
+    min-width: 0 !important;
+    font-size: 17px !important;
+    padding: 0 !important;
+    border-radius: 5px !important;
+    box-shadow: 0 2px 0 #0d0c14 !important;
+  }
+
+  .sk-vk-space {
+    flex: 3.5 !important;
+    min-width: 100px !important;
+    max-width: 220px !important;
+    font-size: 14px !important;
+    letter-spacing: 2px !important;
+  }
+
+  .sk-vk-wide {
+    flex: 1.2 !important;
+    min-width: 42px !important;
+    max-width: 60px !important;
+    font-size: 13.5px !important;
+  }
+
+  .sk-vk-action {
+    flex: 1.3 !important;
+    min-width: 46px !important;
+    max-width: 68px !important;
+    font-size: 13.5px !important;
+  }
+
+  /* Compact Suggestion Chips Bar in Portrait */
+  .sk-suggest-container {
+    bottom: calc(14% + env(safe-area-inset-bottom)) !important;
+    width: min(500px, 95vw) !important;
+    padding: 8px 10px !important;
+    gap: 6px !important;
+  }
+
+  .sk-chips-row {
+    max-height: 100px !important;
+    gap: 6px !important;
+  }
+
+  .sk-chip {
+    font-size: 16px !important;
+    padding: 5px 10px !important;
+  }
+}
+
+/* ==========================================================================
+   PHASE 3: RETRO PIN & NUMPAD ACCESSORY
+   ========================================================================== */
+
+.sk-numpad-container {
+  pointer-events: auto;
+  background: var(--plate, rgba(8, 8, 12, 0.94));
+  border: 1px solid var(--line, #3a3644);
+  border-radius: 14px;
+  padding: 14px 16px;
+  width: 250px;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  user-select: none;
+  animation: slideUpFade 0.15s ease-out;
+  z-index: 65;
+}
+
+@media (max-width: 600px) {
+  .sk-numpad-container {
+    position: fixed !important;
+    left: 50% !important;
+    bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+    top: auto !important;
+    width: min(320px, 92vw);
+  }
+}
+
+.sk-numpad-title {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  color: var(--acc, #8fe3c9);
+  text-align: center;
+}
+
+.sk-numpad-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.sk-nchip {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 14px;
+  color: var(--warn, #f0b65a);
+  background: rgba(36, 30, 20, 0.8);
+  border: 1px solid #635032;
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.sk-nchip:active {
+  background: #503f25;
+  border-color: #ffd88a;
+  transform: scale(0.95);
+}
+
+.sk-numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.sk-np-key {
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 22px;
+  color: var(--ink, #f1ece2);
+  background: #1c1a26;
+  border: 1px solid #3d384c;
+  border-radius: 8px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #0d0c14;
+  transition: transform 0.06s ease, background 0.08s ease;
+}
+
+.sk-np-key:active,
+.sk-np-key.active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0d0c14;
+  background: #322d42;
+  border-color: var(--acc, #8fe3c9);
+}
+
+.sk-np-submit {
+  background: #254c41;
+  border-color: #3f7b6b;
+  color: #e2fff7;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Collapsible Checklist & Adaptive HUD Layout
+   -------------------------------------------------------------------------- */
+#checklist {
+  z-index: 55 !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+#checklist {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+#checklist .h {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#checklist .h::after {
+  content: " ▾";
+  font-size: 0.9em;
+  padding: 1px 6px;
+  background: rgba(143, 227, 201, 0.18);
+  border: 1px solid rgba(143, 227, 201, 0.35);
+  border-radius: 4px;
+  margin-left: 6px;
+  color: var(--acc, #8fe3c9);
+}
+
+#checklist.sk-checklist-collapsed {
+  cursor: pointer !important;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 8px 14px !important;
+  min-width: 0 !important;
+  min-height: 38px !important;
+  max-width: fit-content !important;
+  background: rgba(8, 8, 14, 0.92) !important;
+  border-color: rgba(143, 227, 201, 0.55) !important;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+#checklist.sk-checklist-collapsed .row {
+  display: none !important;
+}
+
+#checklist.sk-checklist-collapsed .h::after {
+  content: " ▸";
+  color: var(--warn, #f0b65a);
+  background: rgba(240, 182, 90, 0.18);
+  border-color: rgba(240, 182, 90, 0.35);
+}
+  color: var(--warn, #f0b65a);
+  background: rgba(240, 182, 90, 0.18);
+  border-color: rgba(240, 182, 90, 0.35);
+}
+
+/* Minimized Floating Quick-Type Pill */
+.sk-expand-pill {
+  pointer-events: auto;
+  position: fixed;
+  left: 50%;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 66;
+  font-family: var(--px, "m5x7", monospace);
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--acc, #8fe3c9);
+  background: rgba(10, 10, 18, 0.9);
+  border: 1px solid var(--acc, #8fe3c9);
+  border-radius: 20px;
+  padding: 6px 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 12px rgba(143, 227, 201, 0.3);
+  animation: slideUpFade 0.2s ease;
+  touch-action: manipulation;
+}
+
+.sk-expand-pill:active {
+  transform: translateX(-50%) scale(0.95);
+  background: rgba(20, 20, 32, 0.95);
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Landscape Viewport Adaptations (Under 520px height)
+   -------------------------------------------------------------------------- */
+@media (max-height: 520px) and (orientation: landscape) {
+  :root {
+    --fs: clamp(12px, 3.2vh, 15px) !important;
+  }
+
+  /* Compact HUD Checklist */
+  #checklist {
+    left: calc(10px + env(safe-area-inset-left)) !important;
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    padding: 6px 10px !important;
+    min-width: 0 !important;
+    max-width: 34vw !important;
+    font-size: 11px !important;
+    border-radius: 6px !important;
+  }
+
+  #checklist .h {
+    font-size: 13px !important;
+    margin-bottom: 2px !important;
+  }
+
+  #checklist .row {
+    font-size: 10.5px !important;
+    gap: 4px !important;
+    margin-top: 2px !important;
+  }
+
+  /* Hide verbose secondary translations to free up screen real estate */
+  #checklist .hu {
+    display: none !important;
+  }
+
+  /* Compact Objectives */
+  #objective {
+    top: calc(6px + env(safe-area-inset-top)) !important;
+    padding: 4px 12px !important;
+    font-size: 11.5px !important;
+    max-width: 44vw !important;
+    border-radius: 6px !important;
+  }
+
+  /* Compact Captions / Subtitles */
+  #captions {
+    bottom: calc(5vh + env(safe-area-inset-bottom)) !important;
+    max-width: 82vw !important;
+  }
+
+  #captions .cap {
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Compact Toasts */
+  #toasts {
+    top: calc(52px + env(safe-area-inset-top)) !important;
+    right: calc(12px + env(safe-area-inset-right)) !important;
+    width: min(260px, 34vw) !important;
+  }
+
+  .toast {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Compact Floating Creature Badges (.tyl) */
+  .tyl {
+    pointer-events: auto !important;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .tyl .say {
+    font-size: 11.5px !important;
+    padding: 3px 8px !important;
+    max-width: 240px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .tyl .p {
+    font-size: 18px !important;
+    padding: 2px 8px !important;
+    border-radius: 5px !important;
+  }
+
+  /* Compact Word Suggestion Chips Bar */
+  .sk-suggest-container {
+    bottom: calc(4px + env(safe-area-inset-bottom)) !important;
+    width: min(540px, 94vw) !important;
+    padding: 6px 10px !important;
+    gap: 5px !important;
+    border-radius: 10px !important;
+  }
+
+  .sk-suggest-header {
+    padding-bottom: 4px !important;
+  }
+
+  .sk-suggest-title {
+    font-size: 12px !important;
+  }
+
+  .sk-chips-row {
+    gap: 6px !important;
+    max-height: 80px !important;
+    padding: 2px !important;
+  }
+
+  .sk-chip {
+    font-size: 15px !important;
+    padding: 4px 9px !important;
+    border-radius: 6px !important;
+  }
+
+  /* Compact Virtual Keyboard */
+  .sk-vkeyboard {
+    height: 165px !important;
+  }
+
+  .sk-vk-key {
+    height: 32px !important;
+    font-size: 15px !important;
+    border-radius: 5px !important;
+  }
+}
+
+/* ==========================================================================
+   Cross-Episode Mobile & Touch Viewport Adaptations
+   ========================================================================== */
+@media (max-width: 900px), (pointer: coarse) {
+  /* Episode 1: BIOS & OS Setup / Camera Permission Dialog */
+  .monitor {
+    width: 96vw !important;
+    max-width: 100% !important;
+    min-height: 420px !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    border: 8px solid #1b1a20 !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .monitor #post {
+    overflow-y: auto !important;
+    max-height: 80vh !important;
+    font-size: 0.85em !important;
+  }
+
+  .os {
+    position: relative !important;
+    min-height: 360px !important;
+    padding: 8px !important;
+  }
+
+  .os .dlg {
+    padding: 16px 14px !important;
+    max-width: 98% !important;
+    font-size: 0.88em !important;
+    box-sizing: border-box !important;
+  }
+
+  .os .dlg h4 {
+    font-size: 1.1em !important;
+    margin-bottom: 8px !important;
+  }
+
+  .os .dlg p {
+    font-size: 0.88em !important;
+    line-height: 1.4 !important;
+    margin: 8px 0 !important;
+  }
+
+  .os .dlg .btns {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+  }
+
+  .os .dlg .btns .btn {
+    width: 100% !important;
+    padding: 10px !important;
+    font-size: 0.95em !important;
+  }
+
+  /* Episode 2: VELA Home Tablet App */
+  .tablet {
+    width: 98vw !important;
+    max-width: 100% !important;
+    height: 94vh !important;
+    max-height: 94vh !important;
+    border: 4px solid #1b1a20 !important;
+    border-radius: 12px !important;
+    font-size: 0.78em !important;
+  }
+
+  .tbar {
+    padding: 6px 10px !important;
+    gap: 8px !important;
+  }
+
+  .tbody {
+    grid-template-columns: 140px 1fr !important;
+  }
+
+  .tlist {
+    padding: 6px !important;
+    gap: 4px !important;
+  }
+
+  .tdev {
+    padding: 6px 8px !important;
+    font-size: 0.88em !important;
+  }
+
+  .tmain {
+    padding: 8px 10px !important;
+  }
+
+  .tlog {
+    font-size: 0.82em !important;
+  }
+
+  .tlog td {
+    padding: 4px 6px !important;
+  }
+
+  .tset {
+    padding: 6px 0 !important;
+    gap: 8px !important;
+  }
+
+  /* Episode 3 & 5: Smartphone interface side-by-side layout on landscape mobile */
+  .ep3 {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 16px !important;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px)) !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* Smartphone Interface on Mobile Devices */
+  .screen:has(.phone),
+  .screen:has(.phone3),
+  #overlay:has(.phone),
+  #overlay:has(.phone3) {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #0d0d12 !important;
+  }
+
+  .phone,
+  .phone3 {
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    max-width: min(390px, 48vw) !important;
+    height: calc(100dvh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    aspect-ratio: 9 / 16 !important;
+    border: 6px solid #23212d !important;
+    border-radius: 26px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8) !important;
+    background: #0d0d12 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    z-index: 10 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .phone .bar,
+  .phone3 .pbar {
+    padding: 6px 14px 6px 14px !important;
+    font-size: 13px !important;
+    background: #111018 !important;
+    border-bottom: 1px solid #1f1d28 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .phone .appbar {
+    padding: 8px 14px !important;
+    font-size: 15px !important;
+    background: #15141f !important;
+    border-bottom: 1px solid #23212d !important;
+    flex-shrink: 0 !important;
+  }
+
+  .phone .msgs {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+
+  .phone .foot {
+    padding: 10px 14px !important;
+    background: #111018 !important;
+    border-top: 1px solid #1f1d28 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .ep3 .notes3,
+  .ep5 .notes3,
+  .ep4 .notes3 {
+    flex: 1 !important;
+    max-width: min(380px, 46vw) !important;
+    height: calc(100dvh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    z-index: 15 !important;
+  }
+
+  /* Episode 4: Laptop Desktop UI */
+  .ep4 {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px !important;
+    gap: 12px !important;
+  }
+
+  .laptop4 {
+    width: 96vw !important;
+    max-width: 100% !important;
+    height: 68vh !important;
+    min-height: 440px !important;
+    border: 6px solid #1f1e26 !important;
+    border-top-width: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Episode 6 / 9: Media analysis, frames & audio scrubbing */
+  .loopa6 {
+    flex-direction: column !important;
+  }
+
+  .loopa6 .player6 {
+    width: 100% !important;
+  }
+
+  .frames6 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .frames6 .found6 {
+    grid-column: 1 !important;
+  }
+
+  .ctl6 input[type="range"] {
+    height: 36px !important;
+    touch-action: manipulation;
+  }
+
+  /* Interactive Jargon Terms & Tooltip */
+  .term {
+    touch-action: manipulation;
+    min-height: 24px;
+    padding: 1px 4px;
+    border-bottom-width: 2px;
+  }
+
+  #tooltip {
+    max-width: min(340px, 90vw) !important;
+    font-size: 0.85em !important;
+    padding: 8px 12px !important;
+  }
+}
+
+/* Specific adjustments for portrait mode (e.g. iPads / tablets) */
+@media (orientation: portrait) {
+  .ep3 {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px)) 8px !important;
+  }
+
+  .ep3 .phone,
+  .ep3 .phone3 {
+    max-width: min(390px, 92vw) !important;
+    height: 60vh !important;
+    max-height: 520px !important;
+    margin: 6px auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  .ep3 .notes3,
+  .ep5 .notes3,
+  .ep4 .notes3 {
+    width: min(440px, 96vw) !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 6px auto !important;
+  }
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .tablet .tbody {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .tablet .tlist {
+    max-height: 110px !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    flex-shrink: 0 !important;
+    padding: 4px !important;
+  }
+
+  .tablet .tdev {
+    min-width: 115px !important;
+    flex: none !important;
+    padding: 4px 6px !important;
+  }
+
+  .tablet .tmain {
+    flex: 1 !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Overlay Dialogs & Settings Modal UI Overhaul
+   ========================================================================== */
+
+#overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  pointer-events: none !important;
+}
+
+.screen {
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: max(16px, env(safe-area-inset-top, 16px)) max(12px, env(safe-area-inset-right, 12px)) max(16px, env(safe-area-inset-bottom, 16px)) max(12px, env(safe-area-inset-left, 12px)) !important;
+  background: rgba(5, 5, 10, 0.88) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  z-index: 10001 !important;
+  box-sizing: border-box !important;
+}
+
+/* Hide HUD elements & looking cursor crosshair when overlay modal or menu is open */
+#crosshair {
+  transition: opacity 0.1s ease;
+}
+
+body.has-screen-overlay #crosshair,
+body.in-menu #crosshair,
+body.paused #crosshair,
+body:has(#overlay > *) #crosshair,
+body:has(#overlay:not(:empty)) #crosshair,
+body:has(.screen) #crosshair,
+#hud.hidden #crosshair,
+#hud.overlay-hidden #crosshair {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.has-screen-overlay #hud,
+body.in-menu #hud,
+body.paused #hud,
+body:has(#overlay > *) #hud,
+body:has(#overlay:not(:empty)) #hud,
+body:has(.screen) #hud,
+#hud.overlay-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+body.has-screen-overlay #prompt,
+body.in-menu #prompt,
+body.paused #prompt,
+body:has(#overlay > *) #prompt,
+body:has(#overlay:not(:empty)) #prompt,
+body:has(.screen) #prompt,
+#hud.overlay-hidden #prompt {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.has-screen-overlay #touch-root,
+body.in-menu #touch-root,
+body.paused #touch-root,
+body:has(#overlay > *) #touch-root,
+body:has(.screen) #touch-root {
+  pointer-events: none !important;
+  display: none !important;
+}
+
+/* Modal Panel Container */
+.panel {
+  position: relative !important;
+  background: #0d0c15 !important;
+  border: 1px solid rgba(143, 227, 201, 0.28) !important;
+  border-radius: 18px !important;
+  padding: 24px 20px calc(18px + env(safe-area-inset-bottom, 0px)) 20px !important;
+  width: min(740px, 94vw) !important;
+  max-width: min(740px, 94vw) !important;
+  max-height: min(88vh, 88dvh) !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85),
+              0 0 0 1px rgba(255, 255, 255, 0.05),
+              inset 0 1px 0 rgba(143, 227, 201, 0.2) !important;
+  box-sizing: border-box !important;
+  overscroll-behavior: contain !important;
+}
+
+.panel::-webkit-scrollbar {
+  width: 6px;
+}
+.panel::-webkit-scrollbar-track {
+  background: rgba(20, 18, 28, 0.5);
+  border-radius: 3px;
+}
+.panel::-webkit-scrollbar-thumb {
+  background: rgba(143, 227, 201, 0.35);
+  border-radius: 3px;
+}
+
+.panel h2 {
+  font-family: var(--px, 'm5x7', monospace) !important;
+  font-size: calc(var(--fs, 16px) * 2.3) !important;
+  color: var(--acc, #8fe3c9) !important;
+  letter-spacing: 1.5px !important;
+  margin: 0 0 16px 0 !important;
+  padding-right: 44px !important;
+  line-height: 1.1 !important;
+  text-shadow: 0 0 12px rgba(143, 227, 201, 0.25) !important;
+}
+
+/* Floating Top-Right Close Button */
+.panel-close-btn {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  background: rgba(35, 32, 45, 0.85) !important;
+  border: 1px solid rgba(143, 227, 201, 0.25) !important;
+  color: #cbbfa8 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 20 !important;
+  touch-action: manipulation !important;
+  padding: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s !important;
+}
+
+.panel-close-btn:hover,
+.panel-close-btn:active {
+  background: #353044 !important;
+  color: #8fe3c9 !important;
+  border-color: #8fe3c9 !important;
+  transform: scale(0.92) !important;
+}
+
+/* Section Header Dividers */
+.sk-settings-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-family: var(--px, 'm5x7', monospace) !important;
+  font-size: 1.25em !important;
+  color: var(--acc, #8fe3c9) !important;
+  letter-spacing: 1.2px !important;
+  text-transform: uppercase !important;
+  margin: 18px 0 10px 0 !important;
+  padding: 8px 4px 6px !important;
+  border-bottom: 1px solid rgba(143, 227, 201, 0.2) !important;
+  text-shadow: 0 0 10px rgba(143, 227, 201, 0.25) !important;
+}
+
+.sk-settings-header:first-of-type {
+  margin-top: 6px !important;
+}
+
+/* Setting Card Rows */
+.setting {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  padding: 12px 14px !important;
+  margin-bottom: 8px !important;
+  background: rgba(22, 20, 31, 0.55) !important;
+  border: 1px solid rgba(81, 75, 98, 0.3) !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+.setting:hover {
+  background: rgba(28, 25, 39, 0.7) !important;
+  border-color: rgba(143, 227, 201, 0.22) !important;
+}
+
+.setting > div:first-child {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  font-size: 0.98em !important;
+  color: #f1ece2 !important;
+  line-height: 1.35 !important;
+  padding-right: 4px !important;
+}
+
+.setting .d {
+  color: #9f9aa8 !important;
+  font-size: 0.82em !important;
+  line-height: 1.35 !important;
+  margin-top: 4px !important;
+}
+
+/* Toggle settings right container */
+.setting:has(.toggle) > div:last-child,
+.setting.setting-toggle > div:last-child {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+/* Range slider settings on wide desktop screens */
+@media (min-width: 601px) {
+  .setting:has(input[type="range"]),
+  .setting.setting-range {
+    display: grid !important;
+    grid-template-columns: 1fr 220px !important;
+    gap: 18px !important;
+    align-items: center !important;
+  }
+  .setting:has(input[type="range"]) > div:last-child,
+  .setting.setting-range > div:last-child {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+}
+
+/* Range slider settings on mobile (< 600px) */
+@media (max-width: 600px) {
+  .setting:has(input[type="range"]),
+  .setting.setting-range {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+  }
+  .setting:has(input[type="range"]) > div:first-child,
+  .setting.setting-range > div:first-child {
+    width: 100% !important;
+  }
+  .setting:has(input[type="range"]) > div:last-child,
+  .setting.setting-range > div:last-child {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+}
+
+/* Tactile Custom Toggle Switches */
+.toggle {
+  cursor: pointer !important;
+  width: 52px !important;
+  height: 30px !important;
+  border-radius: 15px !important;
+  background: #23202e !important;
+  border: 1.5px solid #4a4558 !important;
+  position: relative !important;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
+  flex-shrink: 0 !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.toggle::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 2px !important;
+  top: 2px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  background: #8e889e !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5) !important;
+  transition: left 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.18s ease, transform 0.15s ease !important;
+}
+
+.toggle.on {
+  background: #1d4d41 !important;
+  border-color: #8fe3c9 !important;
+  box-shadow: 0 0 10px rgba(143, 227, 201, 0.28) !important;
+}
+
+.toggle.on::after {
+  left: 24px !important;
+  background: #e6fff7 !important;
+  box-shadow: 0 0 8px rgba(143, 227, 201, 0.6), 0 2px 5px rgba(0, 0, 0, 0.5) !important;
+}
+
+.toggle:active::after {
+  transform: scale(0.92) !important;
+}
+
+/* Custom Phosphor Range Sliders */
+input[type="range"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 100% !important;
+  height: 38px !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+input[type="range"]:focus {
+  outline: none !important;
+}
+
+/* WebKit Range Track */
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100% !important;
+  height: 8px !important;
+  background: #1d1b27 !important;
+  border: 1px solid rgba(143, 227, 201, 0.28) !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* WebKit Range Thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, #ffffff 30%, #d8f5ec 100%) !important;
+  border: 2px solid #8fe3c9 !important;
+  box-shadow: 0 0 10px rgba(143, 227, 201, 0.6), 0 2px 6px rgba(0, 0, 0, 0.7) !important;
+  margin-top: -9px !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.18) !important;
+  box-shadow: 0 0 16px rgba(143, 227, 201, 0.9), 0 3px 8px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Firefox Range Track */
+input[type="range"]::-moz-range-track {
+  width: 100% !important;
+  height: 8px !important;
+  background: #1d1b27 !important;
+  border: 1px solid rgba(143, 227, 201, 0.28) !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Firefox Range Thumb */
+input[type="range"]::-moz-range-thumb {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 2px solid #8fe3c9 !important;
+  box-shadow: 0 0 10px rgba(143, 227, 201, 0.6), 0 2px 6px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Modal Bottom Action Buttons & Safe-Area Pinning */
+.panel .btns {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  margin-top: 18px !important;
+  position: sticky !important;
+  bottom: -20px !important;
+  background: linear-gradient(180deg, rgba(13, 12, 21, 0) 0%, rgba(13, 12, 21, 0.95) 25%, #0d0c15 100%) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  padding: 14px 4px calc(14px + env(safe-area-inset-bottom, 0px)) 4px !important;
+  border-top: 1px solid rgba(143, 227, 201, 0.15) !important;
+  border-bottom-left-radius: 18px !important;
+  border-bottom-right-radius: 18px !important;
+  z-index: 8 !important;
+}
+
+@media (max-width: 600px) {
+  .panel .btns {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .panel .btns .btn {
+    width: 100% !important;
+    text-align: center !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.05em !important;
+  }
+}
+
+.panel .btn {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  background: #25222f !important;
+  color: var(--ink, #f1ece2) !important;
+  border: 1px solid #514b62 !important;
+  border-radius: 10px !important;
+  padding: 10px 20px !important;
+  font-size: 1em !important;
+  touch-action: manipulation !important;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s !important;
+}
+
+.panel .btn:active {
+  transform: scale(0.97) !important;
+}
+
+.panel .btn.primary {
+  background: #235c4e !important;
+  border-color: #8fe3c9 !important;
+  color: #e6fff7 !important;
+  box-shadow: 0 2px 10px rgba(143, 227, 201, 0.25) !important;
+}
+
+
+
+

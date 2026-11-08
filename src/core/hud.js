@@ -26,6 +26,12 @@ export function initHUD() {
   document.addEventListener('mouseout', e => { const t = e.target.closest && e.target.closest('.term'); if (t) hide(); });
   document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('term')) show(e.target); });
   document.addEventListener('focusout', hide);
+  // touch screens: tap a dotted word to show its explanation, tap it again (or anywhere else) to hide it
+  document.addEventListener('click', e => {
+    const t = e.target.closest && e.target.closest('.term');
+    if (t) { if (tt.classList.contains('on') && tt._cur === t.dataset.tip) { hide(); tt._cur = null; } else { show(t); tt._cur = t.dataset.tip; } }
+    else if (!e.target.closest('#tooltip')) { hide(); tt._cur = null; }
+  });
 }
 export function hud(on) { $('hud').classList.toggle('hidden', !on); }
 export function hudParts(o) {
@@ -38,13 +44,14 @@ export function objective(s) { $('objective').innerHTML = s ? rich(s) : ''; }
 export function carry(s) { $('carry').innerHTML = s ? rich(s) : ''; }
 export function prompt(label) {
   const p = $('prompt');
-  if (!label) { p.classList.remove('on'); return; }
+  // no "E: use" prompt while a menu or panel is open (on a phone it sat on top of the buttons)
+  if (!label || S.paused || document.body.classList.contains('in-menu') || [...$('overlay').children].some(c => c.offsetWidth || c.offsetHeight)) { p.classList.remove('on'); return; }
   $('prompttext').textContent = plain(label); p.classList.add('on');
 }
 export function checklist(title, rows) {
   $('checklist').innerHTML = `<div class="h">${title}</div>` + rows.map(r => `<div class="row ${r.cls || ''}"><span class="b">${r.cls === 'done' ? '✓' : r.cls === 'got' ? '•' : '·'}</span><span>${r.name} ${r.hu ? `<span class="hu">(${r.hu})</span>` : ""}</span></div>`).join('');
 }
-export function eye(v, alert) { $('eyefill').firstElementChild.style.width = Math.round(Math.max(0, Math.min(1, v)) * 100) + '%'; $('eyebox').classList.toggle('alert', !!alert); }
+export function eye(v, alert) { if (window.SK_HAPTICS && window.SK_HAPTICS.onNoise) window.SK_HAPTICS.onNoise(v, !!alert); $('eyefill').firstElementChild.style.width = Math.round(Math.max(0, Math.min(1, v)) * 100) + '%'; $('eyebox').classList.toggle('alert', !!alert); }
 export function battery(v) { $('battfill').style.width = Math.round(Math.max(0, Math.min(1, v)) * 100) + '%'; }
 
 // captions: kind 'sfx' for sound descriptions (shown only if subtitles on), 'say' for thoughts
@@ -74,6 +81,7 @@ export function fade(on, text = '', secs = 1) {
   return new Promise(r => setTimeout(r, secs * 1000));
 }
 export function flash(strength = 0.9, ms = 180) {
+  if (window.SK_HAPTICS && window.SK_HAPTICS.onFlash) window.SK_HAPTICS.onFlash(strength, ms);
   const f = $('flash'); f.style.transition = 'none'; f.style.opacity = strength;
   requestAnimationFrame(() => { f.style.transition = `opacity ${ms}ms`; f.style.opacity = 0; });
 }

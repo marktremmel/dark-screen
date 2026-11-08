@@ -7,7 +7,7 @@ import { hud, hudParts, objective, prompt, caption, fade } from '../core/hud.js'
 import { music, loop, play } from '../core/audio.js';
 import { S, isDone, isUnlocked, orderOK, keyOK, tryCode, persist } from '../core/state.js';
 import { EPISODES, BUILT, epPos, epInfo, LOCKS_ON } from '../text.js';
-import { openScreen, closeScreen, settingsScreen, exportScreen, importScreen, creditsScreen } from '../ui/screens.js';
+import { progressBox, openScreen, closeScreen, settingsScreen, exportScreen, importScreen, creditsScreen } from '../ui/screens.js';
 
 
 export class Hub {
@@ -142,14 +142,18 @@ export class Hub {
     else this.startPlaying();
   }
   startPlaying() {
+    S.paused = false; document.body.classList.remove('paused', 'in-menu', 'has-screen-overlay');
+    this.G.expectUnlock = true; setTimeout(() => { this.G.expectUnlock = false; }, 800);
     this.titleMode = false; this.playing = true;
     const back = this.G.returnFrom;
     if (back) { const p = this.pcs.find(q => q.n === back); this.player.set(p.x - 0.2, p.z + 1.4, 0); this.G.returnFrom = null; }
     else this.player.set(5.3, 3.6, 0);
     hud(true); hudParts({ checklist: false, status: false });
     objective(this.day ? 'Morning. Every screen is green: replay any episode you like.' : 'Find the computer that is switched on.');
-    caption('Click the screen to look around with the mouse. W A S D to walk, E to use.', 'say', 7);
+    const touch = !!(window.SK_TOUCH && window.SK_TOUCH.active);
+    caption(touch ? 'Left stick: walk. Drag on the right side: look around. The E button: use.' : 'Click the screen to look around with the mouse. W A S D to walk, E to use.', 'say', 7);
     this.refreshScreens();
+    if (touch) { lockPointer(); window.SK_TOUCH.resetMovement && window.SK_TOUCH.resetMovement(); window.SK_TOUCH.updateState && window.SK_TOUCH.updateState(); }
   }
   usePC(n) {
     const p = epPos(n);
@@ -204,8 +208,7 @@ export class Hub {
   }
   teacherMenu() {
     this.G.unlock();
-    const el = openScreen(`<div class="panel" style="width:min(560px,94vw);text-align:center"><h2>Teacher's computer</h2>
-      <p class="sub">Player: <b>${(S.nick || '').replace(/</g, '')}</b></p>
+    const el = openScreen(`<div class="panel" style="width:min(560px,94vw);text-align:center"><h2>Teacher's computer</h2>${progressBox()}
       <div class="btns" style="flex-direction:column;align-items:stretch">
       <button class="btn" id="s">Settings</button><button class="btn" id="c">Show my save code</button><button class="btn" id="l">Load a save code</button>
       ${LOCKS_ON ? '<button class="btn" id="tk">Teacher key (open all episodes)</button>' : ''}<button class="btn" id="cr">Credits</button><button class="btn primary" id="x" autofocus>Close</button></div></div>`);

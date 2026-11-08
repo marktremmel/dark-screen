@@ -177,6 +177,7 @@ export function homeJobPanel(job, Phrase, rand = Math.random, strict = false) {
       d.innerHTML = sys ? esc(text) : `${who !== 'you' && who !== 'them' ? `<span class="who">${esc(who)}</span>` : ''}${esc(text)}`;
       box.appendChild(d); box.scrollTop = box.scrollHeight; setTimeout(() => { box.scrollTop = box.scrollHeight; }, 350); play('click', { vol: 0.25 });
     };
+    const touch = !!(window.SK_TOUCH && window.SK_TOUCH.active);
     const close = done => { if (closed) return; closed = true; timers.forEach(clearTimeout); removeEventListener('keydown', key, true); closeScreen(el); res({ done, tries, ...(typing ? typing.stats() : { chars: 0, ms: 0, keys: 0, errors: 0 }) }); };
     const key = e => {
       if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(false); return; }
@@ -186,7 +187,9 @@ export function homeJobPanel(job, Phrase, rand = Math.random, strict = false) {
     setTimeout(() => addEventListener('keydown', key, true), 150);
     const choose = () => {
       const opts = job.replies.slice().sort(() => rand() - 0.5);
-      foot.innerHTML = `<div class="sub" style="font-size:.75em">Your reply (válasz):</div>` + opts.map((o, i) => `<button class="btn small" data-i="${i}" style="text-align:left;width:100%">${esc(o.text)}</button>`).join('');
+      foot.innerHTML = `<div class="sub" style="font-size:.75em">Your reply (válasz):</div>` + opts.map((o, i) => `<button class="btn small" data-i="${i}" style="text-align:left;width:100%">${esc(o.text)}</button>`).join('')
+        + (touch ? '<button class="btn small" id="hx" style="width:100%;margin-top:4px">Not now</button>' : '');
+      const hx = foot.querySelector('#hx'); if (hx) hx.onclick = () => close(false);
       foot.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
         const o = opts[+b.dataset.i]; tries++;
         if (!o.safe) { foot.innerHTML = ''; bubble('sys', 'What could happen next: ' + o.next, true); later(() => { bubble('sys', 'Choose again.', true); choose(); }, 1600); return; }
@@ -195,7 +198,8 @@ export function homeJobPanel(job, Phrase, rand = Math.random, strict = false) {
     };
     const type = text => {
       const p = new Phrase(text, strict), t0 = performance.now();
-      foot.innerHTML = `<div class="sub" style="font-size:.75em">Type it (gépeld be)${strict ? ': capitals and punctuation count' : ''}:</div><div id="ht" style="font:18px m5x7,monospace;letter-spacing:1px;padding:8px 10px;background:#15141c;border-radius:10px;width:100%;box-sizing:border-box"></div>`;
+      foot.innerHTML = `<div class="sub" style="font-size:.75em">Type it (gépeld be)${strict ? ': capitals and punctuation count' : ''}:</div><div id="ht" style="font:18px m5x7,monospace;letter-spacing:1px;padding:8px 10px;background:#15141c;border-radius:10px;width:100%;box-sizing:border-box"></div>`
+        + (touch ? '<button class="btn small primary" id="hs" style="width:100%;margin-top:6px">Send (küldés)</button>' : '');
       const ht = foot.querySelector('#ht');
       const draw = () => { ht.innerHTML = `<span style="color:#8fe3c9">${esc(text.slice(0, p.pos))}</span><span style="text-decoration:underline">${esc(text.slice(p.pos, p.pos + 1))}</span><span style="color:#8a8598">${esc(text.slice(p.pos + 1))}</span>`; };
       typing = {
@@ -203,6 +207,8 @@ export function homeJobPanel(job, Phrase, rand = Math.random, strict = false) {
         stats: () => ({ chars: p.pos, ms: performance.now() - t0, keys: p.keys, errors: p.errors }),
       };
       draw();
+      // touch: the reply can also just be sent (the on-screen keyboard still works for typing it)
+      const hs = foot.querySelector('#hs'); if (hs) hs.onclick = () => { play('click', { vol: 0.35 }); p.pos = text.length; p.keys = Math.max(p.keys, text.length); sent(); };
       const sent = () => {
         const st = typing.stats(); typing = { input: () => {}, stats: () => st };
         foot.innerHTML = ''; bubble('you', text);

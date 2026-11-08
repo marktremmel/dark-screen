@@ -90,6 +90,13 @@ export class Ep5 {
       if (this.playing && this.st.phase !== 'end') { this.save(); this.G.openPause(); }
     };
     addEventListener('keydown', this._key, true);
+    // touch: swipe up for the next clip, like the real apps
+    let sy = 0;
+    this.el.addEventListener('touchstart', e => { if (e.touches && e.touches[0]) sy = e.touches[0].clientY; }, { passive: true });
+    this.el.addEventListener('touchend', e => {
+      if (this.view !== 'feed' || this.modal || this.flagMode || this.dark || this.forceClip) return;
+      const t = e.changedTouches && e.changedTouches[0]; if (t && sy - t.clientY > 45) this.next(false);
+    }, { passive: true });
   }
 
   // ---------------- helpers ----------------

@@ -10,6 +10,18 @@
 - Settings: Voice acting on/off and Voice volume. Off brings back the old mumbling sounds.
 - Lines that contain your nickname or a number still use the mumbling sounds for now.
 
+### Phones and tablets (the app and phone browsers)
+- The touch layer from the app build is now part of the game: joysticks, a Use button, tilt to look (gyroscope), an on-screen keyboard with suggestions, and vibration that follows the sounds.
+- A setup in up to four steps at the first start: brightness, screen orientation (phones), text size and subtitles, voices and the gyroscope. "Setup again" in Settings.
+- Tap a dotted word to read its explanation. Tap to skip the text screens in Lépcsőház. Swipe up for the next clip in the feed episode. Parts follow your finger in the computer build.
+- Phone replies at home can be sent with a button on touch screens; "Not now" closes them without Esc.
+- The pause menu, the teacher's computer and the Lépcsőház results show how many stories you have finished.
+- A new scene never starts paused or behind an old menu, and the "E: use" prompt hides while a menu is open.
+
+### Fixes
+- Episode 1: you can look through the peephole a little longer, while Mrs Kovács is still on the landing, and the narrator starts with the picture. On touch screens she takes longer to find you.
+- The title screen said v1.2.
+
 ## v1.3 (Lépcsőház)
 
 ### Lépcsőház (Stairwell), 13+

@@ -16,13 +16,20 @@ addEventListener('keyup', e => { IN.keys[keyMap(e.code)] = false; });
 addEventListener('blur', () => { IN.keys = {}; });
 addEventListener('mousemove', e => { if (IN.locked) { IN.mdx += e.movementX; IN.mdy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
-  IN.locked = document.pointerLockElement === R.canvas;
+  IN.locked = document.pointerLockElement === R.canvas || !!(window.SK_TOUCH && window.SK_TOUCH.active);   // touch: the joysticks count as "locked"
   if (!IN.locked && S.onUnlock) S.onUnlock();
 });
 export function wasPressed(code) { const v = !!IN.pressed[code]; return v; }
 export function clearPressed() { IN.pressed = {}; IN.mdx = 0; IN.mdy = 0; }
-export function lockPointer() { try { const p = R.canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { }); } catch (e) { } }
-export function unlockPointer() { if (document.pointerLockElement) document.exitPointerLock(); }
+export function lockPointer() {
+  try { const p = R.canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { }); } catch (e) { }
+  if (window.SK_TOUCH && window.SK_TOUCH.onLock) window.SK_TOUCH.onLock();
+}
+export function unlockPointer() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  if (window.SK_TOUCH && window.SK_TOUCH.onUnlock) window.SK_TOUCH.onUnlock();
+}
+window.SK_INPUT = IN;
 
 // ---------- player ----------
 export class Player {

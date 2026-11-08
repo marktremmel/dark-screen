@@ -1,18 +1,23 @@
-import { S, DEFAULT_SETTINGS, persist, listPlayers, lastPlayer, loadPlayer, exportCode, importCode, peekCode, epData } from '../core/state.js';
-import { rich, CREDITS, CONTENT_NOTE, LOCKS_ON } from '../text.js';
+import { S, DEFAULT_SETTINGS, persist, listPlayers, lastPlayer, loadPlayer, exportCode, importCode, peekCode, epData, isDone } from '../core/state.js';
+import { rich, CREDITS, CONTENT_NOTE, LOCKS_ON, EPISODES } from '../text.js';
 import { play, setVolumes, resumeAudio } from '../core/audio.js';
-import { setVoiceVolume, voStop, voDur } from '../core/voice.js';
+import { setVoiceVolume, voStop, voDur, speak, voPreload } from '../core/voice.js';
 import { setBrightness, setLines } from '../core/render.js';
 import { pxCanvas } from '../core/world.js';
+import { prompt } from '../core/hud.js';
 
 const ov = () => document.getElementById('overlay');
 export function openScreen(html, cls = '') {
   const el = document.createElement('div'); el.className = 'screen ' + cls; el.innerHTML = html; ov().appendChild(el);
+  prompt(null); document.body.classList.add('has-screen-overlay', 'in-menu');
   el.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => play('uiclick', { vol: 0.4 })));
   const first = el.querySelector('[autofocus]'); if (first) setTimeout(() => first.focus({ preventScroll: true }), 30);
   return el;
 }
-export function closeScreen(el) { if (el && el.parentNode) el.parentNode.removeChild(el); }
+export function closeScreen(el) {
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+  if (!anyScreenOpen()) document.body.classList.remove('has-screen-overlay', 'in-menu');
+}
 // a painted picture shown full-screen for a moment (click to skip)
 export function cutIn(src, cap = '', ms = 3200, cls = '') {
   return new Promise(res => {
@@ -22,7 +27,11 @@ export function cutIn(src, cap = '', ms = 3200, cls = '') {
     el.addEventListener('click', end); setTimeout(end, ms);
   });
 }
-export function anyScreenOpen() { return ov().children.length > 0; }
+// a screen counts only if it is actually visible (some scenes keep hidden panels in the overlay)
+export function anyScreenOpen() {
+  for (const c of ov().children) { if (c.nodeType !== 1) continue; const s = getComputedStyle(c); if (s.display !== 'none' && s.visibility !== 'hidden' && (c.offsetWidth > 0 || c.offsetHeight > 0 || c.children.length > 0)) return true; }
+  return false;
+}
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export function applySettings() {
@@ -40,13 +49,13 @@ export function titleScreen() {
       <div class="panel" style="width:min(1060px,94vw)">
         <div class="title-wrap">
           <div>
-            <div class="logo"><div id="logoc"></div><small>Dark Screen · a digital culture horror anthology · v1.2</small></div>
+            <div class="logo"><div id="logoc"></div><small>Dark Screen · a digital culture horror anthology · v1.4</small></div>
             <p class="sub" style="margin-top:22px">Nine short stories. Each one starts at an old computer in an empty school lab, at night.</p>
             <div class="note">${esc(CONTENT_NOTE)}</div>
           </div>
           <div>
             <h3>Your nickname</h3>
-            <div class="row2"><input type="text" id="nick" maxlength="20" placeholder="e.g. Panna_7B" value="${esc(last || '')}" autofocus><button class="btn primary" id="go">Start</button></div>
+            <div class="row2"><input type="text" id="nick" maxlength="20" placeholder="e.g. Panna_7B" value="${esc(last || '')}" ${window.SK_TOUCH && window.SK_TOUCH.active ? '' : 'autofocus'}><button class="btn primary" id="go">Start</button></div>
             <div class="err" id="err"></div>
             ${players.length ? `<div class="sub" style="font-size:.8em">Saved players on this computer:</div><div class="players">${players.map(p => `<button class="btn small pl" data-n="${esc(p)}">${esc(p)}</button>`).join('')}</div>` : ''}
             <div class="btns">
@@ -157,7 +166,7 @@ export function settingsScreen(onClose) {
     ${tg('grain', 'Film grain', 'A very faint grain on top of the camera effects.')}
     ${tg('bigText', 'Large text', '')}
     ${tg('bob', 'Head bobbing', 'Turn off if walking makes you feel dizzy.')}
-    <div class="btns"><button class="btn" id="cal">Calibrate brightness</button><button class="btn primary" id="x">Done</button></div></div>`);
+    <div class="btns"><button class="btn" id="cal">Setup again</button><button class="btn primary" id="x">Done</button></div></div>`);
   el.querySelectorAll('.toggle').forEach(t => {
     const flip = () => { const k = t.dataset.k; st[k] = !st[k]; t.classList.toggle('on', st[k]); t.setAttribute('aria-checked', st[k]); applySettings(); play('click', { vol: 0.4 }); };
     t.onclick = flip; t.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } };
@@ -168,19 +177,64 @@ export function settingsScreen(onClose) {
   return el;
 }
 
+// v1.4: the first-start setup, in up to four short steps (it began as a brightness check; the app version
+// grew it into a wizard for phones). Orientation and the gyroscope only show on touch devices.
 export function calibrationScreen() {
   return new Promise(res => {
-    const el = openScreen(`<div class="panel" style="width:min(720px,94vw);text-align:center"><h2>Brightness check</h2>
-      <p>Move the slider until the <b>middle</b> eye is <b>just barely</b> visible. The left one should stay invisible.</p>
-      <div class="calib"><div style="color:#030303">◉</div><div style="color:#121212">◉</div><div style="color:#2a2a2a">◉</div></div>
-      <input type="range" id="b" min="0.7" max="1.9" step="0.05" value="${S.settings.brightness}">
-      <p class="sub" style="font-size:.8em">This screen uses the same brightness as the game. You can change it later in Settings.</p>
-      <div class="btns" style="justify-content:center"><button class="btn primary" id="ok">That looks right</button></div></div>`);
-    const calib = el.querySelector('.calib');
-    const ap = () => { const v = S.settings.brightness * (S.settings.projector ? 1.25 : 1); calib.style.filter = `brightness(${v})`; };
-    ap();
-    el.querySelector('#b').oninput = e => { S.settings.brightness = parseFloat(e.target.value); applySettings(); ap(); };
-    el.querySelector('#ok').onclick = () => { S.settings.calibrated = true; if (S.save) persist(); closeScreen(el); res(); };
+    const st = S.settings, touch = !!(window.SK_TOUCH && window.SK_TOUCH.active), gyro = touch && window.SK_GYRO;
+    const steps = ['bright', ...(touch ? ['view'] : []), 'text', 'voice'];
+    let i = 0, el = null;
+    const tg = (k, label, d, on = !!st[k]) => `<div class="setting" style="text-align:left"><div>${label}<div class="d">${d}</div></div><div><div class="toggle ${on ? 'on' : ''}" data-k="${k}" role="switch" tabindex="0" aria-checked="${on}"></div></div></div>`;
+    const head = (t, hu) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px"><h2 style="margin:0">${steps.length > 1 ? `${i + 1} / ${steps.length}: ` : ''}${t}</h2><span class="sub" style="font-size:.85em">${hu}</span></div>`;
+    const body = {
+      bright: () => head('Brightness', 'fényerő') + `<p>Move the slider until the <b>middle</b> eye is <b>just barely</b> visible. The left one should stay invisible.</p>
+        <div class="calib"><div style="color:#030303">◉</div><div style="color:#121212">◉</div><div style="color:#2a2a2a">◉</div></div>
+        <input type="range" id="b" min="0.7" max="1.9" step="0.05" value="${st.brightness}">
+        ${tg('projector', 'Projector mode', 'Extra brightness and contrast for washed-out classroom projectors.')}`,
+      view: () => head('Screen', 'tájolás és kép') + `<p style="text-align:left">Hold the phone the way you like. Auto turns with it.</p>
+        <div class="btns" style="justify-content:center;flex-wrap:wrap">${[['auto', 'Auto'], ['landscape', 'Landscape (fekvő)'], ['portrait', 'Portrait (álló)']].map(([m, l]) => `<button class="btn ${(st.orientationMode || 'auto') === m ? 'primary' : ''}" data-o="${m}">${l}</button>`).join('')}</div>
+        ${tg('sharp', 'Sharper picture', 'Draws the game at a higher resolution. Turn off if the phone gets hot or slow.')}
+        ${tg('grain', 'Film grain', 'A very faint grain on top of the picture.')}`,
+      text: () => head('Text', 'szöveg') + `${tg('bigText', 'Large text', 'Bigger captions, notes and messages.')}
+        <div id="pv" style="background:#09090f;border:1px dashed var(--line);border-radius:8px;padding:12px;margin:8px 0 12px">
+          <div style="color:#ffe7a8;font-style:italic">[footsteps in the hallway]</div><div>Mrs Kovács from the third floor, in her dressing gown, with a torch.</div></div>
+        ${tg('subs', 'Sound subtitles', 'Shows what you hear, like [footsteps in the hallway].')}
+        ${tg('quiet', 'Quiet mode (csendes mód)', 'Removes the jump scares. The story stays the same.')}`,
+      voice: () => head('Voices' + (gyro ? ' and motion' : ''), gyro ? 'szinkron és giroszkóp' : 'szinkron') +
+        `${tg('voice', 'Voice acting (szinkron)', 'The narrator and the characters read their lines aloud. Off: the old mumbling sounds.', st.voice !== false)}
+        <div class="btns" style="justify-content:flex-start;margin:4px 0 10px"><button class="btn small" id="tv">Play a line</button></div>
+        ${gyro ? tg('gyro', 'Look around by tilting the phone', 'Uses the gyroscope in the 3D episodes. You can still drag to look.', !!window.SK_GYRO.enabled) + '<div id="gs" class="sub" style="font-size:.8em;text-align:left"></div>' : ''}`,
+    };
+    const finish = () => { st.calibrated = true; if (S.save) persist(); applySettings(); if (el) closeScreen(el); res(); };
+    const draw = () => {
+      if (el) closeScreen(el);
+      const last = i === steps.length - 1;
+      el = openScreen(`<div class="panel" style="width:min(720px,94vw);text-align:center">${body[steps[i]]()}
+        <div class="btns" style="justify-content:space-between;margin-top:18px">${i ? '<button class="btn" id="bk">Back</button>' : (steps.length > 1 ? '<button class="btn" id="sk">Skip</button>' : '<span></span>')}
+        <button class="btn primary" id="nx">${last ? 'Start' : 'Next'}</button></div></div>`);
+      const calib = el.querySelector('.calib');
+      const ap = () => { if (calib) calib.style.filter = `brightness(${st.brightness * (st.projector ? 1.25 : 1)})`; const pv = el.querySelector('#pv'); if (pv) pv.style.fontSize = st.bigText ? '27px' : '22px'; };
+      ap();
+      const b = el.querySelector('#b'); if (b) b.oninput = e => { st.brightness = parseFloat(e.target.value); applySettings(); ap(); };
+      el.querySelectorAll('.toggle').forEach(t => t.onclick = async () => {
+        const k = t.dataset.k;
+        if (k === 'gyro') {
+          const G = window.SK_GYRO, on = !G.enabled, gs = el.querySelector('#gs');
+          if (on && G.needsExplicitPermission && G.needsExplicitPermission()) { const ok = await G.requestPermission(); if (!ok) { gs.textContent = 'The phone did not allow motion sensors. You can try again in Settings.'; return; } }
+          G.setEnabled(on); t.classList.toggle('on', on); gs.textContent = on ? 'Tilt the phone a little: the view follows.' : ''; return;
+        }
+        st[k] = k === 'voice' ? st.voice === false : !st[k]; t.classList.toggle('on', k === 'voice' ? st.voice !== false : st[k]); applySettings(); ap(); play('click', { vol: 0.4 });
+      });
+      el.querySelectorAll('[data-o]').forEach(bt => bt.onclick = () => {
+        st.orientationMode = bt.dataset.o; el.querySelectorAll('[data-o]').forEach(x => x.classList.toggle('primary', x === bt));
+        if (window.SK_TOUCH && window.SK_TOUCH.setOrientationMode) window.SK_TOUCH.setOrientationMode(bt.dataset.o);
+      });
+      const tv = el.querySelector('#tv'); if (tv) tv.onclick = () => { resumeAudio(); if (!speak('Outside. Warm air, birds, the blocks far away in the sunset. Somewhere, a computer is playing a song.', { force: true })) play('beep', { vol: 0.4 }); };
+      el.querySelector('#nx').onclick = () => { if (i === steps.length - 1) finish(); else { i++; draw(); } };
+      const bk = el.querySelector('#bk'); if (bk) bk.onclick = () => { i--; draw(); };
+      const sk = el.querySelector('#sk'); if (sk) sk.onclick = finish;
+    };
+    draw();
   });
 }
 
@@ -192,9 +246,20 @@ export function creditsScreen() {
 }
 
 // ---------- Pause ----------
+/** v1.4: how far this player is: stories finished and Lépcsőház descents (pause menu, teacher's computer, Lépcsőház results). */
+export function progressBox() {
+  const done = EPISODES.filter(e => isDone(e.id)).length, total = EPISODES.length, pct = Math.round(done / total * 100);
+  const desc = (S.save && S.save.rogue && S.save.rogue.record && S.save.rogue.record.descents) || 0;
+  return `<div style="margin:8px 0 14px;background:#151320;border:1px solid #2e2a3a;border-radius:12px;padding:10px 14px;text-align:left">
+    <div style="display:flex;justify-content:space-between;font-size:.9em;margin-bottom:6px"><span style="color:#cbbfa8">Player: <b>${esc(S.nick || '')}</b></span><span style="color:#8fe3c9;font-weight:bold">${pct}%</span></div>
+    <div style="height:8px;background:#252033;border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#8fe3c9,#ffd23a)"></div></div>
+    <div class="sub" style="font-size:.78em;margin-top:5px;display:flex;justify-content:space-between"><span>${done}/${total} stories finished</span><span>${desc} times down the stairs</span></div>
+    ${done === total ? '<div style="margin-top:8px;padding:6px 10px;background:#2a2010;border:1px solid #ffd23a;border-radius:8px;color:#ffe27a;font-weight:bold;font-size:.85em;text-align:center">KIBER-MESTER: every story finished</div>' : ''}</div>`;
+}
+
 export function pauseScreen({ onResume, onQuit, quitLabel }) {
   const el = openScreen(`<div class="panel" style="width:min(520px,94vw);text-align:center"><h2>Paused</h2>
-    <p class="sub">Your progress is saved.</p>
+    <p class="sub">Your progress is saved.</p>${progressBox()}
     <div class="btns" style="flex-direction:column;align-items:stretch">
       <button class="btn primary" id="r" autofocus>Continue</button>
       <button class="btn" id="s">Settings</button>
