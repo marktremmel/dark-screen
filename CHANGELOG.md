@@ -21,6 +21,7 @@
 ### Fixes
 - Episode 1: you can look through the peephole a little longer, while Mrs Kovács is still on the landing, and the narrator starts with the picture. On touch screens she takes longer to find you.
 - The title screen said v1.2.
+- The phone layer is also in the school page (game/index.html), so the GitHub version works on phones. It only switches on with a touch screen.
 
 ## v1.3 (Lépcsőház)
 
